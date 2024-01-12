@@ -1,5 +1,9 @@
 from lexer.token import *
 
+RESERVED_KEYWORDS = {
+    'Main': Token('Main', 'Main')
+}
+
 class Lexer(object):
     def __init__(self, text):
         # client string input, e.g. "4 + 2 * 3 - 6 / 2"
@@ -31,6 +35,16 @@ class Lexer(object):
             self.advance()
         return int(result)
 
+    def _id(self):
+        """Handle identifiers and reserved keywords"""
+        result = ''
+        while self.current_char is not None and self.current_char.isalnum():
+            result += self.current_char
+            self.advance()
+
+        token = RESERVED_KEYWORDS.get(result, Token(ID, result))
+        return token
+
     def get_next_token(self):
         """Lexical analyzer (also known as scanner or tokenizer)
 
@@ -43,8 +57,17 @@ class Lexer(object):
                 self.skip_whitespace()
                 continue
 
+            if self.current_char.isalpha():
+                return self._id()
+
             if self.current_char.isdigit():
                 return Token(INTEGER, self.integer())
+            
+            # peek() is for '<='
+            # if self.current_char == '<' and self.peek() == '=':
+            if self.current_char == '=':
+                self.advance()
+                return Token(ASSIGN, '=')
 
             if self.current_char == '+':
                 self.advance()

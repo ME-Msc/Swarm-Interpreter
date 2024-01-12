@@ -1,16 +1,21 @@
+assignment_statement ::= variable "=" additive_expression
+
 /* expr: term ((PLUS | MINUS) term)**/
 additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative_expression )*
 
 /* term: factor ((MUL | DIV) factor)* */
 multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
 
-/* factor : PLUS factor
+/* factor :INTEGER 
+           | PLUS factor
            | MINUS factor
-           | INTEGER
            | LPAREN expr RPAREN
            | variable */
 primary_expression ::= integer
                         | ( "+" | "-" ) primary_expression
                         | "(" additive_expression ")"
+                        | variable
+
+variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 
 integer ::= "0" | ( [1-9] [0-9]* )

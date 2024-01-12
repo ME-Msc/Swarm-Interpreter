@@ -1,6 +1,7 @@
 from lexer.token import *
 from parser.num import Num
-from parser.operator import UnaryOp, BinOp
+from parser.variable import Var
+from parser.operator import NoOp, UnaryOp, BinOp, Assign
 
 class Parser(object):
     def __init__(self, lexer):
@@ -21,8 +22,36 @@ class Parser(object):
         else:
             self.error()
 
+    def assignment_statement(self):
+        """
+        assignment_statement : variable ASSIGN expr
+        """
+        left = self.variable()
+        token = self.current_token
+        self.eat(ASSIGN)
+        right = self.expr()
+        node = Assign(left, token, right)
+        return node
+
+    def variable(self):
+        """
+        variable : ID
+        """
+        node = Var(self.current_token)
+        self.eat(ID)
+        return node
+
+    def empty(self):
+        """An empty production"""
+        return NoOp()
+
     def factor(self):
-        """factor : (PLUS | MINUS) factor | INTEGER | LPAREN expr RPAREN"""
+        """
+        factor : (PLUS | MINUS) factor 
+                    | INTEGER 
+                    | LPAREN expr RPAREN
+                    | variable
+        """
         token = self.current_token
         if token.type == PLUS:
             self.eat(PLUS)
@@ -39,6 +68,9 @@ class Parser(object):
             self.eat(LPAREN)
             node = self.expr()
             self.eat(RPAREN)
+            return node
+        else:
+            node = self.variable()
             return node
 
     def term(self):
@@ -78,7 +110,7 @@ class Parser(object):
         return node
 
     def parse(self):
-        node = self.expr()
+        node = self.assignment_statement()
         if self.current_token.type != EOF:
             self.error()
         return node
