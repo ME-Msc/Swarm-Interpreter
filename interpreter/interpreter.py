@@ -1,5 +1,5 @@
 from interpreter.nodeVisitor import NodeVisitor
-from lexer.token import PLUS, MINUS, MUL, DIV
+from lexer.token import PLUS, MINUS, MUL, DIV, MOD
 
 class Interpreter(NodeVisitor):
     def __init__(self, parser):
@@ -14,6 +14,8 @@ class Interpreter(NodeVisitor):
             return self.visit(node.left) * self.visit(node.right)
         elif node.op.type == DIV:
             return self.visit(node.left) // self.visit(node.right)
+        elif node.op.type == MOD:
+            return self.visit(node.left) % self.visit(node.right)
 
     def visit_Num(self, node):
         return node.value

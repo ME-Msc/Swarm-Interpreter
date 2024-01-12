@@ -61,6 +61,10 @@ class Lexer(object):
             if self.current_char == '/':
                 self.advance()
                 return Token(DIV, '/')
+            
+            if self.current_char == '%':
+                self.advance()
+                return Token(MOD, '%')
 
             if self.current_char == '(':
                 self.advance()

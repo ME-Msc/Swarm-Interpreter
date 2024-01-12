@@ -28,6 +28,13 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.type, DIV)
         self.assertEqual(token.value, '/')
 
+    def test_lexer_mod(self):
+        from lexer.lexer import MOD
+        lexer = self.makeLexer(' % ')
+        token = lexer.get_next_token()
+        self.assertEqual(token.type, MOD)
+        self.assertEqual(token.value, '%')
+
     def test_lexer_plus(self):
         from lexer.lexer import PLUS
         lexer = self.makeLexer('+')
@@ -103,6 +110,11 @@ class InterpreterTestCase(unittest.TestCase):
         interpreter = self.makeInterpreter('7 + (((3 + 2)))')
         result = interpreter.interpret()
         self.assertEqual(result, 12)
+
+    def test_expression8(self):
+        interpreter = self.makeInterpreter('15 + 6 % 4 * 2')
+        result = interpreter.interpret()
+        self.assertEqual(result, 19)
 
     def test_expression_invalid_syntax1(self):
         interpreter = self.makeInterpreter('10 *')

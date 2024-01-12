@@ -34,15 +34,17 @@ class Parser(object):
             return node
 
     def term(self):
-        """term : factor ((MUL | DIV) factor)*"""
+        """term : factor ((MUL | DIV | MOD) factor)*"""
         node = self.factor()
 
-        while self.current_token.type in (MUL, DIV):
+        while self.current_token.type in (MUL, DIV, MOD):
             token = self.current_token
             if token.type == MUL:
                 self.eat(MUL)
             elif token.type == DIV:
                 self.eat(DIV)
+            elif token.type == MOD:
+                self.eat(MOD)
 
             node = BinOp(left=node, op=token, right=self.factor())
 
@@ -51,7 +53,7 @@ class Parser(object):
     def expr(self):
         """
         expr   : term ((PLUS | MINUS) term)*
-        term   : factor ((MUL | DIV) factor)*
+        term   : factor ((MUL | DIV | MOD) factor)*
         factor : INTEGER | LPAREN expr RPAREN
         """
         node = self.term()
