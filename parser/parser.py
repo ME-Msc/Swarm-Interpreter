@@ -1,7 +1,6 @@
 from lexer.token import *
 from parser.num import Num
-from parser.binOp import BinOp
-from parser.unaryOp import UnaryOp
+from parser.operator import UnaryOp, BinOp
 
 class Parser(object):
     def __init__(self, lexer):
