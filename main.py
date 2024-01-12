@@ -7,6 +7,7 @@ def main():
     while True:
         try:
             text = input('spi> ')
+            # text = "x = 5"
         except EOFError:
             break
         if not text:
@@ -16,7 +17,7 @@ def main():
         parser = Parser(lexer)
         interpreter = Interpreter(parser)
         result = interpreter.interpret()
-        print(result)
+        print(interpreter.GLOBAL_SCOPE)
 
 
 if __name__ == '__main__':
