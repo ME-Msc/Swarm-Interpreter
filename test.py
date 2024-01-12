@@ -104,6 +104,31 @@ class InterpreterTestCase(unittest.TestCase):
         result = interpreter.interpret()
         self.assertEqual(result, 12)
 
+    def test_expression8(self):
+        interpreter = self.makeInterpreter('- 3')
+        result = interpreter.interpret()
+        self.assertEqual(result, -3)
+
+    def test_expression9(self):
+        interpreter = self.makeInterpreter('+ 3')
+        result = interpreter.interpret()
+        self.assertEqual(result, 3)
+
+    def test_expression10(self):
+        interpreter = self.makeInterpreter('5 - - - + - 3')
+        result = interpreter.interpret()
+        self.assertEqual(result, 8)
+
+    def test_expression11(self):
+        interpreter = self.makeInterpreter('5 - - - + - (3 + 4) - +2')
+        result = interpreter.interpret()
+        self.assertEqual(result, 10)
+
+    def test_no_expression(self):
+        interpreter = self.makeInterpreter('   ')
+        result = interpreter.interpret()
+        self.assertEqual(result, '')
+
     def test_expression_invalid_syntax1(self):
         interpreter = self.makeInterpreter('10 *')
         with self.assertRaises(Exception):
