@@ -1,6 +1,5 @@
 from lexer.token import *
-from parser.num import Num
-from parser.variable import Var
+from parser.element import Num, Var, Compound
 from parser.operator import NoOp, UnaryOp, BinOp, Assign
 
 class Parser(object):
@@ -21,6 +20,46 @@ class Parser(object):
             self.current_token = self.lexer.get_next_token()
         else:
             self.error()
+
+    def compound_statement(self):
+        """
+        compound_statement: BEGIN statement_list END
+        """
+        nodes = self.statement_list()
+
+        root = Compound()
+        for node in nodes:
+            root.children.append(node)
+
+        return root
+
+    def statement_list(self):
+        """
+        statement_list : statement (SEMI statement)*
+        """
+        node = self.statement()
+
+        results = [node]
+
+        while self.current_token.type == SEMI:
+            self.eat(SEMI)
+            results.append(self.statement())
+
+        if self.current_token.type == ID:
+            self.error()
+
+        return results
+
+    def statement(self):
+        """
+        statement : assignment_statement
+                  | empty
+        """
+        if self.current_token.type == ID:
+            node = self.assignment_statement()
+        else:
+            node = self.empty()
+        return node
 
     def assignment_statement(self):
         """
@@ -110,7 +149,7 @@ class Parser(object):
         return node
 
     def parse(self):
-        node = self.assignment_statement()
+        node = self.compound_statement()
         if self.current_token.type != EOF:
             self.error()
         return node

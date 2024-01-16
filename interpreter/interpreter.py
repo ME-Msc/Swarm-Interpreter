@@ -2,11 +2,9 @@ from base.nodeVisitor import NodeVisitor
 from lexer.token import PLUS, MINUS, MUL, DIV, MOD
 
 class Interpreter(NodeVisitor):
-
-    GLOBAL_SCOPE = {}
-
-    def __init__(self, parser):
-        self.parser = parser
+    def __init__(self, tree):
+        self.tree = tree
+        self.GLOBAL_MEMORY = {}
 
     def visit_NoOp(self, node):
         pass
@@ -30,23 +28,28 @@ class Interpreter(NodeVisitor):
         elif node.op.type == MOD:
             return self.visit(node.left) % self.visit(node.right)
 
-    def visit_Var(self, node):
-        var_name = node.value
-        val = self.GLOBAL_SCOPE.get(var_name)
-        if val is None:
-            raise NameError(repr(var_name))
-        else:
-            return val
-        
+    def visit_Compound(self, node):
+        for child in node.children:
+            self.visit(child)
+            
     def visit_Assign(self, node):
         var_name = node.left.value
-        self.GLOBAL_SCOPE[var_name] = self.visit(node.right)
+        var_value = self.visit(node.right)
+        self.GLOBAL_MEMORY[var_name] = var_value
 
+    def visit_Var(self, node):
+        var_name = node.value
+        var_value = self.GLOBAL_MEMORY.get(var_name)
+        if var_value is None:
+            raise NameError(repr(var_name))
+        else:
+            return var_value
+        
     def visit_Num(self, node):
         return node.value
     
     def interpret(self):
-        tree = self.parser.parse()
+        tree = self.tree
         if tree is None:
             return ''
         return self.visit(tree)

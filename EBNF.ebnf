@@ -1,4 +1,13 @@
+compound_statement ::= statement_list
+
+statement_list ::= statement ( ";" statement )*
+
+statement ::= assignment_statement
+            | empty
+
 assignment_statement ::= variable "=" additive_expression
+
+empty ::= 
 
 /* expr: term ((PLUS | MINUS) term)**/
 additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative_expression )*
