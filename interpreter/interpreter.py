@@ -1,4 +1,4 @@
-from interpreter.nodeVisitor import NodeVisitor
+from base.nodeVisitor import NodeVisitor
 from lexer.token import PLUS, MINUS, MUL, DIV, MOD
 
 class Interpreter(NodeVisitor):

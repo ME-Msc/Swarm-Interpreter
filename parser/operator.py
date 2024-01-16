@@ -1,4 +1,4 @@
-from parser.ast import AST
+from base.ast import AST
 
 class NoOp(AST):
     pass

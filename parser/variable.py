@@ -1,4 +1,4 @@
-from parser.ast import AST
+from base.ast import AST
 
 class Var(AST):
     """The Var node is constructed out of ID token."""
