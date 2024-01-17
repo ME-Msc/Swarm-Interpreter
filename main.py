@@ -7,8 +7,8 @@ from symbols.symbolTable import *
 def main():
     while True:
         try:
-            # text = input('spi> ')
-            text = "x = 7 ; y = x + 2"
+            text = input('swarm > ')
+            # text = "x = -1 ; y = x + 5; z = (y*3 - 2) %3"
         except EOFError:
             break
         if not text:

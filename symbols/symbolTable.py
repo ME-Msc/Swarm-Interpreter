@@ -55,14 +55,14 @@ class SymbolTableBuilder(NodeVisitor):
         return BuiltinTypeSymbol('INTEGER')
 
     def visit_UnaryOp(self, node):
-        self.visit(node.expr)
+        return self.visit(node.expr)
 
     def visit_Compound(self, node):
         for child in node.children:
             self.visit(child)
 
     def visit_NoOp(self, node):
-        pass
+        return None
 
     # def visit_VarDecl(self, node):
     #     type_name = node.type_node.value
