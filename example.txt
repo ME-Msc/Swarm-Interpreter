@@ -1,0 +1,38 @@
+Port : 14457
+
+Agent sumUav():
+    add1
+
+Action add1(s, n):
+    res = s + (n + 1)
+    return res
+
+Behavior addNum():
+    @service: <currentSum>, <currentNum>
+    @action: add1
+    @init:
+        get n from <currentNum>
+    @goal:
+        get m from <currentNum>
+        m == n + 1
+    @routine:
+        get sum from <currentSum>
+        sum = add1(sum, n)
+        put sum to <currentSum>
+        put n + 1 to <currentNum>
+
+Task sum_of_arithmetic_sequence_Task({typeA:countA}, target):
+    @service: <currentSum>, <currentNum>
+    @init:
+        put 0 to <currentNum>
+    @goal:
+        get s from <currentSum>
+        s >= target
+    @behavior: addNum
+    @routine:
+        order typeA[0~countA]:
+            addNum()
+
+Main :
+    Agent sumUav
+    sum_of_arithmetic_sequence_Task({sumUav:5}, 10)
