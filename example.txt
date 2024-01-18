@@ -1,38 +1,41 @@
 Port : 14457
 
-Agent sumUav():
-    add1
+Agent testUav():
+    getGPS, flyTo
 
-Action add1(s, n):
-    res = s + (n + 1)
-    return res
+Action getGPS():
+    gpsData := getGpsData() # call_RPC
+    return gpsData
 
-Behavior addNum():
-    @service: <currentSum>, <currentNum>
-    @action: add1
+Action flyTo(position):
+    step := nn_model(position) # call_RPC
+    := fly(step)    # call_RPC
+
+Behavior reach_Behavior():
+    @stigmergy: <reachCount>
+    @action: getGPS, flyTo
     @init:
-        get n from <currentNum>
+        dest = "3, 3"
     @goal:
-        get m from <currentNum>
-        m == n + 1
+        loc = getGPS()
+        dest == loc
     @routine:
-        get sum from <currentSum>
-        sum = add1(sum, n)
-        put sum to <currentSum>
-        put n + 1 to <currentNum>
+        flyTo(dest)
 
-Task sum_of_arithmetic_sequence_Task({typeA:countA}, target):
-    @service: <currentSum>, <currentNum>
+Task reach_in_order_Task({typeA:countA}, target):
+    @stigmergy: <reachCount>
     @init:
-        put 0 to <currentNum>
+        put 0 to <reachCount>
     @goal:
-        get s from <currentSum>
-        s >= target
-    @behavior: addNum
+        get rc from <reachCount>
+        rc == target
+    @behavior: 
     @routine:
         order typeA[0~countA]:
-            addNum()
+            reach_Behavior()
+            get rc from <reachCount>
+            put rc+1 to <reachCount>
 
 Main :
-    Agent sumUav
-    sum_of_arithmetic_sequence_Task({sumUav:5}, 10)
+    Agent testUav
+    reach_in_order_Task({testUav:5}, 5)
