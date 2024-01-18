@@ -2,9 +2,20 @@
 #
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
-INTEGER, PLUS, MINUS, MUL, DIV, MOD, LPAREN, RPAREN, ID, ASSIGN, SEMI, EOF = (
-    'INTEGER', 'PLUS', 'MINUS', 'MUL', 'DIV', 'MOD', '(', ')', 'ID', 'ASSIGN', 'SEMI', 'EOF'
-)
+INTEGER     = 'INTEGER'
+PLUS        = 'PLUS'
+MINUS       = 'MINUS'
+MUL         = 'MUL'
+DIV         = 'DIV'
+MOD         = 'MOD'
+LPAREN      = 'LPAREN'
+RPAREN      = 'RPAREN'
+ID          = 'ID'
+ASSIGN      = 'ASSIGN'
+SEMI        = 'SEMI'
+COLON       = 'COLON'
+MAIN        = 'MAIN'
+EOF         = 'EOF'
 
 
 class Token(object):

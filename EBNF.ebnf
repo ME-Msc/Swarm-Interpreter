@@ -1,3 +1,5 @@
+main_task ::= "Main:" compound_statement
+
 compound_statement ::= statement_list
 
 statement_list ::= statement ( ";" statement )*

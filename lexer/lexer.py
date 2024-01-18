@@ -1,7 +1,7 @@
 from lexer.token import *
 
 RESERVED_KEYWORDS = {
-    'Main': Token('Main', 'Main')
+    'Main': Token('MAIN', 'MAIN')
 }
 
 class Lexer(object):
@@ -76,6 +76,10 @@ class Lexer(object):
             #     self.advance()
             #     return Token(ASSIGN, '<=')
             
+            if self.current_char == ':':
+                self.advance()
+                return Token(COLON, ';')
+
             if self.current_char == ';':
                 self.advance()
                 return Token(SEMI, ';')

@@ -21,9 +21,16 @@ class Parser(object):
         else:
             self.error()
 
+    def main_task(self):
+        """main_task : compound_statement"""
+        self.eat(MAIN)
+        self.eat(COLON)
+        node = self.compound_statement()
+        return node
+
     def compound_statement(self):
         """
-        compound_statement: BEGIN statement_list END
+        compound_statement: statement_list
         """
         nodes = self.statement_list()
 
@@ -149,7 +156,7 @@ class Parser(object):
         return node
 
     def parse(self):
-        node = self.compound_statement()
+        node = self.main_task()
         if self.current_token.type != EOF:
             self.error()
         return node
