@@ -8,7 +8,24 @@ def main():
     while True:
         try:
             # text = input('swarm > ')
-            text = "Main : x = -1 ; y = x + 5; z = (y*3 - 2) %3"
+            text = """
+                Port : 14457
+
+                Action getGPS():
+                    a = 1
+                
+                Agent testUav():
+                    b = a + 2
+
+                Behavior reach_Behavior():
+                    c = b + 3
+
+                Task reach_in_order_Task():
+                    d  = c + 4 
+
+                Main :
+                    e = d + 5
+            """
         except EOFError:
             break
         if not text:

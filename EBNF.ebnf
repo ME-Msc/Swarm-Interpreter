@@ -1,4 +1,25 @@
-main_task ::= "Main:" compound_statement
+program ::= port_setting agent_defination+ action_defination+ behavior_defination+ task_defination+ main_task
+
+port_setting ::= "Port" ":" integer
+
+action_defination ::= "Action" action_name "(" ")" ":" compound_statement
+
+action_name ::= variable
+
+agent_defination ::= "Agent" agent_name "(" ")" ":" compound_statement
+
+agent_name ::= variable
+
+behavior_defination ::= "Behavior" behavior_name "(" ")" ":" compound_statement
+
+behavior_name ::= variable
+
+task_defination ::= "Task" task_name "(" ")" ":" compound_statement
+
+task_name ::= variable
+
+/* TODO: Agent decalaration */
+main_task ::= "Main" ":" compound_statement
 
 compound_statement ::= statement_list
 

@@ -1,5 +1,5 @@
 from lexer.token import *
-from parser.element import Num, Var, Compound
+from parser.element import *
 from parser.operator import NoOp, UnaryOp, BinOp, Assign
 
 class Parser(object):
@@ -21,11 +21,93 @@ class Parser(object):
         else:
             self.error()
 
+    def program(self):
+        """ program ::= port_setting agent_defination action_defination behavior_defination task_defination main_task """
+        port_node = self.port()
+        port_num = port_node.value
+        action_node = self.action()
+        agent_node = self.agent()
+        behavior_node = self.behavior()
+        task_node = self.task()
+        main_task_node = self.main_task()
+        program_node = Program(port = port_num, action = action_node, agent = agent_node, 
+                               behavior = behavior_node, task = task_node, mainTask = main_task_node)
+        return program_node
+
+    def port(self):
+        """ port_setting ::= 'Port' ':' integer """
+        self.eat(PORT)
+        self.eat(COLON)
+        node = Num(self.current_token)
+        self.eat(INTEGER)
+        return node
+
+    def action(self):
+        """ 
+        action_defination ::= "Action" action_name "(" ")" ":" compound_statement
+        action_name ::= variable
+        """
+        self.eat(ACTION)
+        var_node = self.variable()
+        action_name = var_node.value
+        self.eat(LPAREN)
+        self.eat(RPAREN)
+        self.eat(COLON)
+        compound_statement_node = self.compound_statement()
+        node = Action(action_name, compound_statement_node)
+        return node
+    
+    def agent(self):
+        """ 
+        agent_defination ::= "Agent" agent_name "(" ")" ":" compound_statement
+        agent_name ::= variable
+        """
+        self.eat(AGENT)
+        var_node = self.variable()
+        agent_name = var_node.value
+        self.eat(LPAREN)
+        self.eat(RPAREN)
+        self.eat(COLON)
+        compound_statement_node = self.compound_statement()
+        node = Agent(agent_name, compound_statement_node)
+        return node
+ 
+    def behavior(self):
+        """
+        behavior_defination ::= "Behavior" behavior_name "(" ")" ":" compound_statement
+        behavior_name ::= variable
+        """
+        self.eat(BEHAVIOR)
+        var_node = self.variable()
+        behavior_name = var_node.value
+        self.eat(LPAREN)
+        self.eat(RPAREN)
+        self.eat(COLON)
+        compound_statement_node = self.compound_statement()
+        node = Behavior(behavior_name, compound_statement_node)
+        return node
+
+    def task(self):
+        """
+        task_defination ::= "Task" task_name "(" ")" ":" compound_statement
+        task_name ::= variable
+        """
+        self.eat(TASK)
+        var_node = self.variable()
+        task_name = var_node.value
+        self.eat(LPAREN)
+        self.eat(RPAREN)
+        self.eat(COLON)
+        compound_statement_node = self.compound_statement()
+        node = Task(task_name, compound_statement_node)
+        return node
+
     def main_task(self):
         """main_task : compound_statement"""
         self.eat(MAIN)
         self.eat(COLON)
-        node = self.compound_statement()
+        compound_statement_node = self.compound_statement()
+        node = MainTask(compound_statement_node)   #TODO:Agent declaration
         return node
 
     def compound_statement(self):
@@ -156,7 +238,7 @@ class Parser(object):
         return node
 
     def parse(self):
-        node = self.main_task()
+        node = self.program()
         if self.current_token.type != EOF:
             self.error()
         return node

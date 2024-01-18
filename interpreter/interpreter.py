@@ -28,6 +28,28 @@ class Interpreter(NodeVisitor):
         elif node.op.type == MOD:
             return self.visit(node.left) % self.visit(node.right)
 
+    def visit_Program(self, node):
+        self.visit(node.action)
+        self.visit(node.agent)
+        self.visit(node.behavior)
+        self.visit(node.task)
+        self.visit(node.mainTask)
+
+    def visit_MainTask(self, node):
+        return self.visit(node.compound_statement)
+    
+    def visit_Task(self, node):
+        return self.visit(node.compound_statement)
+    
+    def visit_Behavior(self, node):
+        return self.visit(node.compound_statement)
+    
+    def visit_Agent(self, node):
+        return self.visit(node.compound_statement)
+    
+    def visit_Action(self, node):
+        return self.visit(node.compound_statement)
+
     def visit_Compound(self, node):
         for child in node.children:
             self.visit(child)

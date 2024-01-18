@@ -1,8 +1,5 @@
 Port : 14457
 
-Agent testUav():
-    getGPS, flyTo
-
 Action getGPS():
     gpsData := getGpsData() # call_RPC
     return gpsData
@@ -10,6 +7,9 @@ Action getGPS():
 Action flyTo(position):
     step := nn_model(position) # call_RPC
     := fly(step)    # call_RPC
+
+Agent testUav():
+    getGPS, flyTo
 
 Behavior reach_Behavior():
     @stigmergy: <reachCount>

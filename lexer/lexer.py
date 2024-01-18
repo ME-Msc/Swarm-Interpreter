@@ -1,6 +1,11 @@
 from lexer.token import *
 
 RESERVED_KEYWORDS = {
+    'Port': Token('PORT', 'PORT'),
+    'Action': Token('ACTION', 'ACTION'),
+    'Agent': Token('AGENT', 'AGENT'),
+    'Behavior': Token('BEHAVIOR', 'BEHAVIOR'),
+    'Task': Token('TASK', 'TASK'),
     'Main': Token('MAIN', 'MAIN')
 }
 
@@ -45,7 +50,7 @@ class Lexer(object):
     def _id(self):
         """Handle identifiers and reserved keywords"""
         result = ''
-        while self.current_char is not None and self.current_char.isalnum():
+        while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
             result += self.current_char
             self.advance()
 
@@ -78,7 +83,7 @@ class Lexer(object):
             
             if self.current_char == ':':
                 self.advance()
-                return Token(COLON, ';')
+                return Token(COLON, ':')
 
             if self.current_char == ';':
                 self.advance()
