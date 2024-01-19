@@ -1,37 +1,7 @@
 from base.nodeVisitor import NodeVisitor
-from symbols.symbol import *
+from semanticAnalyzer.symbolTable import *
 
-class SymbolTable(object):
-    def __init__(self):
-        self._symbols = {}
-        self._init_builtins()
-
-    def _init_builtins(self):
-        self.define(BuiltinTypeSymbol('INTEGER'))
-
-    def __str__(self):
-        s = 'Symbols: {symbols}'.format(
-            symbols=[(key, value) if key != 'INTEGER' else (value) for key, value in self._symbols.items()]
-        )
-        return s
-
-    __repr__ = __str__
-
-    def define(self, symbol:Symbol):
-        print('Define: %s' % symbol)
-        if symbol.name == 'INTEGER':
-            self._symbols[symbol.name] = symbol
-        else:
-            self._symbols[symbol.name] = symbol.type
-
-    def lookup(self, name):
-        print('Lookup: %s' % name)
-        symbol = self._symbols.get(name)
-        # 'symbol' is either an instance of the Symbol class or 'None'
-        return symbol
-
-
-class SymbolTableBuilder(NodeVisitor):
+class SemanticAnalyzer(NodeVisitor):
     def __init__(self):
         self.symtab = SymbolTable()
 
@@ -45,7 +15,13 @@ class SymbolTableBuilder(NodeVisitor):
 
     def visit_BinOp(self, node):
         left_type = self.visit(node.left)
+        while left_type.type != None:
+            left_type = left_type.type
+
         right_type = self.visit(node.right)
+        while right_type.type != None:
+            right_type = right_type.type
+
         if left_type.name == right_type.name:
             return left_type
         else:
@@ -103,13 +79,13 @@ class SymbolTableBuilder(NodeVisitor):
         if type_symbol is None:
             type_symbol = self.visit(node.right)
             var_symbol = VarSymbol(var_name, type_symbol)
-            self.symtab.define(var_symbol)
+            self.symtab.insert(var_symbol)
 
     def visit_Var(self, node):
         var_name = node.value
         var_symbol = self.symtab.lookup(var_name)
 
         if var_symbol is None:
-            raise NameError(repr(var_name))
+            raise Exception("Error: Symbol(identifier) not found '%s'" % var_name)
         else:
             return var_symbol

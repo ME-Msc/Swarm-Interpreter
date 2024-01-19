@@ -1,8 +1,8 @@
 """ Swarm Interpreter """
 from lexer.lexer import Lexer
 from parser.parser import Parser
+from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
 from interpreter.interpreter import Interpreter
-from symbols.symbolTable import *
 
 def main():
     while True:
@@ -34,11 +34,14 @@ def main():
         lexer = Lexer(text)
         parser = Parser(lexer)
         tree = parser.parse()
-        symtab_builder = SymbolTableBuilder()
-        symtab_builder.visit(tree)
-        print('')
-        print('Symbol Table contents:')
-        print(symtab_builder.symtab)
+        
+        semantic_analyzer = SemanticAnalyzer()
+        try:
+            semantic_analyzer.visit(tree)
+        except Exception as e:
+            print(e)
+
+        print(semantic_analyzer.symtab)
 
         interpreter = Interpreter(tree)
         result = interpreter.interpret()
