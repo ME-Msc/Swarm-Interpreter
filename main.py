@@ -11,7 +11,7 @@ def main():
             text = """
                 Port : 14457
 
-                Action getGPS():
+                Action getGPS(test_param):
                     a = 1
                 
                 Agent testUav():

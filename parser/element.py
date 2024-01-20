@@ -17,23 +17,27 @@ class Compound(AST):
         self.children = []
 
 class Action(AST):
-    def __init__(self, name, compound_statement):
+    def __init__(self, name, params, compound_statement):
         self.name = name
+        self.params = params  # a list of Param nodes
         self.compound_statement = compound_statement
 
 class Agent(AST):
-    def __init__(self, name, compound_statement):
+    def __init__(self, name, params, compound_statement):
         self.name = name
+        self.params = params  # a list of Param nodes
         self.compound_statement = compound_statement
     
 class Behavior(AST):
-    def __init__(self, name, compound_statement):
+    def __init__(self, name, params, compound_statement):
         self.name = name
+        self.params = params  # a list of Param nodes
         self.compound_statement = compound_statement
-  
+
 class Task(AST):
-    def __init__(self, name, compound_statement):
+    def __init__(self, name, params, compound_statement):
         self.name = name
+        self.params = params  # a list of Param nodes
         self.compound_statement = compound_statement
 
 class MainTask(AST):
@@ -48,3 +52,8 @@ class Program(AST):
         self.behavior = behavior
         self.task = task
         self.mainTask = mainTask
+
+class Param(AST):
+    def __init__(self, var_node):   #, type_node):
+        self.var_node = var_node
+        # self.type_node = type_node

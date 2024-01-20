@@ -2,21 +2,20 @@ program ::= port_setting agent_defination+ action_defination+ behavior_definatio
 
 port_setting ::= "Port" ":" integer
 
-action_defination ::= "Action" action_name "(" ")" ":" compound_statement
+/* Action */
+action_defination ::= "Action" variable "(" formal_parameters? ")" ":" compound_statement
 
-action_name ::= variable
+/* Agent */
+agent_defination ::= "Agent" variable "(" formal_parameters? ")" ":" compound_statement
 
-agent_defination ::= "Agent" agent_name "(" ")" ":" compound_statement
+/* Behavior */
+behavior_defination ::= "Behavior" variable "(" formal_parameters? ")" ":" compound_statement
 
-agent_name ::= variable
+/* Task */
+task_defination ::= "Task" variable "(" formal_parameters? ")" ":" compound_statement
 
-behavior_defination ::= "Behavior" behavior_name "(" ")" ":" compound_statement
-
-behavior_name ::= variable
-
-task_defination ::= "Task" task_name "(" ")" ":" compound_statement
-
-task_name ::= variable
+/* parameter */
+formal_parameters ::= variable ( "," variable )*
 
 /* TODO: Agent decalaration */
 main_task ::= "Main" ":" compound_statement

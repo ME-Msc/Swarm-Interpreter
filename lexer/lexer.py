@@ -81,6 +81,10 @@ class Lexer(object):
             #     self.advance()
             #     return Token(ASSIGN, '<=')
             
+            if self.current_char == ',':
+                self.advance()
+                return Token(COMMA, ',')
+
             if self.current_char == ':':
                 self.advance()
                 return Token(COLON, ':')

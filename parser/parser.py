@@ -51,12 +51,13 @@ class Parser(object):
         var_node = self.variable()
         action_name = var_node.value
         self.eat(LPAREN)
+        parameters_nodes = self.formal_parameters()
         self.eat(RPAREN)
         self.eat(COLON)
         compound_statement_node = self.compound_statement()
-        node = Action(action_name, compound_statement_node)
+        node = Action(name=action_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
-    
+ 
     def agent(self):
         """ 
         agent_defination ::= "Agent" agent_name "(" ")" ":" compound_statement
@@ -66,10 +67,11 @@ class Parser(object):
         var_node = self.variable()
         agent_name = var_node.value
         self.eat(LPAREN)
+        parameters_nodes = self.formal_parameters()
         self.eat(RPAREN)
         self.eat(COLON)
         compound_statement_node = self.compound_statement()
-        node = Agent(agent_name, compound_statement_node)
+        node = Agent(name=agent_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
  
     def behavior(self):
@@ -81,11 +83,13 @@ class Parser(object):
         var_node = self.variable()
         behavior_name = var_node.value
         self.eat(LPAREN)
+        parameters_nodes = self.formal_parameters()
         self.eat(RPAREN)
         self.eat(COLON)
         compound_statement_node = self.compound_statement()
-        node = Behavior(behavior_name, compound_statement_node)
+        node = Behavior(name=behavior_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
+ 
 
     def task(self):
         """
@@ -96,12 +100,13 @@ class Parser(object):
         var_node = self.variable()
         task_name = var_node.value
         self.eat(LPAREN)
+        parameters_nodes = self.formal_parameters()
         self.eat(RPAREN)
         self.eat(COLON)
         compound_statement_node = self.compound_statement()
-        node = Task(task_name, compound_statement_node)
+        node = Task(name=task_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
-
+ 
     def main_task(self):
         """main_task : compound_statement"""
         self.eat(MAIN)
@@ -109,6 +114,27 @@ class Parser(object):
         compound_statement_node = self.compound_statement()
         node = MainTask(compound_statement_node)   #TODO:Agent declaration
         return node
+
+    def formal_parameters(self):
+        """ 
+        agent_defination ::= "Agent" variable "(" formal_parameters? ")" ":" compound_statement
+        formal_parameters ::= variable ( "," variable )* 
+        """
+        # Agent testUav():
+        if not self.current_token.type == ID:
+            return []
+
+        param_nodes = []
+        param_node = Param(Var(self.current_token))
+        param_nodes.append(param_node)
+        self.eat(ID)
+        while self.current_token.type == COMMA:
+            self.eat(COMMA)
+            param_node = Param(Var(self.current_token))
+            param_nodes.append(param_node)
+            self.eat(ID)
+
+        return param_nodes
 
     def compound_statement(self):
         """
