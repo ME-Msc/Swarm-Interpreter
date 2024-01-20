@@ -3,7 +3,7 @@ from semanticAnalyzer.symbolTable import *
 
 class SemanticAnalyzer(NodeVisitor):
     def __init__(self):
-        self.symtab = SymbolTable()
+        self.current_scope = None
 
     # def visit_Block(self, node):
     #     for declaration in node.declarations:
@@ -34,11 +34,25 @@ class SemanticAnalyzer(NodeVisitor):
         return self.visit(node.expr)
 
     def visit_Program(self, node):
+        print('ENTER scope: global')
+        global_scope = ScopedSymbolTable(
+            scope_name='global',
+            scope_level=1,
+            enclosing_scope=self.current_scope, # None
+        )
+        global_scope._init_builtins()
+        self.current_scope = global_scope
+
+        # visit subtree
         self.visit(node.action)
         self.visit(node.agent)
         self.visit(node.behavior)
         self.visit(node.task)
         self.visit(node.mainTask)
+
+        print(global_scope)
+        self.current_scope = self.current_scope.enclosing_scope
+        print('LEAVE scope: global')
 
     def visit_MainTask(self, node):
         return self.visit(node.compound_statement)

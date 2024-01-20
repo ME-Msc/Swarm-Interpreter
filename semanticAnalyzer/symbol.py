@@ -30,3 +30,15 @@ class BuiltinTypeSymbol(Symbol):
             class_name=self.__class__.__name__,
             name=self.name,
         )
+
+class ActionSymbol(Symbol):
+    pass
+
+class AgentSymbol(Symbol):
+    pass
+
+class BehaviorSymbol(Symbol):
+    pass
+
+class TaskSymbol(Symbol):
+    pass

@@ -41,7 +41,7 @@ def main():
         except Exception as e:
             print(e)
 
-        print(semantic_analyzer.symtab)
+        print(semantic_analyzer.current_scope)
 
         interpreter = Interpreter(tree)
         result = interpreter.interpret()
