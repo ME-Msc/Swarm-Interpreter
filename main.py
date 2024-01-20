@@ -12,19 +12,20 @@ def main():
                 Port : 14457
 
                 Action getGPS(test_param):
-                    a = 1
+                    a = 1;
+                    b = a + 2
                 
                 Agent testUav():
-                    b = a + 2
+                    b = 1 + 2
 
                 Behavior reach_Behavior():
-                    c = b + 3
+                    c = 3 + 3
 
                 Task reach_in_order_Task():
-                    d  = c + 4 
+                    d  = 6 + 4 
 
                 Main :
-                    e = d + 5
+                    e = 10 + 5
             """
         except EOFError:
             break
@@ -40,8 +41,6 @@ def main():
             semantic_analyzer.visit(tree)
         except Exception as e:
             print(e)
-
-        print(semantic_analyzer.current_scope)
 
         interpreter = Interpreter(tree)
         result = interpreter.interpret()

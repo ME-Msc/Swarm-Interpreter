@@ -31,14 +31,33 @@ class BuiltinTypeSymbol(Symbol):
             name=self.name,
         )
 
-class ActionSymbol(Symbol):
-    pass
+class ProcedureSymbol(Symbol):
+    def __init__(self, name, params=None):
+        super().__init__(name)
+        # a list of formal parameters
+        self.params = params if params is not None else []
 
-class AgentSymbol(Symbol):
-    pass
+    def __str__(self):
+        return '<{class_name}(name={name}, parameters={params})>'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            params=self.params,
+        )
 
-class BehaviorSymbol(Symbol):
-    pass
+    __repr__ = __str__
 
-class TaskSymbol(Symbol):
-    pass
+class ActionSymbol(ProcedureSymbol):
+    def __init__(self, name, params=None):
+        super().__init__(name)
+
+class AgentSymbol(ProcedureSymbol):
+    def __init__(self, name, params=None):
+        super().__init__(name)
+
+class BehaviorSymbol(ProcedureSymbol):
+    def __init__(self, name, params=None):
+        super().__init__(name)
+
+class TaskSymbol(ProcedureSymbol):
+    def __init__(self, name, params=None):
+        super().__init__(name)

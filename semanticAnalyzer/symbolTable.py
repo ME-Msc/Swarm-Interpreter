@@ -24,10 +24,10 @@ class ScopedSymbolTable(object):
         h2 = 'Scope (Scoped symbol table) contents'
         lines.extend([h2, '-' * len(h2)])
         lines.extend(
-            ('%7s: %r' % (key, value))
+            ('%-15s: %r' % (key, value))
             for key, value in self._symbols.items()
         )
-        lines.append('\n')
+        # lines.append('\n')
         s = '\n'.join(lines)
         return s
 
