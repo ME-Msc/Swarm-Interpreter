@@ -1,5 +1,6 @@
 from base.nodeVisitor import NodeVisitor
 from semanticAnalyzer.symbolTable import *
+from base.error import SemanticError, ErrorCode
 
 class SemanticAnalyzer(NodeVisitor):
     def __init__(self):
@@ -12,6 +13,13 @@ class SemanticAnalyzer(NodeVisitor):
 
     # def visit_Program(self, node):
     #     self.visit(node.block)
+        
+    def error(self, error_code, token):
+        raise SemanticError(
+            error_code=error_code,
+            token=token,
+            message=f'{error_code.value} -> {token}',
+        )
 
     def visit_BinOp(self, node):
         left_type = self.visit(node.left)
@@ -197,6 +205,6 @@ class SemanticAnalyzer(NodeVisitor):
         var_symbol = self.current_scope.lookup(var_name)
 
         if var_symbol is None:
-            raise Exception("Error: Symbol(identifier) not found '%s'" % var_name)
+            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
         else:
             return var_symbol

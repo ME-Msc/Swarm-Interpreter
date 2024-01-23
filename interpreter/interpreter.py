@@ -1,5 +1,5 @@
 from base.nodeVisitor import NodeVisitor
-from lexer.token import PLUS, MINUS, MUL, DIV, MOD
+from lexer.token import TokenType
 
 class Interpreter(NodeVisitor):
     def __init__(self, tree):
@@ -11,21 +11,21 @@ class Interpreter(NodeVisitor):
     
     def visit_UnaryOp(self, node):
         op = node.op.type
-        if op == PLUS:
+        if op == TokenType.PLUS:
             return +self.visit(node.expr)
-        elif op == MINUS:
+        elif op == TokenType.MINUS:
             return -self.visit(node.expr)
 
     def visit_BinOp(self, node):
-        if node.op.type == PLUS:
+        if node.op.type == TokenType.PLUS:
             return self.visit(node.left) + self.visit(node.right)
-        elif node.op.type == MINUS:
+        elif node.op.type == TokenType.MINUS:
             return self.visit(node.left) - self.visit(node.right)
-        elif node.op.type == MUL:
+        elif node.op.type == TokenType.MUL:
             return self.visit(node.left) * self.visit(node.right)
-        elif node.op.type == DIV:
+        elif node.op.type == TokenType.DIV:
             return self.visit(node.left) // self.visit(node.right)
-        elif node.op.type == MOD:
+        elif node.op.type == TokenType.MOD:
             return self.visit(node.left) % self.visit(node.right)
 
     def visit_Program(self, node):

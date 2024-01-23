@@ -1,3 +1,4 @@
+from base.error import ParserError, ErrorCode
 from lexer.token import *
 from parser.element import *
 from parser.operator import NoOp, UnaryOp, BinOp, Assign
@@ -8,8 +9,15 @@ class Parser(object):
         # set current token to the first token taken from the input
         self.current_token = self.lexer.get_next_token()
 
-    def error(self):
-        raise Exception('Invalid syntax')
+    def get_next_token(self):
+        return self.lexer.get_next_token()
+
+    def error(self, error_code, token):
+        raise ParserError(
+            error_code=error_code,
+            token=token,
+            message=f'{error_code.value} -> {token}',
+        )
 
     def eat(self, token_type):
         # compare the current token type with the passed token
@@ -17,9 +25,12 @@ class Parser(object):
         # and assign the next token to the self.current_token,
         # otherwise raise an exception.
         if self.current_token.type == token_type:
-            self.current_token = self.lexer.get_next_token()
+            self.current_token = self.get_next_token()
         else:
-            self.error()
+            self.error(
+                error_code=ErrorCode.UNEXPECTED_TOKEN,
+                token=self.current_token,
+            )
 
     def program(self):
         """ program ::= port_setting agent_defination action_defination behavior_defination task_defination main_task """
@@ -36,10 +47,10 @@ class Parser(object):
 
     def port(self):
         """ port_setting ::= 'Port' ':' integer """
-        self.eat(PORT)
-        self.eat(COLON)
+        self.eat(TokenType.PORT)
+        self.eat(TokenType.COLON)
         node = Num(self.current_token)
-        self.eat(INTEGER)
+        self.eat(TokenType.INTEGER)
         return node
 
     def action(self):
@@ -47,13 +58,13 @@ class Parser(object):
         action_defination ::= "Action" action_name "(" ")" ":" compound_statement
         action_name ::= variable
         """
-        self.eat(ACTION)
+        self.eat(TokenType.ACTION)
         var_node = self.variable()
         action_name = var_node.value
-        self.eat(LPAREN)
+        self.eat(TokenType.LPAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(RPAREN)
-        self.eat(COLON)
+        self.eat(TokenType.RPAREN)
+        self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
         node = Action(name=action_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
@@ -63,13 +74,13 @@ class Parser(object):
         agent_defination ::= "Agent" agent_name "(" ")" ":" compound_statement
         agent_name ::= variable
         """
-        self.eat(AGENT)
+        self.eat(TokenType.AGENT)
         var_node = self.variable()
         agent_name = var_node.value
-        self.eat(LPAREN)
+        self.eat(TokenType.LPAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(RPAREN)
-        self.eat(COLON)
+        self.eat(TokenType.RPAREN)
+        self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
         node = Agent(name=agent_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
@@ -79,13 +90,13 @@ class Parser(object):
         behavior_defination ::= "Behavior" behavior_name "(" ")" ":" compound_statement
         behavior_name ::= variable
         """
-        self.eat(BEHAVIOR)
+        self.eat(TokenType.BEHAVIOR)
         var_node = self.variable()
         behavior_name = var_node.value
-        self.eat(LPAREN)
+        self.eat(TokenType.LPAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(RPAREN)
-        self.eat(COLON)
+        self.eat(TokenType.RPAREN)
+        self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
         node = Behavior(name=behavior_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
@@ -96,21 +107,21 @@ class Parser(object):
         task_defination ::= "Task" task_name "(" ")" ":" compound_statement
         task_name ::= variable
         """
-        self.eat(TASK)
+        self.eat(TokenType.TASK)
         var_node = self.variable()
         task_name = var_node.value
-        self.eat(LPAREN)
+        self.eat(TokenType.LPAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(RPAREN)
-        self.eat(COLON)
+        self.eat(TokenType.RPAREN)
+        self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
         node = Task(name=task_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
  
     def main_task(self):
         """main_task : compound_statement"""
-        self.eat(MAIN)
-        self.eat(COLON)
+        self.eat(TokenType.MAIN)
+        self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
         node = MainTask(compound_statement_node)   #TODO:Agent declaration
         return node
@@ -121,18 +132,18 @@ class Parser(object):
         formal_parameters ::= variable ( "," variable )* 
         """
         # Agent testUav():
-        if not self.current_token.type == ID:
+        if not self.current_token.type == TokenType.ID:
             return []
 
         param_nodes = []
         param_node = Param(Var(self.current_token))
         param_nodes.append(param_node)
-        self.eat(ID)
-        while self.current_token.type == COMMA:
-            self.eat(COMMA)
+        self.eat(TokenType.ID)
+        while self.current_token.type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
             param_node = Param(Var(self.current_token))
             param_nodes.append(param_node)
-            self.eat(ID)
+            self.eat(TokenType.ID)
 
         return param_nodes
 
@@ -156,12 +167,15 @@ class Parser(object):
 
         results = [node]
 
-        while self.current_token.type == SEMI:
-            self.eat(SEMI)
+        while self.current_token.type == TokenType.SEMI:
+            self.eat(TokenType.SEMI)
             results.append(self.statement())
 
-        if self.current_token.type == ID:
-            self.error()
+        if self.current_token.type == TokenType.ID:
+            self.error(
+                error_code=ErrorCode.UNEXPECTED_TOKEN,
+                token=self.current_token,
+            )
 
         return results
 
@@ -170,7 +184,7 @@ class Parser(object):
         statement : assignment_statement
                   | empty
         """
-        if self.current_token.type == ID:
+        if self.current_token.type == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty()
@@ -182,7 +196,7 @@ class Parser(object):
         """
         left = self.variable()
         token = self.current_token
-        self.eat(ASSIGN)
+        self.eat(TokenType.ASSIGN)
         right = self.expr()
         node = Assign(left, token, right)
         return node
@@ -192,7 +206,7 @@ class Parser(object):
         variable : ID
         """
         node = Var(self.current_token)
-        self.eat(ID)
+        self.eat(TokenType.ID)
         return node
 
     def empty(self):
@@ -207,21 +221,21 @@ class Parser(object):
                     | variable
         """
         token = self.current_token
-        if token.type == PLUS:
-            self.eat(PLUS)
+        if token.type == TokenType.PLUS:
+            self.eat(TokenType.PLUS)
             node = UnaryOp(token, self.factor())
             return node
-        elif token.type == MINUS:
-            self.eat(MINUS)
+        elif token.type == TokenType.MINUS:
+            self.eat(TokenType.MINUS)
             node = UnaryOp(token, self.factor())
             return node
-        elif token.type == INTEGER:
-            self.eat(INTEGER)
+        elif token.type == TokenType.INTEGER:
+            self.eat(TokenType.INTEGER)
             return Num(token)
-        elif token.type == LPAREN:
-            self.eat(LPAREN)
+        elif token.type == TokenType.LPAREN:
+            self.eat(TokenType.LPAREN)
             node = self.expr()
-            self.eat(RPAREN)
+            self.eat(TokenType.RPAREN)
             return node
         else:
             node = self.variable()
@@ -231,14 +245,14 @@ class Parser(object):
         """term : factor ((MUL | DIV | MOD) factor)*"""
         node = self.factor()
 
-        while self.current_token.type in (MUL, DIV, MOD):
+        while self.current_token.type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
             token = self.current_token
-            if token.type == MUL:
-                self.eat(MUL)
-            elif token.type == DIV:
-                self.eat(DIV)
-            elif token.type == MOD:
-                self.eat(MOD)
+            if token.type == TokenType.MUL:
+                self.eat(TokenType.MUL)
+            elif token.type == TokenType.DIV:
+                self.eat(TokenType.DIV)
+            elif token.type == TokenType.MOD:
+                self.eat(TokenType.MOD)
 
             node = BinOp(left=node, op=token, right=self.factor())
 
@@ -252,12 +266,12 @@ class Parser(object):
         """
         node = self.term()
 
-        while self.current_token.type in (PLUS, MINUS):
+        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
             token = self.current_token
-            if token.type == PLUS:
-                self.eat(PLUS)
-            elif token.type == MINUS:
-                self.eat(MINUS)
+            if token.type == TokenType.PLUS:
+                self.eat(TokenType.PLUS)
+            elif token.type == TokenType.MINUS:
+                self.eat(TokenType.MINUS)
 
             node = BinOp(left=node, op=token, right=self.term())
 
@@ -265,6 +279,9 @@ class Parser(object):
 
     def parse(self):
         node = self.program()
-        if self.current_token.type != EOF:
-            self.error()
+        if self.current_token.type != TokenType.EOF:
+            self.error(
+                error_code=ErrorCode.UNEXPECTED_TOKEN,
+                token=self.current_token,
+            )
         return node
