@@ -3,8 +3,9 @@ from semanticAnalyzer.symbolTable import *
 from base.error import SemanticError, ErrorCode
 
 class SemanticAnalyzer(NodeVisitor):
-    def __init__(self):
+    def __init__(self, log_or_not=False):
         self.current_scope = None
+        self.log_or_not = log_or_not
 
     # def visit_Block(self, node):
     #     for declaration in node.declarations:
@@ -14,6 +15,10 @@ class SemanticAnalyzer(NodeVisitor):
     # def visit_Program(self, node):
     #     self.visit(node.block)
         
+    def log(self, msg):
+        if self.log_or_not:
+            print(msg)
+
     def error(self, error_code, token):
         raise SemanticError(
             error_code=error_code,
@@ -42,11 +47,12 @@ class SemanticAnalyzer(NodeVisitor):
         return self.visit(node.expr)
 
     def visit_Program(self, node):
-        print('ENTER scope: global')
+        self.log('ENTER scope: global')
         global_scope = ScopedSymbolTable(
             scope_name='global',
             scope_level=1,
             enclosing_scope=self.current_scope, # None
+            log_or_not=self.log_or_not
         )
         global_scope._init_builtins()
         self.current_scope = global_scope
@@ -58,9 +64,9 @@ class SemanticAnalyzer(NodeVisitor):
         self.visit(node.task)
         self.visit(node.mainTask)
 
-        print(global_scope)
+        self.log(global_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: global')
+        self.log('LEAVE scope: global')
 
     def visit_MainTask(self, node):
         return self.visit(node.compound_statement)
@@ -70,12 +76,13 @@ class SemanticAnalyzer(NodeVisitor):
         task_symbol = TaskSymbol(task_name)
         self.current_scope.insert(task_symbol)
 
-        print('ENTER scope: %s' %  task_name)
+        self.log('ENTER scope: %s' %  task_name)
         # Scope for parameters and local variables
         task_scope = ScopedSymbolTable(
             scope_name = task_name,
             scope_level = self.current_scope.scope_level + 1,
-            enclosing_scope = self.current_scope
+            enclosing_scope = self.current_scope,
+            log_or_not = self.log_or_not
         )
         self.current_scope = task_scope
 
@@ -89,22 +96,23 @@ class SemanticAnalyzer(NodeVisitor):
         
         self.visit(node.compound_statement)
 
-        print(task_scope)
+        self.log(task_scope)
 
         self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: %s \n\n' %  task_name)
+        self.log('LEAVE scope: %s \n\n' %  task_name)
     
     def visit_Behavior(self, node):
         behavior_name = 'BEHAVIOR_' + node.name
         behavior_symbol = BehaviorSymbol(behavior_name)
         self.current_scope.insert(behavior_symbol)
 
-        print('ENTER scope: %s' %  behavior_name)
+        self.log('ENTER scope: %s' %  behavior_name)
         # Scope for parameters and local variables
         behavior_scope = ScopedSymbolTable(
             scope_name = behavior_name,
             scope_level = self.current_scope.scope_level + 1,
-            enclosing_scope = self.current_scope
+            enclosing_scope = self.current_scope,
+            log_or_not = self.log_or_not
         )
         self.current_scope = behavior_scope
 
@@ -118,22 +126,23 @@ class SemanticAnalyzer(NodeVisitor):
         
         self.visit(node.compound_statement)
 
-        print(behavior_scope)
+        self.log(behavior_scope)
 
         self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: %s \n\n' %  behavior_name)
+        self.log('LEAVE scope: %s \n\n' %  behavior_name)
     
     def visit_Agent(self, node):
         agent_name = 'AGENT_' + node.name
         agent_symbol = AgentSymbol(agent_name)
         self.current_scope.insert(agent_symbol)
 
-        print('ENTER scope: %s' %  agent_name)
+        self.log('ENTER scope: %s' %  agent_name)
         # Scope for parameters and local variables
         agent_scope = ScopedSymbolTable(
             scope_name = agent_name,
             scope_level = self.current_scope.scope_level + 1,
-            enclosing_scope = self.current_scope
+            enclosing_scope = self.current_scope,
+            log_or_not = self.log_or_not
         )
         self.current_scope = agent_scope
 
@@ -147,22 +156,23 @@ class SemanticAnalyzer(NodeVisitor):
         
         self.visit(node.compound_statement)
 
-        print(agent_scope)
+        self.log(agent_scope)
 
         self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: %s \n\n' %  agent_name)
+        self.log('LEAVE scope: %s \n\n' %  agent_name)
     
     def visit_Action(self, node):
         action_name = 'ACTION_' + node.name
         action_symbol = ActionSymbol(action_name)
         self.current_scope.insert(action_symbol)
 
-        print('ENTER scope: %s' %  action_name)
+        self.log('ENTER scope: %s' %  action_name)
         # Scope for parameters and local variables
         action_scope = ScopedSymbolTable(
             scope_name = action_name,
             scope_level = self.current_scope.scope_level + 1,
-            enclosing_scope = self.current_scope
+            enclosing_scope = self.current_scope,
+            log_or_not = self.log_or_not
         )
         self.current_scope = action_scope
 
@@ -176,10 +186,10 @@ class SemanticAnalyzer(NodeVisitor):
         
         self.visit(node.compound_statement)
 
-        print(action_scope)
+        self.log(action_scope)
 
         self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: %s \n\n' %  action_name)
+        self.log('LEAVE scope: %s \n\n' %  action_name)
 
     def visit_Compound(self, node):
         for child in node.children:

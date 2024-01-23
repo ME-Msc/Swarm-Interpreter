@@ -1,11 +1,12 @@
 from semanticAnalyzer.symbol import *
 
 class ScopedSymbolTable(object):
-    def __init__(self, scope_name, scope_level, enclosing_scope=None):
+    def __init__(self, scope_name, scope_level, enclosing_scope=None, log_or_not=False):
         self._symbols = {}
         self.scope_name = scope_name
         self.scope_level = scope_level
         self.enclosing_scope = enclosing_scope
+        self.log_or_not = log_or_not
 
     def _init_builtins(self):
         self.insert(BuiltinTypeSymbol('INTEGER'))
@@ -33,12 +34,16 @@ class ScopedSymbolTable(object):
 
     __repr__ = __str__
 
+    def log(self, msg):
+        if self.log_or_not:
+            print(msg)
+
     def insert(self, symbol):
-        print('Insert: %s' % symbol)
+        self.log('Insert: %s' % symbol)
         self._symbols[symbol.name] = symbol
 
     def lookup(self, name, current_scope_only=False):
-        print('Lookup: %s. (Scope name: %s)' % (name, self.scope_name))
+        self.log('Lookup: %s. (Scope name: %s)' % (name, self.scope_name))
         # 'symbol' is either an instance of the Symbol class or None
         symbol = self._symbols.get(name)
 

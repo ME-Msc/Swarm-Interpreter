@@ -7,26 +7,22 @@ from base.error import LexerError, ParserError, SemanticError
 import sys
 
 def main():
+    SHOULD_LOG_SCOPE = True
     try:
         # text = input('swarm > ')
         text = """
             Port : 14457
 
             Action getGPS(test_param):
-                a = 1;
-                b = a + 2
             
             Agent testUav():
-                b = 1 + 2
 
             Behavior reach_Behavior():
-                c = 3 + 3
 
             Task reach_in_order_Task():
-                d  = 6 + 4 
 
             Main :
-                e = 10 + 5
+                e = a + 5
         """
     except EOFError:
         sys.exit(1)
@@ -43,8 +39,7 @@ def main():
         print(e.message)
         sys.exit(1)
 
-    
-    semantic_analyzer = SemanticAnalyzer()
+    semantic_analyzer = SemanticAnalyzer(log_or_not=SHOULD_LOG_SCOPE)
     try:
         semantic_analyzer.visit(tree)
     except SemanticError as e:
