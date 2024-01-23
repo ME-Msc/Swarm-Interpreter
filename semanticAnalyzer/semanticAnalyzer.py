@@ -102,8 +102,18 @@ class SemanticAnalyzer(NodeVisitor):
         self.log('LEAVE scope: %s \n\n' %  task_name)
     
     def visit_TaskCall(self, node):
+        task_name = 'TASK_' + node.name
+        task_symbol = self.current_scope.lookup(task_name)
+        formal_params = task_symbol.params
+        actual_params = node.actual_params
+        if len(actual_params) != len(formal_params):
+            self.error(
+                error_code=ErrorCode.WRONG_PARAMS_NUM,
+                token=node.token,
+            )
         for param_node in node.actual_params:
             self.visit(param_node)
+
 
     def visit_Behavior(self, node):
         behavior_name = 'BEHAVIOR_' + node.name

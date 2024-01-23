@@ -139,7 +139,7 @@ class Parser(object):
         self.eat(TokenType.RPAREN)
 
         node = TaskCall(
-            task_name=task_name,
+            name=task_name,
             actual_params=actual_params,
             token=token
         )

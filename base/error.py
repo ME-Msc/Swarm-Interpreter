@@ -4,6 +4,7 @@ class ErrorCode(Enum):
     UNEXPECTED_TOKEN = 'Unexpected token'
     ID_NOT_FOUND     = 'Identifier not found'
     DUPLICATE_ID     = 'Duplicate id found'
+    WRONG_PARAMS_NUM = 'Wrong number of arguments'
 
 
 class Error(Exception):

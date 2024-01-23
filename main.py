@@ -22,7 +22,7 @@ def main():
             Task add_task(a, b):
 
             Main :
-                add_task(1, 2)
+                add_task(1)
         """
     except EOFError:
         sys.exit(1)

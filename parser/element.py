@@ -41,8 +41,8 @@ class Task(AST):
         self.compound_statement = compound_statement
 
 class TaskCall(AST):
-    def __init__(self, task_name, actual_params, token):
-        self.task_name = task_name
+    def __init__(self, name, actual_params, token):
+        self.name = name
         self.actual_params = actual_params  # a list of AST nodes
         self.token = token
         
