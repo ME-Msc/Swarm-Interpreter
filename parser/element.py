@@ -17,27 +17,27 @@ class Compound(AST):
         self.children = []
 
 class Action(AST):
-    def __init__(self, name, params, compound_statement):
+    def __init__(self, name, formal_params, compound_statement):
         self.name = name
-        self.params = params  # a list of Param nodes
+        self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
 
 class Agent(AST):
-    def __init__(self, name, params, compound_statement):
+    def __init__(self, name, formal_params, compound_statement):
         self.name = name
-        self.params = params  # a list of Param nodes
+        self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
     
 class Behavior(AST):
-    def __init__(self, name, params, compound_statement):
+    def __init__(self, name, formal_params, compound_statement):
         self.name = name
-        self.params = params  # a list of Param nodes
+        self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
 
 class Task(AST):
-    def __init__(self, name, params, compound_statement):
+    def __init__(self, name, formal_params, compound_statement):
         self.name = name
-        self.params = params  # a list of Param nodes
+        self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
 
 class TaskCall(AST):
@@ -45,6 +45,7 @@ class TaskCall(AST):
         self.name = name
         self.actual_params = actual_params  # a list of AST nodes
         self.token = token
+        self.symbol = None          # a reference to task symbol
         
 class MainTask(AST):
     def __init__(self, compound_statement):

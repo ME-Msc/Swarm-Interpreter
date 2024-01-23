@@ -66,7 +66,7 @@ class Parser(object):
         self.eat(TokenType.RPAREN)
         self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
-        node = Action(name=action_name, params=parameters_nodes, compound_statement=compound_statement_node)
+        node = Action(name=action_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
         return node
  
     def agent(self):
@@ -82,7 +82,7 @@ class Parser(object):
         self.eat(TokenType.RPAREN)
         self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
-        node = Agent(name=agent_name, params=parameters_nodes, compound_statement=compound_statement_node)
+        node = Agent(name=agent_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
         return node
  
     def behavior(self):
@@ -98,7 +98,7 @@ class Parser(object):
         self.eat(TokenType.RPAREN)
         self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
-        node = Behavior(name=behavior_name, params=parameters_nodes, compound_statement=compound_statement_node)
+        node = Behavior(name=behavior_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
         return node
  
     def task(self):
@@ -114,7 +114,7 @@ class Parser(object):
         self.eat(TokenType.RPAREN)
         self.eat(TokenType.COLON)
         compound_statement_node = self.compound_statement()
-        node = Task(name=task_name, params=parameters_nodes, compound_statement=compound_statement_node)
+        node = Task(name=task_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
         return node
 
     def task_call_statement(self):

@@ -20,7 +20,7 @@ class VarSymbol(Symbol):
 
 class BuiltinTypeSymbol(Symbol):
     def __init__(self, name):
-        super().__init__(name)
+        super().__init__(name=name, type=name)
 
     def __str__(self):
         return self.name
@@ -32,32 +32,34 @@ class BuiltinTypeSymbol(Symbol):
         )
 
 class ProcedureSymbol(Symbol):
-    def __init__(self, name, params=None):
+    def __init__(self, name, formal_params=None):
         super().__init__(name)
         # a list of formal parameters
-        self.params = params if params is not None else []
+        self.formal_params = [] if formal_params is None else formal_params
+        # a reference to procedure's body (AST sub-tree)
+        self.ast = None
 
     def __str__(self):
-        return '<{class_name}(name={name}, parameters={params})>'.format(
+        return '<{class_name}(name={name}, formal_parameters={formal_params})>'.format(
             class_name=self.__class__.__name__,
             name=self.name,
-            params=self.params,
+            formal_params=self.formal_params,
         )
 
     __repr__ = __str__
 
 class ActionSymbol(ProcedureSymbol):
-    def __init__(self, name, params=None):
+    def __init__(self, name, formal_params=None):
         super().__init__(name)
 
 class AgentSymbol(ProcedureSymbol):
-    def __init__(self, name, params=None):
+    def __init__(self, name, formal_params=None):
         super().__init__(name)
 
 class BehaviorSymbol(ProcedureSymbol):
-    def __init__(self, name, params=None):
+    def __init__(self, name, formal_params=None):
         super().__init__(name)
 
 class TaskSymbol(ProcedureSymbol):
-    def __init__(self, name, params=None):
+    def __init__(self, name, formal_params=None):
         super().__init__(name)
