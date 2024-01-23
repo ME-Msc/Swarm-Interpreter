@@ -214,7 +214,7 @@ class Parser(object):
         """
         if self.current_token.type == TokenType.ID and self.lexer.current_char == '(':
             node = self.task_call_statement()
-        elif self.current_token.type == TokenType.ID and self.lexer.current_char == '=':
+        elif self.current_token.type == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty()

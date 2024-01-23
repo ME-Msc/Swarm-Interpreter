@@ -8,6 +8,7 @@ import sys
 
 def main():
     SHOULD_LOG_SCOPE = False
+    SHOULD_LOG_STACK = True
     try:
         # text = input('swarm > ')
         text = """
@@ -22,7 +23,8 @@ def main():
             Task add_task(a, b):
 
             Main :
-                add_task(1)
+                y = 7;
+                x = (y + 3) * 3;
         """
     except EOFError:
         sys.exit(1)
@@ -46,13 +48,9 @@ def main():
         print(e.message)
         sys.exit(1)
 
-    interpreter = Interpreter(tree)
+    interpreter = Interpreter(tree, log_or_not=SHOULD_LOG_STACK)
     interpreter.interpret()
 
-    print('')
-    print('Run-time GLOBAL_MEMORY contents:')
-    for k, v in sorted(interpreter.GLOBAL_MEMORY.items()):
-        print('{} = {}'.format(k, v))
 
 
 if __name__ == '__main__':

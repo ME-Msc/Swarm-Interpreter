@@ -1,10 +1,16 @@
 from base.nodeVisitor import NodeVisitor
 from lexer.token import TokenType
+from interpreter.memory import ARType, ActivationRecord, CallStack
 
 class Interpreter(NodeVisitor):
-    def __init__(self, tree):
+    def __init__(self, tree, log_or_not=False):
         self.tree = tree
-        self.GLOBAL_MEMORY = {}
+        self.log_or_not = log_or_not
+        self.call_stack = CallStack()
+
+    def log(self, msg):
+        if self.log_or_not:
+            print(msg)
 
     def visit_NoOp(self, node):
         pass
@@ -29,11 +35,24 @@ class Interpreter(NodeVisitor):
             return self.visit(node.left) % self.visit(node.right)
 
     def visit_Program(self, node):
-        self.visit(node.action)
-        self.visit(node.agent)
-        self.visit(node.behavior)
-        self.visit(node.task)
+        self.log(f'ENTER: PROGRAM Main')
+        ar = ActivationRecord(
+            name="Main",
+            type=ARType.PROGRAM,
+            nesting_level=1,
+        )
+        self.call_stack.push(ar)
+
+        # self.visit(node.action)
+        # self.visit(node.agent)
+        # self.visit(node.behavior)
+        # self.visit(node.task)
         self.visit(node.mainTask)
+        
+        self.log(f'LEAVE: PROGRAM Main')
+        self.log(str(self.call_stack))
+
+        self.call_stack.pop()
 
     def visit_MainTask(self, node):
         return self.visit(node.compound_statement)
@@ -60,11 +79,13 @@ class Interpreter(NodeVisitor):
     def visit_Assign(self, node):
         var_name = node.left.value
         var_value = self.visit(node.right)
-        self.GLOBAL_MEMORY[var_name] = var_value
+        ar = self.call_stack.peek()
+        ar[var_name] = var_value
 
     def visit_Var(self, node):
         var_name = node.value
-        var_value = self.GLOBAL_MEMORY.get(var_name)
+        ar = self.call_stack.peek()
+        var_value = ar.get(var_name)
         if var_value is None:
             raise NameError(repr(var_name))
         else:
