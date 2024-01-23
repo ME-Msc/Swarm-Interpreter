@@ -28,14 +28,16 @@ class SemanticAnalyzer(NodeVisitor):
 
     def visit_BinOp(self, node):
         left_type = self.visit(node.left)
-        while left_type.type != None:
-            left_type = left_type.type
+        if left_type != None:
+            while hasattr(left_type, 'type'):
+                left_type = left_type.type
 
         right_type = self.visit(node.right)
-        while right_type.type != None:
-            right_type = right_type.type
+        if right_type != None :
+            while hasattr(right_type, 'type'):
+                right_type = right_type.type
 
-        if left_type.name == right_type.name:
+        if left_type == right_type:
             return left_type
         else:
             raise Exception("Different types on both sides of BinOp")
@@ -87,12 +89,12 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = task_scope
 
        	# Insert parameters into the procedure scope
-        for param in node.params:
+        for param in node.formal_params:
             param_name = param.var_node.value
             param_type = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_type)
             self.current_scope.insert(var_symbol)
-            task_symbol.params.append(var_symbol)
+            task_symbol.formal_params.append(var_symbol)
         
         self.visit(node.compound_statement)
 
@@ -100,11 +102,13 @@ class SemanticAnalyzer(NodeVisitor):
 
         self.current_scope = self.current_scope.enclosing_scope
         self.log('LEAVE scope: %s \n\n' %  task_name)
+
+        task_symbol.ast = node.compound_statement
     
     def visit_TaskCall(self, node):
         task_name = 'TASK_' + node.name
         task_symbol = self.current_scope.lookup(task_name)
-        formal_params = task_symbol.params
+        formal_params = task_symbol.formal_params
         actual_params = node.actual_params
         if len(actual_params) != len(formal_params):
             self.error(
@@ -113,7 +117,10 @@ class SemanticAnalyzer(NodeVisitor):
             )
         for param_node in node.actual_params:
             self.visit(param_node)
-
+        
+        task_symbol = self.current_scope.lookup(task_name)
+        # accessed by the interpreter when executing procedure call
+        node.symbol = task_symbol
 
     def visit_Behavior(self, node):
         behavior_name = 'BEHAVIOR_' + node.name
@@ -131,7 +138,7 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = behavior_scope
 
         ## Insert parameters into the procedure scope
-        for param in node.params:
+        for param in node.formal_params:
             param_name = param.var_node.value
             param_type = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_type)
@@ -161,7 +168,7 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = agent_scope
 
         # Insert parameters into the procedure scope
-        for param in node.params:
+        for param in node.formal_params:
             param_name = param.var_node.value
             param_type = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_type)
@@ -191,7 +198,7 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = action_scope
 
         # Insert parameters into the procedure scope
-        for param in node.params:
+        for param in node.formal_params:
             param_name = param.var_node.value
             param_type = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_type)

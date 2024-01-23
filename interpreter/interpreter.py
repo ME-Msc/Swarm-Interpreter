@@ -61,7 +61,34 @@ class Interpreter(NodeVisitor):
         return self.visit(node.compound_statement)
     
     def visit_TaskCall(self, node):
-        pass
+        task_name = node.name
+
+        ar = ActivationRecord(
+            name=task_name,
+            type=ARType.TASK,
+            nesting_level=2,
+        )
+
+        task_symbol = node.symbol
+
+        formal_params = task_symbol.formal_params
+        actual_params = node.actual_params
+
+        for param_symbol, argument_node in zip(formal_params, actual_params):
+            ar[param_symbol.name] = self.visit(argument_node)
+
+        self.call_stack.push(ar)
+
+        self.log(f'ENTER: TASK {task_name}')
+        self.log(str(self.call_stack))
+
+        # evaluate task body
+        self.visit(task_symbol.ast)
+
+        self.log(f'LEAVE: PROCEDURE {task_name}')
+        self.log(str(self.call_stack))
+
+        self.call_stack.pop()
 
     def visit_Behavior(self, node):
         return self.visit(node.compound_statement)

@@ -21,10 +21,12 @@ def main():
             Behavior reach_Behavior():
 
             Task add_task(a, b):
+                c = a + b
 
             Main :
                 y = 7;
                 x = (y + 3) * 3;
+                add_task(1, 2)
         """
     except EOFError:
         sys.exit(1)

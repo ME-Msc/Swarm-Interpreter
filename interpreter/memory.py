@@ -2,7 +2,8 @@ from enum import Enum
 
 
 class ARType(Enum):         # Activation Record Type
-    PROGRAM   = 'PROGRAM'
+    PROGRAM = 'PROGRAM'
+    TASK    = 'TASK'
 
 
 class ActivationRecord:
