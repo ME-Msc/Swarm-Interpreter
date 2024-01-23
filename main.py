@@ -3,6 +3,8 @@ from lexer.lexer import Lexer
 from parser.parser import Parser
 from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
 from interpreter.interpreter import Interpreter
+from base.error import LexerError, ParserError, SemanticError
+import sys
 
 def main():
     while True:
@@ -33,17 +35,23 @@ def main():
             continue
 
         lexer = Lexer(text)
-        parser = Parser(lexer)
-        tree = parser.parse()
+        try:
+            parser = Parser(lexer)
+            tree = parser.parse()
+        except (LexerError, ParserError) as e:
+            print(e.message)
+            sys.exit(1)
+
         
         semantic_analyzer = SemanticAnalyzer()
         try:
             semantic_analyzer.visit(tree)
-        except Exception as e:
-            print(e)
+        except SemanticError as e:
+            print(e.message)
+            sys.exit(1)
 
         interpreter = Interpreter(tree)
-        result = interpreter.interpret()
+        interpreter.interpret()
 
         print('')
         print('Run-time GLOBAL_MEMORY contents:')
