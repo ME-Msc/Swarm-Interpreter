@@ -7,22 +7,22 @@ from base.error import LexerError, ParserError, SemanticError
 import sys
 
 def main():
-    SHOULD_LOG_SCOPE = True
+    SHOULD_LOG_SCOPE = False
     try:
         # text = input('swarm > ')
         text = """
             Port : 14457
 
-            Action getGPS(test_param):
+            Action getGPS():
             
             Agent testUav():
 
             Behavior reach_Behavior():
 
-            Task reach_in_order_Task():
+            Task add_task(a, b):
 
             Main :
-                e = a + 5
+                add_task(1, 2)
         """
     except EOFError:
         sys.exit(1)

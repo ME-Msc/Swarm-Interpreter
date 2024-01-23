@@ -41,6 +41,9 @@ class Interpreter(NodeVisitor):
     def visit_Task(self, node):
         return self.visit(node.compound_statement)
     
+    def visit_TaskCall(self, node):
+        pass
+
     def visit_Behavior(self, node):
         return self.visit(node.compound_statement)
     

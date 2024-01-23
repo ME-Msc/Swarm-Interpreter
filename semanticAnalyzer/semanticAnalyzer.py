@@ -101,6 +101,10 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = self.current_scope.enclosing_scope
         self.log('LEAVE scope: %s \n\n' %  task_name)
     
+    def visit_TaskCall(self, node):
+        for param_node in node.actual_params:
+            self.visit(param_node)
+
     def visit_Behavior(self, node):
         behavior_name = 'BEHAVIOR_' + node.name
         behavior_symbol = BehaviorSymbol(behavior_name)

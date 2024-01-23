@@ -101,7 +101,6 @@ class Parser(object):
         node = Behavior(name=behavior_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
  
-
     def task(self):
         """
         task_defination ::= "Task" task_name "(" ")" ":" compound_statement
@@ -117,7 +116,35 @@ class Parser(object):
         compound_statement_node = self.compound_statement()
         node = Task(name=task_name, params=parameters_nodes, compound_statement=compound_statement_node)
         return node
- 
+
+    def task_call_statement(self):
+        '''
+        task_call_statement : variable "(" ( additive_expression ( "," additive_expression)* )? ")" 
+        '''
+        token = self.current_token
+
+        task_name = self.current_token.value
+        self.eat(TokenType.ID)
+        self.eat(TokenType.LPAREN)
+        actual_params = []
+        if self.current_token.type != TokenType.RPAREN:
+            node = self.expr()
+            actual_params.append(node)
+
+        while self.current_token.type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            node = self.expr()
+            actual_params.append(node)
+
+        self.eat(TokenType.RPAREN)
+
+        node = TaskCall(
+            task_name=task_name,
+            actual_params=actual_params,
+            token=token
+        )
+        return node
+
     def main_task(self):
         """main_task : compound_statement"""
         self.eat(TokenType.MAIN)
@@ -182,9 +209,12 @@ class Parser(object):
     def statement(self):
         """
         statement : assignment_statement
+                  | task_call_statement
                   | empty
         """
-        if self.current_token.type == TokenType.ID:
+        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(':
+            node = self.task_call_statement()
+        elif self.current_token.type == TokenType.ID and self.lexer.current_char == '=':
             node = self.assignment_statement()
         else:
             node = self.empty()

@@ -40,6 +40,12 @@ class Task(AST):
         self.params = params  # a list of Param nodes
         self.compound_statement = compound_statement
 
+class TaskCall(AST):
+    def __init__(self, task_name, actual_params, token):
+        self.task_name = task_name
+        self.actual_params = actual_params  # a list of AST nodes
+        self.token = token
+        
 class MainTask(AST):
     def __init__(self, compound_statement):
         self.compound_statement = compound_statement

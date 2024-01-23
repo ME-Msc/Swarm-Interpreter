@@ -14,6 +14,8 @@ behavior_defination ::= "Behavior" variable "(" formal_parameters? ")" ":" compo
 /* Task */
 task_defination ::= "Task" variable "(" formal_parameters? ")" ":" compound_statement
 
+task_call_statement ::= variable "(" ( additive_expression ( "," additive_expression)* )? ")"
+
 /* parameter */
 formal_parameters ::= variable ( "," variable )*
 
@@ -25,6 +27,7 @@ compound_statement ::= statement_list
 statement_list ::= statement ( ";" statement )*
 
 statement ::= assignment_statement
+            | task_call_statement
             | empty
 
 assignment_statement ::= variable "=" additive_expression
