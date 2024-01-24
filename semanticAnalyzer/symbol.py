@@ -2,6 +2,7 @@ class Symbol(object):
     def __init__(self, name, type=None):
         self.name = name
         self.type = type
+        self.scope_level = 0
 
 
 class VarSymbol(Symbol):

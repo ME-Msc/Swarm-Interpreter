@@ -40,6 +40,7 @@ class ScopedSymbolTable(object):
 
     def insert(self, symbol):
         self.log('Insert: %s' % symbol)
+        symbol.scope_level = self.scope_level
         self._symbols[symbol.name] = symbol
 
     def lookup(self, name, current_scope_only=False):

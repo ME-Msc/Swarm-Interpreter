@@ -62,15 +62,13 @@ class Interpreter(NodeVisitor):
     
     def visit_TaskCall(self, node):
         task_name = node.name
-
-        ar = ActivationRecord(
-            name=task_name,
-            type=ARType.TASK,
-            nesting_level=2,
-        )
-
         task_symbol = node.symbol
-
+        ar = ActivationRecord(
+            name = task_name,
+            type = ARType.TASK,
+            nesting_level = task_symbol.scope_level + 1,
+        )
+        
         formal_params = task_symbol.formal_params
         actual_params = node.actual_params
 
