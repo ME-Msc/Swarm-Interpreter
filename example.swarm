@@ -13,7 +13,6 @@ Agent testUav():
 
 Behavior reach_Behavior():
     @stigmergy: <reachCount>
-    @action: getGPS, flyTo
     @init:
         dest = "3, 3"
     @goal:
@@ -29,7 +28,6 @@ Task reach_in_order_Task({typeA:countA}, target):
     @goal:
         get rc from <reachCount>
         rc == target
-    @behavior: 
     @routine:
         order typeA[0~countA]:
             reach_Behavior()

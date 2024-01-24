@@ -1,4 +1,5 @@
 """ Swarm Interpreter """
+import argparse
 from lexer.lexer import Lexer
 from parser.parser import Parser
 from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
@@ -7,30 +8,25 @@ from base.error import LexerError, ParserError, SemanticError
 import sys
 
 def main():
-    SHOULD_LOG_SCOPE = False
-    SHOULD_LOG_STACK = True
-    try:
-        # text = input('swarm > ')
-        text = """
-            Port : 14457
+    parser = argparse.ArgumentParser(
+        description='Swarm Interpreter'
+    )
+    parser.add_argument('inputfile', help='Pascal source file')
+    parser.add_argument(
+        '--scope',
+        help='Print scope information',
+        action='store_true',
+    )
+    parser.add_argument(
+        '--stack',
+        help='Print call stack',
+        action='store_true',
+    )
+    args = parser.parse_args()
 
-            Action getGPS():
-            
-            Agent testUav():
+    SHOULD_LOG_SCOPE, SHOULD_LOG_STACK = args.scope, args.stack
+    text = open(args.inputfile, 'r').read()
 
-            Behavior reach_Behavior():
-
-            Task add_task(a, b):
-                c = a + b
-
-            Main :
-                y = 7;
-                x = (y + 3) * 3;
-                add_task(1, 2)
-        """
-    except EOFError:
-        sys.exit(1)
-    
     if not text:
         print("Text is None.")
         sys.exit(1)
