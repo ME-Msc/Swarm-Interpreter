@@ -3,7 +3,7 @@ from lexer.token import *
 from parser.element import *
 from parser.operator import NoOp, UnaryOp, BinOp, Assign
 
-class Parser(object):
+class BaseParser(object):
     def __init__(self, lexer):
         self.lexer = lexer
         # set current token to the first token taken from the input
@@ -31,6 +31,11 @@ class Parser(object):
                 error_code=ErrorCode.UNEXPECTED_TOKEN,
                 token=self.current_token,
             )
+
+
+class Parser(BaseParser):
+    def __init__(self, lexer):
+        super.__init__(lexer)
 
     def program(self):
         """ program ::= port_setting agent_defination action_defination behavior_defination task_defination main_task """
@@ -119,7 +124,7 @@ class Parser(object):
 
     def task_call_statement(self):
         '''
-        task_call_statement : variable "(" ( additive_expression ( "," additive_expression)* )? ")" 
+        task_call_statement : variable "(" ( additive_additive_expressionession ( "," additive_additive_expressionession)* )? ")" 
         '''
         token = self.current_token
 
@@ -128,12 +133,12 @@ class Parser(object):
         self.eat(TokenType.LPAREN)
         actual_params = []
         if self.current_token.type != TokenType.RPAREN:
-            node = self.expr()
+            node = self.additive_expression()
             actual_params.append(node)
 
         while self.current_token.type == TokenType.COMMA:
             self.eat(TokenType.COMMA)
-            node = self.expr()
+            node = self.additive_expression()
             actual_params.append(node)
 
         self.eat(TokenType.RPAREN)
@@ -222,12 +227,12 @@ class Parser(object):
 
     def assignment_statement(self):
         """
-        assignment_statement : variable ASSIGN expr
+        assignment_statement : variable ASSIGN additive_expression
         """
         left = self.variable()
         token = self.current_token
         self.eat(TokenType.ASSIGN)
-        right = self.expr()
+        right = self.additive_expression()
         node = Assign(left, token, right)
         return node
 
@@ -243,37 +248,37 @@ class Parser(object):
         """An empty production"""
         return NoOp()
 
-    def factor(self):
+    def primary_expression(self):
         """
-        factor : (PLUS | MINUS) factor 
+        primary_expression : (PLUS | MINUS) primary_expression 
                     | INTEGER 
-                    | LPAREN expr RPAREN
+                    | LPAREN additive_expression RPAREN
                     | variable
         """
         token = self.current_token
         if token.type == TokenType.PLUS:
             self.eat(TokenType.PLUS)
-            node = UnaryOp(token, self.factor())
+            node = UnaryOp(token, self.primary_expression())
             return node
         elif token.type == TokenType.MINUS:
             self.eat(TokenType.MINUS)
-            node = UnaryOp(token, self.factor())
+            node = UnaryOp(token, self.primary_expression())
             return node
         elif token.type == TokenType.INTEGER:
             self.eat(TokenType.INTEGER)
             return Num(token)
         elif token.type == TokenType.LPAREN:
             self.eat(TokenType.LPAREN)
-            node = self.expr()
+            node = self.additive_expression()
             self.eat(TokenType.RPAREN)
             return node
         else:
             node = self.variable()
             return node
 
-    def term(self):
-        """term : factor ((MUL | DIV | MOD) factor)*"""
-        node = self.factor()
+    def multiplicative_expression(self):
+        """multiplicative_expression : primary_expression ((MUL | DIV | MOD) primary_expression)*"""
+        node = self.primary_expression()
 
         while self.current_token.type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
             token = self.current_token
@@ -284,17 +289,17 @@ class Parser(object):
             elif token.type == TokenType.MOD:
                 self.eat(TokenType.MOD)
 
-            node = BinOp(left=node, op=token, right=self.factor())
+            node = BinOp(left=node, op=token, right=self.primary_expression())
 
         return node
 
-    def expr(self):
+    def additive_expression(self):
         """
-        expr   : term ((PLUS | MINUS) term)*
-        term   : factor ((MUL | DIV | MOD) factor)*
-        factor : (PLUS | MINUS) factor | INTEGER | LPAREN expr RPAREN
+        additive_expression   : multiplicative_expression ((PLUS | MINUS) multiplicative_expression)*
+        multiplicative_expression   : primary_expression ((MUL | DIV | MOD) primary_expression)*
+        primary_expression : (PLUS | MINUS) primary_expression | INTEGER | LPAREN additive_expression RPAREN
         """
-        node = self.term()
+        node = self.multiplicative_expression()
 
         while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
             token = self.current_token
@@ -303,7 +308,7 @@ class Parser(object):
             elif token.type == TokenType.MINUS:
                 self.eat(TokenType.MINUS)
 
-            node = BinOp(left=node, op=token, right=self.term())
+            node = BinOp(left=node, op=token, right=self.multiplicative_expression())
 
         return node
 
