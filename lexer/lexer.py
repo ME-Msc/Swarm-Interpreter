@@ -150,11 +150,26 @@ class Lexer(object):
             if self.current_char.isdigit():
                 return self.number()
             
-            # peek() is for '<='
-            # if self.current_char == '<' and self.peek() == '=':
-            #     self.advance()
-            #     self.advance()
-            #     return Token(ASSIGN, '<=')
+            # multi-character token
+            try:
+                multi_char = self.current_char + self.peek()
+                # get enum member by value, e.g.
+                # TokenType('<<') --> TokenType.DOUBLE_LESS
+                token_type = TokenType(multi_char)
+            except ValueError:
+                # no enum member with value equal to multi_char
+                self.error()
+            else:
+                # create a token with a multi-character lexeme as its value
+                token = Token(
+                    type = token_type,
+                    value = token_type.value,  # e.g. '<<', '>>', etc
+                    lineno = self.lineno,
+                    column = self.column,
+                )
+                self.advance()
+                self.advance()
+                return token
             
             # single-character token
             try:
