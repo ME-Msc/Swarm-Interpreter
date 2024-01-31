@@ -35,7 +35,7 @@ class BaseParser(object):
 
 class Parser(BaseParser):
     def __init__(self, lexer):
-        super.__init__(lexer)
+        super().__init__(lexer)
 
     def program(self):
         """ program ::= port_setting agent_defination action_defination behavior_defination task_defination main_task """
@@ -66,12 +66,13 @@ class Parser(BaseParser):
         self.eat(TokenType.ACTION)
         var_node = self.variable()
         action_name = var_node.value
-        self.eat(TokenType.LPAREN)
+        self.eat(TokenType.L_PAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(TokenType.RPAREN)
-        self.eat(TokenType.COLON)
+        self.eat(TokenType.R_PAREN)
+        self.eat(TokenType.L_BRACE)
         compound_statement_node = self.compound_statement()
         node = Action(name=action_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        self.eat(TokenType.R_BRACE)
         return node
  
     def agent(self):
@@ -82,12 +83,13 @@ class Parser(BaseParser):
         self.eat(TokenType.AGENT)
         var_node = self.variable()
         agent_name = var_node.value
-        self.eat(TokenType.LPAREN)
+        self.eat(TokenType.L_PAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(TokenType.RPAREN)
-        self.eat(TokenType.COLON)
+        self.eat(TokenType.R_PAREN)
+        self.eat(TokenType.L_BRACE)
         compound_statement_node = self.compound_statement()
         node = Agent(name=agent_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        self.eat(TokenType.R_BRACE)
         return node
  
     def behavior(self):
@@ -98,12 +100,14 @@ class Parser(BaseParser):
         self.eat(TokenType.BEHAVIOR)
         var_node = self.variable()
         behavior_name = var_node.value
-        self.eat(TokenType.LPAREN)
+        self.eat(TokenType.L_PAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(TokenType.RPAREN)
-        self.eat(TokenType.COLON)
+        self.eat(TokenType.R_PAREN)
+        self.eat(TokenType.L_BRACE)
+        # TODO:init blocks for behavior
         compound_statement_node = self.compound_statement()
         node = Behavior(name=behavior_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        self.eat(TokenType.R_BRACE)
         return node
  
     def task(self):
@@ -114,12 +118,13 @@ class Parser(BaseParser):
         self.eat(TokenType.TASK)
         var_node = self.variable()
         task_name = var_node.value
-        self.eat(TokenType.LPAREN)
+        self.eat(TokenType.L_PAREN)
         parameters_nodes = self.formal_parameters()
-        self.eat(TokenType.RPAREN)
-        self.eat(TokenType.COLON)
+        self.eat(TokenType.R_PAREN)
+        self.eat(TokenType.L_BRACE)
         compound_statement_node = self.compound_statement()
         node = Task(name=task_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        self.eat(TokenType.R_BRACE)
         return node
 
     def task_call_statement(self):
