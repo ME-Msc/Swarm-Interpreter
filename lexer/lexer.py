@@ -150,6 +150,10 @@ class Lexer(object):
             if self.current_char.isdigit():
                 return self.number()
             
+            if self.current_char == '@':
+                self.advance()
+                return self._id()
+            
             # multi-character token
             try:
                 multi_char = self.current_char + self.peek()
@@ -157,8 +161,25 @@ class Lexer(object):
                 # TokenType('<<') --> TokenType.DOUBLE_LESS
                 token_type = TokenType(multi_char)
             except ValueError:
-                # no enum member with value equal to multi_char
-                self.error()
+                # no enum member with value equal to multi_char, check for single-character
+                # single-character token
+                try:
+                    # get enum member by value, e.g.
+                    # TokenType(';') --> TokenType.SEMI
+                    token_type = TokenType(self.current_char)
+                except ValueError:
+                    # no enum member with value equal to self.current_char
+                    self.error()
+                else:
+                    # create a token with a single-character lexeme as its value
+                    token = Token(
+                        type=token_type,
+                        value=token_type.value,  # e.g. ';', '.', etc
+                        lineno=self.lineno,
+                        column=self.column,
+                    )
+                    self.advance()
+                    return token
             else:
                 # create a token with a multi-character lexeme as its value
                 token = Token(
@@ -171,24 +192,7 @@ class Lexer(object):
                 self.advance()
                 return token
             
-            # single-character token
-            try:
-                # get enum member by value, e.g.
-                # TokenType(';') --> TokenType.SEMI
-                token_type = TokenType(self.current_char)
-            except ValueError:
-                # no enum member with value equal to self.current_char
-                self.error()
-            else:
-                # create a token with a single-character lexeme as its value
-                token = Token(
-                    type=token_type,
-                    value=token_type.value,  # e.g. ';', '.', etc
-                    lineno=self.lineno,
-                    column=self.column,
-                )
-                self.advance()
-                return token
+            
 
         # EOF (end-of-file) token indicates that there is no more
         # input left for lexical analysis
