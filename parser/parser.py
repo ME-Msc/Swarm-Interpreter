@@ -104,11 +104,29 @@ class Parser(BaseParser):
         parameters_nodes = self.formal_parameters()
         self.eat(TokenType.R_PAREN)
         self.eat(TokenType.L_BRACE)
-        # TODO:init blocks for behavior
-        compound_statement_node = self.compound_statement()
-        node = Behavior(name=behavior_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        init_node = self.behavior_init_block()
+        goal_node = self.behavior_goal_block()
+        routine_node = self.behavior_routine_block()
+        node = Behavior(name = behavior_name, formal_params = parameters_nodes, 
+                        init_block = init_node, goal_block = goal_node, routine_block = routine_node)
         self.eat(TokenType.R_BRACE)
         return node
+    
+    # TODO: blocks for behavior
+    def behavior_init_block(self):
+        pass
+
+    def behavior_goal_block(self):
+        pass
+
+    def behavior_routine_block(self):
+        pass
+
+    def behavior_compound_statement(self):
+        pass
+
+    def behavior_statement(self):
+        pass
  
     def task(self):
         """
