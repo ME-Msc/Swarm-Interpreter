@@ -1,15 +1,27 @@
 Port : 14457
 
-Action getGPS():
+Action getGPS(){}
 
-Agent testUav():
+Agent testUav(){}
 
-Behavior reach_Behavior():
+Behavior add_2(x, y){
+    @init{}
+    @goal{}
+    @routine{
+        z = x + y;
+    }
+}
 
-Task add_task(a, b):
-    c = a + b
+Task add(a, b){
+    @init{}
+    @goal{}
+    @routine{
+        add_2(a, b);
+    }
+}
 
-Main :
-    y = 7;
-    x = (y + 3) * 3;
-    add_task(1, 2)
+Main {
+    m = 7;
+    n = (m + 3) * 3;
+    add(m, n);
+}
