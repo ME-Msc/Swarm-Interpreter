@@ -22,11 +22,19 @@ class Action(AST):
         self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
 
+class ActionList(AST):
+    def __init__(self):
+        self.children = []
+
 class Agent(AST):
     def __init__(self, name, formal_params, compound_statement):
         self.name = name
         self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
+
+class AgentList(AST):
+    def __init__(self):
+        self.children = []
     
 class Behavior(AST):
     def __init__(self, name, formal_params, compound_statement):
@@ -34,11 +42,19 @@ class Behavior(AST):
         self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
 
+class BehaviorList(AST):
+    def __init__(self):
+        self.children = []
+
 class Task(AST):
     def __init__(self, name, formal_params, compound_statement):
         self.name = name
         self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
+
+class TaskList(AST):
+    def __init__(self):
+        self.children = []
 
 class TaskCall(AST):
     def __init__(self, name, actual_params, token):
