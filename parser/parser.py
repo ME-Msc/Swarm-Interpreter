@@ -41,12 +41,12 @@ class Parser(BaseParser):
         """ program ::= port_setting agent_defination action_defination behavior_defination task_defination main_task """
         port_node = self.port()
         port_num = port_node.value
-        action_node = self.action()
+        action_list = self.action_list()
         agent_node = self.agent()
         behavior_node = self.behavior()
         task_node = self.task()
         main_task_node = self.main_task()
-        program_node = Program(port = port_num, action = action_node, agent = agent_node, 
+        program_node = Program(port = port_num, action_list = action_list, agent = agent_node, 
                                behavior = behavior_node, task = task_node, mainTask = main_task_node)
         return program_node
 
@@ -57,6 +57,12 @@ class Parser(BaseParser):
         node = Num(self.current_token)
         self.eat(TokenType.INTEGER)
         return node
+
+    def action_list(self):
+        root = ActionList()
+        while self.current_token.type == TokenType.ACTION:
+            root.children.append(self.action())
+        return root
 
     def action(self):
         """ 
@@ -69,10 +75,25 @@ class Parser(BaseParser):
         self.eat(TokenType.L_PAREN)
         parameters_nodes = self.formal_parameters()
         self.eat(TokenType.R_PAREN)
+        action_compound_statement_node = self.action_compound_statement()
+        node = Action(name=action_name, formal_params=parameters_nodes, compound_statement=action_compound_statement_node)
+        return node
+    
+    def action_compound_statement(self):
         self.eat(TokenType.L_BRACE)
-        compound_statement_node = self.compound_statement()
-        node = Action(name=action_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        root = Compound()
+        node = self.action_statement()
+        root.children.append(node)
+        while self.current_token.type == TokenType.SEMI:
+            self.eat(TokenType.SEMI)
+            root.children.append(self.action_statement())
         self.eat(TokenType.R_BRACE)
+
+    def action_statement(self):
+        if self.current_token.type == TokenType.ID:
+            node = self.assignment_statement()
+        else:
+            node = self.empty()
         return node
  
     def agent(self):
@@ -290,7 +311,7 @@ class Parser(BaseParser):
         elif token.type == TokenType.INTEGER:
             self.eat(TokenType.INTEGER)
             return Num(token)
-        elif token.type == TokenType.LPAREN:
+        elif token.type == TokenType.L_PAREN:
             self.eat(TokenType.LPAREN)
             node = self.additive_expression()
             self.eat(TokenType.RPAREN)

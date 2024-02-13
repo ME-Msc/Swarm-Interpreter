@@ -1,6 +1,14 @@
 Port : 14457
 
-Action getGPS(){}
+Action getGPS(){
+    c = 5;
+    d = c + 1;
+}
+
+Action flyTo(position){
+    e = 7;
+    f = e + 2;
+}
 
 Agent testUav(){}
 
