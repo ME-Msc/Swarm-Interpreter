@@ -18,15 +18,25 @@ Agent testUav2 {
     getGPS;
 }
 
-Behavior add_2(x, y){
+Behavior b_add(x, y){
     @init{}
-    @goal{}
+    @goal{
+        $ z = 44
+    }
     @routine{
         z = x + y;
     }
 }
 
-Task add(a, b){
+Behavior b_add_2(){
+    @init{}
+    @goal{
+        $ z = 33
+    }
+    @routine{}
+}
+
+Task t_add(a, b){
     @init{}
     @goal{}
     @routine{

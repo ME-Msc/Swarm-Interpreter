@@ -69,11 +69,11 @@ class MainTask(AST):
         self.compound_statement = compound_statement
 
 class Program(AST):
-    def __init__(self, port, action_list, agent_list, behavior, task, mainTask):
+    def __init__(self, port, action_list, agent_list, behavior_list, task, mainTask):
         self.port = port
         self.action_list = action_list
         self.agent_list = agent_list
-        self.behavior = behavior
+        self.behavior_list = behavior_list
         self.task = task
         self.mainTask = mainTask
 
