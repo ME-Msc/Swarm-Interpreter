@@ -42,11 +42,11 @@ class Parser(BaseParser):
         port_node = self.port()
         port_num = port_node.value
         action_list = self.action_list()
-        agent_node = self.agent()
+        agent_list = self.agent_list()
         behavior_node = self.behavior()
         task_node = self.task()
         main_task_node = self.main_task()
-        program_node = Program(port = port_num, action_list = action_list, agent = agent_node, 
+        program_node = Program(port = port_num, action_list = action_list, agent_list = agent_list, 
                                behavior = behavior_node, task = task_node, mainTask = main_task_node)
         return program_node
 
@@ -88,6 +88,7 @@ class Parser(BaseParser):
             self.eat(TokenType.SEMI)
             root.children.append(self.action_statement())
         self.eat(TokenType.R_BRACE)
+        return root
 
     def action_statement(self):
         if self.current_token.type == TokenType.ID:
@@ -96,20 +97,25 @@ class Parser(BaseParser):
             node = self.empty()
         return node
  
+    def agent_list(self):
+        root = AgentList()
+        while self.current_token.type == TokenType.AGENT:
+            root.children.append(self.agent())
+        return root
+
     def agent(self):
-        """ 
-        agent_defination ::= "Agent" agent_name "(" ")" ":" compound_statement
-        agent_name ::= variable
-        """
         self.eat(TokenType.AGENT)
         var_node = self.variable()
         agent_name = var_node.value
-        self.eat(TokenType.L_PAREN)
-        parameters_nodes = self.formal_parameters()
-        self.eat(TokenType.R_PAREN)
         self.eat(TokenType.L_BRACE)
-        compound_statement_node = self.compound_statement()
-        node = Agent(name=agent_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        ability_node = Compound()
+        node = self.variable()
+        ability_node.children.append(node)
+        while self.current_token.type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            ability_node.children.append(self.variable())
+        self.eat(TokenType.SEMI)
+        node = Agent(name=agent_name, ability=ability_node)
         self.eat(TokenType.R_BRACE)
         return node
  

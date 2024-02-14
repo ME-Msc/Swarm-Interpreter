@@ -10,7 +10,13 @@ Action flyTo(position){
     f = e + 2;
 }
 
-Agent testUav(){}
+Agent testUav {
+    getGPS, flyTo;
+}
+
+Agent testUav2 {
+    getGPS;
+}
 
 Behavior add_2(x, y){
     @init{}

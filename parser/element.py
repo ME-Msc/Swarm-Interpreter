@@ -27,10 +27,9 @@ class ActionList(AST):
         self.children = []
 
 class Agent(AST):
-    def __init__(self, name, formal_params, compound_statement):
+    def __init__(self, name, ability):
         self.name = name
-        self.formal_params = formal_params  # a list of Param nodes
-        self.compound_statement = compound_statement
+        self.ability = ability
 
 class AgentList(AST):
     def __init__(self):
@@ -70,10 +69,10 @@ class MainTask(AST):
         self.compound_statement = compound_statement
 
 class Program(AST):
-    def __init__(self, port, action_list, agent, behavior, task, mainTask):
+    def __init__(self, port, action_list, agent_list, behavior, task, mainTask):
         self.port = port
         self.action_list = action_list
-        self.agent = agent
+        self.agent_list = agent_list
         self.behavior = behavior
         self.task = task
         self.mainTask = mainTask

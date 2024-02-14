@@ -1,4 +1,4 @@
-program ::= port action_list agent_defination behavior_defination+ task_defination+ main_task
+program ::= port action_list agent_list behavior_defination+ task_defination+ main_task
 
 port ::= "Port" ":" integer
 
@@ -13,7 +13,11 @@ action_statement ::= assignment_statement
                     | empty 
 
 /* Agent */
-agent_defination ::= "Agent" variable "(" formal_parameters? ")" ":" compound_statement
+agent_list ::= agent+
+
+agent ::= "Agent" variable "{" ( variable ( "," variable )* )? ";" "}"
+
+/* TODO: agent_call ::= "Agent" variable integer ";" */
 
 /* Behavior */
 behavior_defination ::= "Behavior" variable "(" formal_parameters? ")" ":" compound_statement
