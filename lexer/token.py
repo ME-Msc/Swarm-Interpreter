@@ -11,6 +11,7 @@ class TokenType(Enum):
     MUL         = '*'
     DIV         = '/'
     MOD         = '%'
+    DOLLAR      = '$'
     ASSIGN      = '='
     SEMI        = ';'
     COLON       = ':'
@@ -30,6 +31,7 @@ class TokenType(Enum):
     IS_EQUAL        = '=='
     NOT_EQUAL       = '!='
     RPC_CALL        = ':='
+    PARALLEL        = '||'
     # block of reserved words
     PORT        = 'PORT'
     AGENT       = 'AGENT'

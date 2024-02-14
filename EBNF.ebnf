@@ -1,5 +1,5 @@
 /* Program */
-program ::= port action_list agent_list behavior_defination+ task_defination+ main_task
+program ::= port action_list agent_list behavior_list task_defination+ main_task
 
 port ::= "Port" ":" integer
 
@@ -29,7 +29,31 @@ agent ::= "Agent" variable "{" ( variable ( "," variable )* )? ";" "}"
 /* TODO: agent_call ::= "Agent" variable integer ";" */
 
 /* Behavior */
-behavior_defination ::= "Behavior" variable "(" formal_parameters? ")" ":" compound_statement
+behavior_list ::= behavior+
+
+behavior ::= "Behavior" variable "(" formal_parameters? ")" "{" behavior_init_block behavior_goal_block behavior_routine_block "}"
+
+behavior_init_block ::= "@init" behavior_compound_statement
+
+/* TODO: behavior_goal_block ::= "@goal" "{" behavior_statement* "$" expression "}" */
+behavior_goal_block ::= "@goal" "{" behavior_statement* "$" assignment_statement "}"
+
+behavior_routine_block ::= "@routine" behavior_compound_statement ( "||" behavior_compound_statement )*
+
+behavior_compound_statement ::= "{" behavior_statement* "}"
+
+/* TODO: behavior_statement ::= put_statement
+                        | get_statement
+                        | behavior_publish_statement
+                        | behavior_subscribe_statement
+                        | behavior_unsubscribe_statement
+                        | behavior_assignment_statement
+                        | behavior_if_else
+                        | behavior_call
+                        | action_call
+                        | empty */
+behavior_statement ::= assignment_statement
+                    | empty
 
 /* Task */
 task_defination ::= "Task" variable "(" formal_parameters? ")" ":" compound_statement

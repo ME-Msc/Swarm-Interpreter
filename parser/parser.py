@@ -43,11 +43,11 @@ class Parser(BaseParser):
         port_num = port_node.value
         action_list = self.action_list()
         agent_list = self.agent_list()
-        behavior_node = self.behavior()
+        behavior_list = self.behavior_list()
         task_node = self.task()
         main_task_node = self.main_task()
         program_node = Program(port = port_num, action_list = action_list, agent_list = agent_list, 
-                               behavior = behavior_node, task = task_node, mainTask = main_task_node)
+                               behavior_list = behavior_list, task = task_node, mainTask = main_task_node)
         return program_node
 
     def port(self):
@@ -127,12 +127,14 @@ class Parser(BaseParser):
         node = Agent(name=agent_name, ability=ability_node)
         self.eat(TokenType.R_BRACE)
         return node
- 
+
+    def behavior_list(self):
+        root = BehaviorList()
+        while self.current_token.type == TokenType.BEHAVIOR:
+            root.children.append(self.behavior())
+        return root
+
     def behavior(self):
-        """
-        behavior_defination ::= "Behavior" behavior_name "(" ")" ":" compound_statement
-        behavior_name ::= variable
-        """
         self.eat(TokenType.BEHAVIOR)
         var_node = self.variable()
         behavior_name = var_node.value
@@ -148,21 +150,61 @@ class Parser(BaseParser):
         self.eat(TokenType.R_BRACE)
         return node
     
-    # TODO: blocks for behavior
     def behavior_init_block(self):
-        pass
+        self.eat(TokenType.INIT)
+        node = self.behavior_compound_statement()
+        return node
 
     def behavior_goal_block(self):
-        pass
+        self.eat(TokenType.GOAL)
+        self.eat(TokenType.L_BRACE)
+        root = Compound()
+        while not self.current_token.type == TokenType.DOLLAR:
+            root.children.append(self.behavior_statement())
+        self.eat(TokenType.DOLLAR)
+        root.children.append(self.expression())
+        self.eat(TokenType.R_BRACE)
+        return root
 
     def behavior_routine_block(self):
-        pass
+        self.eat(TokenType.ROUTINE)
+        root = Compound()
+        root.children.append(self.behavior_compound_statement())
+        while self.current_token.type == TokenType.PARALLEL:
+            self.eat(TokenType.PARALLEL)
+            root.children.append(self.behavior_compound_statement())
+        return root
 
     def behavior_compound_statement(self):
-        pass
+        self.eat(TokenType.L_BRACE)
+        root = Compound()
+        node = self.behavior_statement()
+        root.children.append(node)
+        while self.current_token.type == TokenType.SEMI:
+            self.eat(TokenType.SEMI)
+            root.children.append(self.behavior_statement())
+        self.eat(TokenType.R_BRACE)
+        return root
 
+    # TODO: behavior_statement not finish yet
     def behavior_statement(self):
-        pass
+        '''
+        behavior_statement ::= put_statement
+                        | get_statement
+                        | behavior_publish_statement
+                        | behavior_subscribe_statement
+                        | behavior_unsubscribe_statement
+                        | behavior_assignment_statement
+                        | behavior_if_else
+                        | behavior_call
+                        | action_call
+                        | empty
+        '''
+        if self.current_token.type == TokenType.ID:
+            node = self.assignment_statement()
+        else:
+            node = self.empty()
+        return node
  
     def task(self):
         """
@@ -306,6 +348,10 @@ class Parser(BaseParser):
     def empty(self):
         """An empty production"""
         return NoOp()
+
+    # TODO: expression not finish yet
+    def expression(self):
+        return self.assignment_statement()
 
     def primary_expression(self):
         """
