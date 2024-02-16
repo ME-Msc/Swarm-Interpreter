@@ -21,7 +21,7 @@ Agent testUav2 {
 Behavior b_add(x, y){
     @init{}
     @goal{
-        $ z = 44
+        $ z == 44
     }
     @routine{
         z = x + y;
@@ -31,7 +31,7 @@ Behavior b_add(x, y){
 Behavior b_add_2(){
     @init{}
     @goal{
-        $ z = 33
+        $ z == 33
     }
     @routine{}
 }

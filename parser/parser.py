@@ -349,40 +349,119 @@ class Parser(BaseParser):
         """An empty production"""
         return NoOp()
 
-    # TODO: expression not finish yet
     def expression(self):
-        return self.assignment_statement()
+        """
+        expression ::= logical_not_expression
+        """
+        return self.logical_not_expression()
 
-    def primary_expression(self):
+    def logical_not_expression(self):
         """
-        primary_expression : (PLUS | MINUS) primary_expression 
-                    | INTEGER 
-                    | LPAREN additive_expression RPAREN
-                    | variable
+        logical_not_expression ::= "not"? logical_or_expression
         """
-        token = self.current_token
-        if token.type == TokenType.PLUS:
-            self.eat(TokenType.PLUS)
-            node = UnaryOp(token, self.primary_expression())
-            return node
-        elif token.type == TokenType.MINUS:
-            self.eat(TokenType.MINUS)
-            node = UnaryOp(token, self.primary_expression())
-            return node
-        elif token.type == TokenType.INTEGER:
-            self.eat(TokenType.INTEGER)
-            return Num(token)
-        elif token.type == TokenType.L_PAREN:
-            self.eat(TokenType.LPAREN)
-            node = self.additive_expression()
-            self.eat(TokenType.RPAREN)
-            return node
+        if self.current_token.type == TokenType.NOT :
+            token = self.current_token
+            self.eat(TokenType.NOT)
+            node = self.logical_or_expression()
+            node = UnaryOp(op=token, expr=node)
         else:
-            node = self.variable()
-            return node
+            node = self.logical_or_expression()
+        return node
+
+    def logical_or_expression(self):
+        """
+        logical_or_expression ::= logical_and_expression
+                                | logical_and_expression "or" logical_or_expression
+        """
+        node = self.logical_and_expression()
+        if self.current_token.type == TokenType.OR :
+            token = self.current_token
+            self.eat(TokenType.OR)
+            node = BinOp(left=node, op=token, right=self.logical_or_expression())
+        return node
+
+    def logical_and_expression(self):
+        """
+        logical_and_expression ::= equality_expression
+                        | equality_expression "and" logical_and_expression
+        """
+        node = self.equality_expression()
+        if self.current_token.type == TokenType.AND :
+            token = self.current_token
+            self.eat(TokenType.AND)
+            node = BinOp(left=node, op=token, right=self.equality_expression())
+        return node
+
+
+    def equality_expression(self) :
+        """ 
+        equality_expression ::= relational_expression
+                            | relational_expression "==" equality_expression
+                            | relational_expression "!=" equality_expression
+        """
+        node = self.relational_expression()
+
+        if self.current_token.type == TokenType.IS_EQUAL :
+            token = self.current_token
+            self.eat(TokenType.IS_EQUAL)
+            node = BinOp(left=node, op=token, right=self.equality_expression())
+        elif self.current_token.type == TokenType.NOT_EQUAL :
+            token = self.current_token
+            self.eat(TokenType.NOT_EQUAL)
+            node = BinOp(left=node, op=token, right=self.equality_expression())
+        
+        return node
+
+    def relational_expression(self):
+        """
+        relational_expression ::= additive_expression
+                        | additive_expression "<" relational_expression
+                        | additive_expression "<=" relational_expression
+                        | additive_expression ">" relational_expression
+                        | additive_expression ">=" relational_expression
+        """
+        node = self.additive_expression()
+
+        if self.current_token.type == TokenType.LESS :
+            token = self.current_token
+            self.eat(TokenType.LESS)
+            node = BinOp(left=node, op=token, right=self.relational_expression())
+        elif self.current_token.type == TokenType.LESS_EQUAL :
+            token = self.current_token
+            self.eat(TokenType.LESS_EQUAL)
+            node = BinOp(left=node, op=token, right=self.relational_expression())
+        elif self.current_token.type == TokenType.GREATER :
+            token = self.current_token
+            self.eat(TokenType.GREATER)
+            node = BinOp(left=node, op=token, right=self.relational_expression())
+        elif self.current_token.type == TokenType.GREATER_EQUAL :
+            token = self.current_token
+            self.eat(TokenType.GREATER_EQUAL)
+            node = BinOp(left=node, op=token, right=self.relational_expression())
+
+        return node
+        
+    def additive_expression(self):
+        """
+        additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative_expression )*
+        """
+        node = self.multiplicative_expression()
+
+        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
+            token = self.current_token
+            if token.type == TokenType.PLUS:
+                self.eat(TokenType.PLUS)
+            elif token.type == TokenType.MINUS:
+                self.eat(TokenType.MINUS)
+
+            node = BinOp(left=node, op=token, right=self.multiplicative_expression())
+
+        return node
 
     def multiplicative_expression(self):
-        """multiplicative_expression : primary_expression ((MUL | DIV | MOD) primary_expression)*"""
+        """
+        multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
+        """
         node = self.primary_expression()
 
         while self.current_token.type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
@@ -398,24 +477,33 @@ class Parser(BaseParser):
 
         return node
 
-    def additive_expression(self):
+    def primary_expression(self):
         """
-        additive_expression   : multiplicative_expression ((PLUS | MINUS) multiplicative_expression)*
-        multiplicative_expression   : primary_expression ((MUL | DIV | MOD) primary_expression)*
-        primary_expression : (PLUS | MINUS) primary_expression | INTEGER | LPAREN additive_expression RPAREN
+        primary_expression ::= integer
+                        | ( "+" | "-" ) primary_expression
+                        | "(" additive_expression ")"
+                        | variable
         """
-        node = self.multiplicative_expression()
-
-        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
-            token = self.current_token
-            if token.type == TokenType.PLUS:
-                self.eat(TokenType.PLUS)
-            elif token.type == TokenType.MINUS:
-                self.eat(TokenType.MINUS)
-
-            node = BinOp(left=node, op=token, right=self.multiplicative_expression())
-
-        return node
+        token = self.current_token
+        if token.type == TokenType.PLUS:
+            self.eat(TokenType.PLUS)
+            node = UnaryOp(token, self.primary_expression())
+            return node
+        elif token.type == TokenType.MINUS:
+            self.eat(TokenType.MINUS)
+            node = UnaryOp(token, self.primary_expression())
+            return node
+        elif token.type == TokenType.INTEGER:
+            self.eat(TokenType.INTEGER)
+            return Num(token)
+        elif token.type == TokenType.L_PAREN:
+            self.eat(TokenType.LPAREN)
+            node = self.expression()
+            self.eat(TokenType.RPAREN)
+            return node
+        else:
+            node = self.variable()
+            return node
 
     def parse(self):
         node = self.program()

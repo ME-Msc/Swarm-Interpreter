@@ -26,7 +26,7 @@ class TokenType(Enum):
     # multi-character token types
     DOUBLE_LESS     = '<<'
     DOUBLE_GREATER  = '>>'
-    LESSE_QUAL      = '<='
+    LESS_EQUAL      = '<='
     GREATER_EQUAL   = '>='
     IS_EQUAL        = '=='
     NOT_EQUAL       = '!='
