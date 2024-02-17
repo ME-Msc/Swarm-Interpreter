@@ -35,6 +35,11 @@ class AgentList(AST):
     def __init__(self):
         self.children = []
     
+class AgentCall(AST):
+    def __init__(self, name, count):
+        self.name = name
+        self.count = count
+
 class Behavior(AST):
     def __init__(self, name, formal_params, init_block, goal_block, routine_block):
         self.name = name
@@ -73,18 +78,19 @@ class TaskCall(AST):
         self.token = token
         self.symbol = None          # a reference to task symbol
         
-class MainTask(AST):
-    def __init__(self, compound_statement):
-        self.compound_statement = compound_statement
+class Main(AST):
+    def __init__(self, agent_call, task_call):
+        self.agent_call = agent_call
+        self.task_call = task_call
 
 class Program(AST):
-    def __init__(self, port, action_list, agent_list, behavior_list, task_list, mainTask):
+    def __init__(self, port, action_list, agent_list, behavior_list, task_list, main):
         self.port = port
         self.action_list = action_list
         self.agent_list = agent_list
         self.behavior_list = behavior_list
         self.task_list = task_list
-        self.mainTask = mainTask
+        self.main = main
 
 class Param(AST):
     def __init__(self, var_node):   #, type_node):

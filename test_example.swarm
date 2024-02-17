@@ -47,7 +47,5 @@ Task t_add(a, b){
 }
 
 Main {
-    m = 7;
-    n = (m + 3) * 3;
-    t_add({}, m, n);
+    t_add({}, 7, 30);
 }
