@@ -47,11 +47,20 @@ class BehaviorList(AST):
     def __init__(self):
         self.children = []
 
+class BehaviorCall(AST):
+    def __init__(self, name, actual_params, token):
+        self.name = name
+        self.actual_params = actual_params  # a list of AST nodes
+        self.token = token
+        self.symbol = None          # a reference to task symbol
+
 class Task(AST):
-    def __init__(self, name, formal_params, compound_statement):
+    def __init__(self, name, formal_params, init_block, goal_block, routine_block):
         self.name = name
         self.formal_params = formal_params  # a list of Param nodes
-        self.compound_statement = compound_statement
+        self.init_block = init_block
+        self.goal_block = goal_block
+        self.routine_block = routine_block
 
 class TaskList(AST):
     def __init__(self):
@@ -69,12 +78,12 @@ class MainTask(AST):
         self.compound_statement = compound_statement
 
 class Program(AST):
-    def __init__(self, port, action_list, agent_list, behavior_list, task, mainTask):
+    def __init__(self, port, action_list, agent_list, behavior_list, task_list, mainTask):
         self.port = port
         self.action_list = action_list
         self.agent_list = agent_list
         self.behavior_list = behavior_list
-        self.task = task
+        self.task_list = task_list
         self.mainTask = mainTask
 
 class Param(AST):

@@ -44,10 +44,10 @@ class Parser(BaseParser):
         action_list = self.action_list()
         agent_list = self.agent_list()
         behavior_list = self.behavior_list()
-        task_node = self.task()
+        task_list = self.task_list()
         main_task_node = self.main_task()
         program_node = Program(port = port_num, action_list = action_list, agent_list = agent_list, 
-                               behavior_list = behavior_list, task = task_node, mainTask = main_task_node)
+                               behavior_list = behavior_list, task_list = task_list, mainTask = main_task_node)
         return program_node
 
     def port(self):
@@ -205,12 +205,35 @@ class Parser(BaseParser):
         else:
             node = self.empty()
         return node
- 
+    
+    def behavior_call(self):
+        token = self.current_token
+        behavior_name = self.current_token.value
+        self.eat(TokenType.ID)
+        self.eat(TokenType.L_PAREN)
+        actual_params = []
+        if self.current_token.type != TokenType.R_PAREN:
+            node = self.additive_expression()
+            actual_params.append(node)
+        while self.current_token.type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            node = self.additive_expression()
+            actual_params.append(node)
+        self.eat(TokenType.R_PAREN)
+        node = BehaviorCall(
+            name=behavior_name,
+            actual_params=actual_params,
+            token=token
+        )
+        return node
+
+    def task_list(self):
+        root = TaskList()
+        while self.current_token.type == TokenType.TASK:
+            root.children.append(self.task())
+        return root
+
     def task(self):
-        """
-        task_defination ::= "Task" task_name "(" ")" ":" compound_statement
-        task_name ::= variable
-        """
         self.eat(TokenType.TASK)
         var_node = self.variable()
         task_name = var_node.value
@@ -218,32 +241,84 @@ class Parser(BaseParser):
         parameters_nodes = self.formal_parameters()
         self.eat(TokenType.R_PAREN)
         self.eat(TokenType.L_BRACE)
-        compound_statement_node = self.compound_statement()
-        node = Task(name=task_name, formal_params=parameters_nodes, compound_statement=compound_statement_node)
+        init_node = self.task_init_block()
+        goal_node = self.task_goal_block()
+        routine_node = self.task_routine_block()
+        node = Task(name = task_name, formal_params = parameters_nodes, 
+                        init_block = init_node, goal_block = goal_node, routine_block = routine_node)
         self.eat(TokenType.R_BRACE)
         return node
+    
+    def task_init_block(self):
+        self.eat(TokenType.INIT)
+        node = self.task_compound_statement()
+        return node
 
-    def task_call_statement(self):
-        '''
-        task_call_statement : variable "(" ( additive_additive_expressionession ( "," additive_additive_expressionession)* )? ")" 
-        '''
+    def task_goal_block(self):
+        self.eat(TokenType.GOAL)
+        self.eat(TokenType.L_BRACE)
+        root = Compound()
+        while not self.current_token.type == TokenType.DOLLAR:
+            root.children.append(self.task_statement())
+        self.eat(TokenType.DOLLAR)
+        root.children.append(self.expression())
+        self.eat(TokenType.R_BRACE)
+        return root
+
+    def task_routine_block(self):
+        self.eat(TokenType.ROUTINE)
+        root = Compound()
+        # TODO: order each statement in task_routine
+        # if order:
+        # elif each:
+        # else:
+        root.children.append(self.task_compound_statement())
+        while self.current_token.type == TokenType.PARALLEL:
+            # TODO: parallel block root level
+            self.eat(TokenType.PARALLEL)
+            root.children.append(self.task_compound_statement())
+        return root
+
+    def task_compound_statement(self):
+        self.eat(TokenType.L_BRACE)
+        root = Compound()
+        node = self.task_statement()
+        root.children.append(node)
+        while self.current_token.type == TokenType.SEMI:
+            self.eat(TokenType.SEMI)
+            root.children.append(self.task_statement())
+        self.eat(TokenType.R_BRACE)
+        return root
+
+    # TODO: task_statement not finish yet
+    def task_statement(self):
+        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' and self.lexer.peek() == '{':
+            node = self.task_call()
+        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' :
+            node = self.behavior_call()
+        elif self.current_token.type == TokenType.ID:
+            node = self.assignment_statement()
+        else:
+            node = self.empty()
+        return node
+
+    def task_call(self):
         token = self.current_token
-
         task_name = self.current_token.value
         self.eat(TokenType.ID)
-        self.eat(TokenType.LPAREN)
+        self.eat(TokenType.L_PAREN)
+        self.eat(TokenType.L_BRACE)
+        # TODO: formal_parameters_agent_list in task_call 
+        self.eat(TokenType.R_BRACE)
         actual_params = []
-        if self.current_token.type != TokenType.RPAREN:
-            node = self.additive_expression()
+        if self.current_token.type != TokenType.R_PAREN:
+            node = self.actual_parameters()
             actual_params.append(node)
-
         while self.current_token.type == TokenType.COMMA:
             self.eat(TokenType.COMMA)
-            node = self.additive_expression()
+            node = self.actual_parameters()
             actual_params.append(node)
-
-        self.eat(TokenType.RPAREN)
-
+        self.eat(TokenType.R_PAREN)
         node = TaskCall(
             name=task_name,
             actual_params=actual_params,
@@ -260,14 +335,12 @@ class Parser(BaseParser):
         return node
 
     def formal_parameters(self):
-        """ 
-        agent_defination ::= "Agent" variable "(" formal_parameters? ")" ":" compound_statement
+        """
         formal_parameters ::= variable ( "," variable )* 
         """
-        # Agent testUav():
+        # No formal parameters
         if not self.current_token.type == TokenType.ID:
             return []
-
         param_nodes = []
         param_node = Param(Var(self.current_token))
         param_nodes.append(param_node)
@@ -277,8 +350,10 @@ class Parser(BaseParser):
             param_node = Param(Var(self.current_token))
             param_nodes.append(param_node)
             self.eat(TokenType.ID)
-
         return param_nodes
+
+    def actual_parameters(self):
+        return self.additive_expression()
 
     def compound_statement(self):
         """
@@ -313,13 +388,8 @@ class Parser(BaseParser):
         return results
 
     def statement(self):
-        """
-        statement : assignment_statement
-                  | task_call_statement
-                  | empty
-        """
         if self.current_token.type == TokenType.ID and self.lexer.current_char == '(':
-            node = self.task_call_statement()
+            node = self.task_call()
         elif self.current_token.type == TokenType.ID:
             node = self.assignment_statement()
         else:
@@ -391,7 +461,6 @@ class Parser(BaseParser):
             self.eat(TokenType.AND)
             node = BinOp(left=node, op=token, right=self.equality_expression())
         return node
-
 
     def equality_expression(self) :
         """ 

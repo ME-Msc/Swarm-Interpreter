@@ -38,14 +38,16 @@ Behavior b_add_2(){
 
 Task t_add(a, b){
     @init{}
-    @goal{}
+    @goal{
+        $ 1 == 1
+    }
     @routine{
-        add_2(a, b);
+        b_add(a, b);
     }
 }
 
 Main {
     m = 7;
     n = (m + 3) * 3;
-    add(m, n);
+    t_add({}, m, n);
 }

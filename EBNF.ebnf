@@ -55,9 +55,34 @@ behavior_statement ::= assignment_statement
                     | empty
 
 /* Task */
+task_list ::= task+
+
+/* TODO: task ::= "Task" variable "(" formal_parameters_agent_list formal_parameters? ")" "{" task_init_block task_goal_block task_routine_block "}" */
+
+task ::= "Task" variable "(" formal_parameters? ")" "{" task_init_block task_goal_block task_routine_block "}"
+
+task_init_block ::= "@init" task_compound_statement
+
+task_goal_block ::= "@goal" "{" task_statement* "$" expression "}"
+
+/* TODO: task_routine_block ::= "@routine" ( task_routine_parallel | task_routine_order | task_routine_each ) */
+task_routine_block ::= "@routine" task_compound_statement ( "||" task_compound_statement )*
+
+task_compound_statement ::= "{" task_statement* "}"
+
+/* TODO: task_statement ::= put_statement
+                | get_statement
+                | assignment_statement
+                | task_if_else
+                | task_call
+                | behavior_call
+                | empty */
+task_statement ::= assignment_statement
+                | empty
+
 task_defination ::= "Task" variable "(" formal_parameters? ")" ":" compound_statement
 
-task_call_statement ::= variable "(" ( additive_expression ( "," additive_expression)* )? ")"
+task_call ::= variable "(" actual_parameters? ")"
 
 /* parameter */
 formal_parameters ::= variable ( "," variable )*
@@ -70,12 +95,14 @@ compound_statement ::= statement_list
 statement_list ::= statement ( ";" statement )*
 
 statement ::= assignment_statement
-            | task_call_statement
+            | task_call
             | empty
 
 assignment_statement ::= variable "=" additive_expression
 
 empty ::= 
+
+actual_parameters ::= ( integer | variable ) ( "," ( integer | variable ) )*
 
 /* Expressions */
 expression ::= logical_not_expression
