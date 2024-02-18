@@ -156,7 +156,10 @@ class Lexer(object):
             
             # multi-character token
             try:
-                multi_char = self.current_char + self.peek()
+                peek_char = self.peek()
+                if peek_char is None:
+                    raise ValueError
+                multi_char = self.current_char + peek_char
                 # get enum member by value, e.g.
                 # TokenType('<<') --> TokenType.DOUBLE_LESS
                 token_type = TokenType(multi_char)
