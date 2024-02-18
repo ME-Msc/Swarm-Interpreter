@@ -54,8 +54,7 @@ class Parser(BaseParser):
         """ port_setting ::= 'Port' ':' integer """
         self.eat(TokenType.PORT)
         self.eat(TokenType.COLON)
-        node = Num(self.current_token)
-        self.eat(TokenType.INTEGER)
+        node = self.integer()
         return node
 
     def action_list(self):
@@ -132,12 +131,11 @@ class Parser(BaseParser):
         self.eat(TokenType.AGENT)
         var_node = self.variable()
         agent_name = var_node.value
-        self.eat(TokenType.ID)
         cnt_node = self.integer()
         agent_count = cnt_node.value
-        self.eat(TokenType.INTEGER)
         node = AgentCall(name=agent_name, count=agent_count)
         self.eat(TokenType.SEMI)
+        return node
 
     def behavior_list(self):
         root = BehaviorList()
@@ -330,17 +328,13 @@ class Parser(BaseParser):
     # TODO: task_if_else(self)
 
     def task_call(self):
-        token = self.current_token
-        task_name = self.current_token.value
-        self.eat(TokenType.ID)
+        token = self.variable()
+        task_name = token.value
         self.eat(TokenType.L_PAREN)
         self.eat(TokenType.L_BRACE)
         # TODO: actual_parameters_agent_list in task_call 
         self.eat(TokenType.R_BRACE)
         actual_params = []
-        if self.current_token.type != TokenType.R_PAREN:
-            node = self.actual_parameters()
-            actual_params.append(node)
         while self.current_token.type == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             node = self.actual_parameters()
@@ -351,6 +345,7 @@ class Parser(BaseParser):
             actual_params=actual_params,
             token=token
         )
+        self.eat(TokenType.SEMI)
         return node
 
     # TODO: main not finish yet 

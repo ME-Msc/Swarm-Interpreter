@@ -47,5 +47,6 @@ Task t_add(a, b){
 }
 
 Main {
+    Agent testUav 5;
     t_add({}, 7, 30);
 }
