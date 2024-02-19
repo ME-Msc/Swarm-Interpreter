@@ -4,7 +4,6 @@ class Symbol(object):
         self.type = type
         self.scope_level = 0
 
-
 class VarSymbol(Symbol):
     def __init__(self, name, type):
         super().__init__(name, type)
@@ -17,7 +16,6 @@ class VarSymbol(Symbol):
         )
 
     __repr__ = __str__
-
 
 class BuiltinTypeSymbol(Symbol):
     def __init__(self, name):
@@ -53,9 +51,10 @@ class ActionSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):
         super().__init__(name)
 
-class AgentSymbol(ProcedureSymbol):
-    def __init__(self, name, formal_params=None):
+class AgentSymbol(Symbol):
+    def __init__(self, name):
         super().__init__(name)
+        self.abilities = []
 
 class BehaviorSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):

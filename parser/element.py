@@ -28,16 +28,16 @@ class ActionCall(AST):
         self.name = name
         self.actual_params = actual_params  # a list of AST nodes
         self.token = token
-        self.symbol = None          # a reference to task symbol
+        self.symbol = None          # a reference to action symbol
 
 class AgentList(AST):
     def __init__(self):
         self.children = []
 
 class Agent(AST):
-    def __init__(self, name, ability):
+    def __init__(self, name, abilities):
         self.name = name
-        self.ability = ability
+        self.abilities = abilities
 
 class AgentCall(AST):
     def __init__(self, name, count):
@@ -61,7 +61,7 @@ class BehaviorCall(AST):
         self.name = name
         self.actual_params = actual_params  # a list of AST nodes
         self.token = token
-        self.symbol = None          # a reference to task symbol
+        self.symbol = None          # a reference to behavior symbol
 
 class TaskList(AST):
     def __init__(self):
@@ -117,6 +117,7 @@ class ActualParams(AST):
     def __init__(self):
         self.children = []
 
+# TODO: remove Param node in AST
 class Param(AST):
     def __init__(self, var_node):
         self.var_node = var_node
