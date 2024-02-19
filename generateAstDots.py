@@ -124,20 +124,16 @@ class ASTVisualizer(NodeVisitor):
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
-        for ability_node in node.ability.children:
+        for ability_node in node.abilities.children:
             self.visit(ability_node)
             s = '  node{} -> node{}\n'.format(node._num, ability_node._num)
             self.dot_body.append(s)
 
     def visit_AgentCall(self, node):
-        s = '  node{} [label="AgentCall"]\n'.format(self.ncount)
+        s = '  node{} [label="AgentCall:{}"]\n'.format(self.ncount, node.name)
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
-
-        self.visit(node.name)
-        s = '  node{} -> node{}\n'.format(node._num, node.name._num)
-        self.dot_body.append(s)
 
         self.visit(node.count)
         s = '  node{} -> node{}\n'.format(node._num, node.count._num)

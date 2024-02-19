@@ -193,19 +193,15 @@ digraph astgraph {
   node74 -> node75
   node1 -> node74
   node96 [label="Main"]
-  node97 [label="AgentCall"]
-  node98 [label="testUav"]
+  node97 [label="AgentCall:testUav"]
+  node98 [label="5"]
   node97 -> node98
-  node99 [label="5"]
-  node97 -> node99
   node96 -> node97
-  node100 [label="TaskCall:t_add"]
-  node101 [label="ActualParams"]
-  node102 [label="7"]
-  node101 -> node102
-  node103 [label="30"]
-  node101 -> node103
-  node100 -> node101
-  node96 -> node100
+  node99 [label="TaskCall:t_add"]
+  node100 [label="7"]
+  node99 -> node100
+  node101 [label="30"]
+  node99 -> node101
+  node96 -> node99
   node1 -> node96
 }
