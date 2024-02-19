@@ -9,6 +9,10 @@ class Program(AST):
         self.task_list = task_list
         self.main = main
 
+class Port(AST):
+    def __init__(self, port):
+        self.port = port
+
 class ActionList(AST):
     def __init__(self):
         self.children = []
@@ -18,6 +22,13 @@ class Action(AST):
         self.name = name
         self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
+
+class ActionCall(AST):
+    def __init__(self, name, actual_params, token):
+        self.name = name
+        self.actual_params = actual_params  # a list of AST nodes
+        self.token = token
+        self.symbol = None          # a reference to task symbol
 
 class AgentList(AST):
     def __init__(self):
@@ -76,8 +87,33 @@ class Main(AST):
         self.agent_call = agent_call
         self.task_call = task_call
 
+class InitBlock(AST):
+    def __init__(self, compound_statement):
+        self.compound_statement = compound_statement
+
+class GoalBlock(AST):
+    def __init__(self, statements, expression):
+        self.statements = statements
+        self.expression = expression
+
+class RoutineBlock(AST):
+    def __init__(self):
+        self.children = []
+
 class Compound(AST):
     """Represents a list of statements"""
+    def __init__(self):
+        self.children = []
+
+class Expression(AST):
+    def __init__(self, expression):
+        self.expression = expression
+
+class FormalParams(AST):
+    def __init__(self):
+        self.children = []
+
+class ActualParams(AST):
     def __init__(self):
         self.children = []
 
