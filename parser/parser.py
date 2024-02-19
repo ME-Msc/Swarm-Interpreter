@@ -100,9 +100,29 @@ class Parser(BaseParser):
     action_RPC_call_assignment_statement
     action_RPC_call_statement 
     action_return_statement 
-    action_if_else 
-    action_call
+    action_if_else
     '''
+
+    def action_call(self):
+        token = self.current_token
+        action_name = self.current_token.value
+        self.eat(TokenType.ID)
+        self.eat(TokenType.L_PAREN)
+        actual_params = []
+        if self.current_token.type != TokenType.R_PAREN:
+            node = self.additive_expression()
+            actual_params.append(node)
+        while self.current_token.type == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            node = self.additive_expression()
+            actual_params.append(node)
+        self.eat(TokenType.R_PAREN)
+        node = ActionCall(
+            name=action_name,
+            actual_params=actual_params,
+            token=token
+        )
+        return node
 
     def agent_list(self):
         root = AgentList()
@@ -122,15 +142,16 @@ class Parser(BaseParser):
             self.eat(TokenType.COMMA)
             ability_node.children.append(self.variable())
         self.eat(TokenType.SEMI)
-        node = Agent(name=agent_name, ability=ability_node)
+        node = Agent(name=agent_name, abilities=ability_node)
         self.eat(TokenType.R_BRACE)
         return node
 
     def agent_call(self):
         self.eat(TokenType.AGENT)
         var_node = self.variable()
+        agent_name = var_node.value
         cnt_node = self.integer()
-        node = AgentCall(name=var_node, count=cnt_node)
+        node = AgentCall(name=agent_name, count=cnt_node)
         self.eat(TokenType.SEMI)
         return node
 
@@ -337,7 +358,7 @@ class Parser(BaseParser):
         actual_params = []
         while self.current_token.type == TokenType.COMMA:
             self.eat(TokenType.COMMA)
-            node = self.actual_parameters()
+            node = self.additive_expression()
             actual_params.append(node)
         self.eat(TokenType.R_PAREN)
         node = TaskCall(
