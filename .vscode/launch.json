@@ -16,6 +16,17 @@
                 "--scope",
                 "--stack",
             ]
+        },
+        {
+            "name": "generateAstDots.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/generateAstDots.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "test_example.swarm"
+            ]
         }
     ]
 }
