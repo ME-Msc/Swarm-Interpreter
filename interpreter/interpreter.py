@@ -12,28 +12,6 @@ class Interpreter(NodeVisitor):
         if self.log_or_not:
             print(msg)
 
-    def visit_NoOp(self, node):
-        pass
-    
-    def visit_UnaryOp(self, node):
-        op = node.op.type
-        if op == TokenType.PLUS:
-            return +self.visit(node.expr)
-        elif op == TokenType.MINUS:
-            return -self.visit(node.expr)
-
-    def visit_BinOp(self, node):
-        if node.op.type == TokenType.PLUS:
-            return self.visit(node.left) + self.visit(node.right)
-        elif node.op.type == TokenType.MINUS:
-            return self.visit(node.left) - self.visit(node.right)
-        elif node.op.type == TokenType.MUL:
-            return self.visit(node.left) * self.visit(node.right)
-        elif node.op.type == TokenType.DIV:
-            return self.visit(node.left) // self.visit(node.right)
-        elif node.op.type == TokenType.MOD:
-            return self.visit(node.left) % self.visit(node.right)
-
     def visit_Program(self, node):
         self.log(f'ENTER: PROGRAM Main')
         ar = ActivationRecord(
@@ -47,14 +25,20 @@ class Interpreter(NodeVisitor):
         # self.visit(node.agent)
         # self.visit(node.behavior)
         # self.visit(node.task)
-        self.visit(node.mainTask)
+        self.visit(node.main)
         
         self.log(f'LEAVE: PROGRAM Main')
         self.log(str(self.call_stack))
 
         self.call_stack.pop()
+    
+    def visit_Action(self, node):
+        return self.visit(node.compound_statement)
+    
+    def visit_Agent(self, node):
+        return self.visit(node.compound_statement)
 
-    def visit_MainTask(self, node):
+    def visit_Behavior(self, node):
         return self.visit(node.compound_statement)
     
     def visit_Task(self, node):
@@ -88,24 +72,19 @@ class Interpreter(NodeVisitor):
 
         self.call_stack.pop()
 
-    def visit_Behavior(self, node):
-        return self.visit(node.compound_statement)
-    
-    def visit_Agent(self, node):
-        return self.visit(node.compound_statement)
-    
-    def visit_Action(self, node):
-        return self.visit(node.compound_statement)
+    def visit_Main(self, node):
+        self.visit_AgentCall(self, node)
+        self.visit_TaskCall(self, node)
 
     def visit_Compound(self, node):
         for child in node.children:
             self.visit(child)
-            
-    def visit_Assign(self, node):
-        var_name = node.left.value
-        var_value = self.visit(node.right)
-        ar = self.call_stack.peek()
-        ar[var_name] = var_value
+
+    # def visit_Assign(self, node):
+    #     var_name = node.left.value
+    #     var_value = self.visit(node.right)
+    #     ar = self.call_stack.peek()
+    #     ar[var_name] = var_value
 
     def visit_Var(self, node):
         var_name = node.value
@@ -118,7 +97,29 @@ class Interpreter(NodeVisitor):
         
     def visit_Num(self, node):
         return node.value
-    
+
+    def visit_BinOp(self, node):
+        if node.op.type == TokenType.PLUS:
+            return self.visit(node.left) + self.visit(node.right)
+        elif node.op.type == TokenType.MINUS:
+            return self.visit(node.left) - self.visit(node.right)
+        elif node.op.type == TokenType.MUL:
+            return self.visit(node.left) * self.visit(node.right)
+        elif node.op.type == TokenType.DIV:
+            return self.visit(node.left) // self.visit(node.right)
+        elif node.op.type == TokenType.MOD:
+            return self.visit(node.left) % self.visit(node.right)
+
+    def visit_UnaryOp(self, node):
+        op = node.op.type
+        if op == TokenType.PLUS:
+            return +self.visit(node.expr)
+        elif op == TokenType.MINUS:
+            return -self.visit(node.expr)
+
+    def visit_NoOp(self, node):
+        pass
+
     def interpret(self):
         tree = self.tree
         if tree is None:
