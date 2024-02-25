@@ -19,28 +19,20 @@ Agent testUav2 {
 }
 
 Behavior b_add(x, y){
-    @init{}
+    @init{
+        z = y;
+    }
     @goal{
         $ z == 44
     }
     @routine{
-        z = x + y;
+        z = z + x;
     }
-}
-
-Behavior b_add_2(){
-    @init{}
-    @goal{
-        $ z == 33
-    }
-    @routine{}
 }
 
 Task t_add(a, b){
     @init{}
-    @goal{
-        $ 1 == 1
-    }
+    @goal{}
     @routine{
         b_add(a, b);
     }

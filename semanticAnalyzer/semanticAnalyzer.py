@@ -69,6 +69,7 @@ class SemanticAnalyzer(NodeVisitor):
         self.log(action_scope)
         self.current_scope = self.current_scope.enclosing_scope
         self.log('LEAVE scope: %s \n\n' %  action_name)
+        action_symbol.ast = node
 
     def visit_ActionCall(self, node):
         action_name = 'ACTION_' + node.name
@@ -164,6 +165,7 @@ class SemanticAnalyzer(NodeVisitor):
         self.log(behavior_scope)
         self.current_scope = self.current_scope.enclosing_scope
         self.log('LEAVE scope: %s \n\n' %  behavior_name)
+        behavior_symbol.ast = node
 
     def visit_BehaviorCall(self, node):
         behavior_name = 'BEHAVIOR_' + node.name
@@ -221,7 +223,7 @@ class SemanticAnalyzer(NodeVisitor):
         self.log(task_scope)
         self.current_scope = self.current_scope.enclosing_scope
         self.log('LEAVE scope: %s \n\n' %  task_name)
-        # task_symbol.ast = node.compound_statement
+        task_symbol.ast = node
     
     def visit_TaskCall(self, node):
         task_name = 'TASK_' + node.name
@@ -249,7 +251,7 @@ class SemanticAnalyzer(NodeVisitor):
 
     def visit_GoalBlock(self, node):
         self.visit(node.statements)
-        self.visit(node.expression)
+        self.visit(node.goal)
     
     def visit_RoutineBlock(self, node):
         for child in node.children:
@@ -260,7 +262,7 @@ class SemanticAnalyzer(NodeVisitor):
             self.visit(child)
 
     def visit_Expression(self, node):
-        self.visit(node.expression)
+        self.visit(node.expr)
 
     # def visit_Assign(self, node):
     #     # 'x = 5', node is '='

@@ -187,11 +187,14 @@ class Parser(BaseParser):
         self.eat(TokenType.GOAL)
         self.eat(TokenType.L_BRACE)
         statements_node = Compound()
-        while not self.current_token.type == TokenType.DOLLAR:
-            statements_node.children.append(self.behavior_statement())
-        self.eat(TokenType.DOLLAR)
-        expression_node = Expression(self.expression())
-        node = GoalBlock(statements = statements_node, expression = expression_node)
+        if not self.current_token.type == TokenType.R_BRACE:
+            while not self.current_token.type == TokenType.DOLLAR:
+                statements_node.children.append(self.behavior_statement())
+            self.eat(TokenType.DOLLAR)
+            goal_node = Expression(self.expression())
+        else:
+            goal_node = NoOp()
+        node = GoalBlock(statements = statements_node, goal = goal_node)
         self.eat(TokenType.R_BRACE)
         return node
 
@@ -296,11 +299,14 @@ class Parser(BaseParser):
         self.eat(TokenType.GOAL)
         self.eat(TokenType.L_BRACE)
         statements_node = Compound()
-        while not self.current_token.type == TokenType.DOLLAR:
-            statements_node.children.append(self.task_statement())
-        self.eat(TokenType.DOLLAR)
-        expression_node = Expression(self.expression())
-        node = GoalBlock(statements = statements_node, expression = expression_node)
+        if not self.current_token.type == TokenType.R_BRACE:
+            while not self.current_token.type == TokenType.DOLLAR:
+                statements_node.children.append(self.task_statement())
+            self.eat(TokenType.DOLLAR)
+            goal_node = Expression(self.expression())
+        else:
+            goal_node = NoOp()
+        node = GoalBlock(statements = statements_node, goal = goal_node)
         self.eat(TokenType.R_BRACE)
         return node
 

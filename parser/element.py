@@ -92,9 +92,9 @@ class InitBlock(AST):
         self.compound_statement = compound_statement
 
 class GoalBlock(AST):
-    def __init__(self, statements, expression):
+    def __init__(self, statements, goal):
         self.statements = statements
-        self.expression = expression
+        self.goal = goal
 
 class RoutineBlock(AST):
     def __init__(self):
@@ -106,8 +106,8 @@ class Compound(AST):
         self.children = []
 
 class Expression(AST):
-    def __init__(self, expression):
-        self.expression = expression
+    def __init__(self, expr):
+        self.expr = expr
 
 class FormalParams(AST):
     def __init__(self):
