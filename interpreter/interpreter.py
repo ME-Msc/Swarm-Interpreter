@@ -75,7 +75,7 @@ class Interpreter(NodeVisitor):
         ar = ActivationRecord(
             name = behavior_name,
             type = ARType.BEHAVIOR,
-            nesting_level = behavior_symbol.scope_level + 1,
+            nesting_level = len(self.call_stack._records),
         )
         
         formal_params = behavior_symbol.formal_params
@@ -109,7 +109,7 @@ class Interpreter(NodeVisitor):
         ar = ActivationRecord(
             name = task_name,
             type = ARType.TASK,
-            nesting_level = task_symbol.scope_level + 1,
+            nesting_level = len(self.call_stack._records),
         )
         
         formal_params = task_symbol.formal_params
@@ -134,9 +134,9 @@ class Interpreter(NodeVisitor):
     def visit_Main(self, node):
         self.log(f'ENTER: Main')
         ar = ActivationRecord(
-            name="Main",
-            type=ARType.MAIN,
-            nesting_level=1,
+            name = "Main",
+            type = ARType.MAIN,
+            nesting_level = len(self.call_stack._records),
         )
         self.call_stack.push(ar)
         self.visit(node.agent_call)
