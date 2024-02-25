@@ -232,7 +232,9 @@ class Parser(BaseParser):
                         | action_call
                         | empty
         '''
-        if self.current_token.type == TokenType.ID:
+        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' :
+            node = self.action_call()
+        elif self.current_token.type == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty()
@@ -344,7 +346,7 @@ class Parser(BaseParser):
     def task_statement(self):
         if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' and self.lexer.peek() == '{':
             node = self.task_call()
-        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' :
+        elif self.current_token.type == TokenType.ID and self.lexer.current_char == '(' :
             node = self.behavior_call()
         elif self.current_token.type == TokenType.ID:
             node = self.assignment_statement()

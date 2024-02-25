@@ -1,5 +1,5 @@
 /* Program */
-program ::= port action_list agent_list behavior_list task_defination+ main_task
+program ::= port action_list agent_list behavior_list task_defination+ main
 
 port ::= "Port" ":" integer
 
@@ -18,15 +18,15 @@ action_RPC_call_assignment_statement
 action_RPC_call_statement 
 action_return_statement 
 action_if_else 
-action_call
 */
+action_call ::= variable "(" actual_parameters? ")"
 
 /* Agent */
 agent_list ::= agent+
 
 agent ::= "Agent" variable "{" ( variable ( "," variable )* )? ";" "}"
 
-/* TODO: agent_call ::= "Agent" variable integer ";" */
+agent_call ::= "Agent" variable integer ";"
 
 /* Behavior */
 behavior_list ::= behavior+
@@ -51,8 +51,11 @@ behavior_compound_statement ::= "{" behavior_statement* "}"
                         | behavior_call
                         | action_call
                         | empty */
-behavior_statement ::= assignment_statement
+behavior_statement ::= action_call
+                    | assignment_statement
                     | empty
+
+behavior_call ::= variable "(" actual_parameters? ")"
 
 /* Task */
 task_list ::= task+
@@ -77,7 +80,9 @@ task_compound_statement ::= "{" task_statement* "}"
                 | task_call
                 | behavior_call
                 | empty */
-task_statement ::= assignment_statement
+task_statement ::= task_call
+                | behavior_call
+                | assignment_statement
                 | empty
 
 task_defination ::= "Task" variable "(" formal_parameters? ")" ":" compound_statement
@@ -87,8 +92,8 @@ task_call ::= variable "(" actual_parameters? ")"
 /* parameter */
 formal_parameters ::= variable ( "," variable )*
 
-/* TODO: Agent decalaration */
-main_task ::= "Main" ":" compound_statement
+/* TODO: agent_call* task_call+ */
+main ::= "Main" "{" agent_call task_call "}"
 
 compound_statement ::= statement_list
 
