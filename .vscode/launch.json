@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "test_example.swarm",
+                "test/test_example.swarm",
                 "--scope",
                 "--stack",
             ]
@@ -25,7 +25,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "test_example.swarm"
+                "test/test_example.swarm"
             ]
         }
     ]
