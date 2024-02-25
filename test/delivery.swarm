@@ -1,0 +1,70 @@
+Port : 14457
+
+Action flyTo(position){
+    step := nn_model(position);
+    := fly(step);
+}
+
+Action pickup(){
+    := pickAPI();
+}
+
+Action drop(){
+    := dropAPI();
+}
+
+Action chooseDest(){
+    := chooseDestAPI();
+}
+
+Agent Uav {
+    flyTo, pickup, drop, chooseDest;
+}
+
+Behavior delivery() {
+    @init{
+        pickup();
+        dest = chooseDest();
+    }
+    @goal{
+        loc = getGPS();
+        $ dest == loc
+    }
+    @routine{
+        flyTo(dest);
+    }
+}
+
+Behavior dropGoods() {
+    @init{
+        times = 0;
+    }
+    @goal{
+        $ times == 1
+    }
+    @routine{
+        drop();
+        times = times + 1;
+    }
+}
+
+Task delivery({uavA:countA}, goods_cnt){
+    @init{
+        delivery_cnt = 0;
+    }
+    @goal{
+        $ delivery_cnt == goods_cnt
+    }
+    @routine{
+        order uavA[0~countA]{
+            delivery();
+            dropGoods();
+            delivery_cnt = delivery_cnt + 1;
+        }
+    }
+}
+
+Main {
+    Agent Uav 5;
+    delivery({Uav:5}, 20);
+}

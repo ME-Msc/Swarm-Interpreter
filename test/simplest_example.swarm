@@ -1,0 +1,36 @@
+import NN_policy
+
+Action flyTo(position){
+    := NN_policy.nn_model(position);
+}
+
+Agent testUav{
+    flyTo;
+}
+
+Behavior reach(dest){
+    @init{
+    }
+    @goal{
+    }
+    @routine{
+        flyTo(dest);
+    }
+}
+
+Task reach_in_order({typeA:countA}, dest) {
+    @init{
+    }
+    @goal{
+    }
+    @routine{
+        order typeA[0~countA]{
+            reach(dest);
+        }
+    }
+}
+
+Main {
+    Agent testUav 5;
+    reach_in_order({testUav:5}, dest);
+}
