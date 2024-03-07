@@ -29,33 +29,33 @@ class Interpreter(NodeVisitor):
     def visit_Action(self, node):
         self.visit(node.compound_statement)
     
-    def visit_ActionCall(self, node):
-        action_name = node.name
-        action_symbol = node.symbol
-        ar = ActivationRecord(
-            name = action_name,
-            type = ARType.ACTION,
-            nesting_level = action_symbol.scope_level + 1,
-        )
+    # def visit_ActionCall(self, node):
+    #     action_name = node.name
+    #     action_symbol = node.symbol
+    #     ar = ActivationRecord(
+    #         name = action_name,
+    #         type = ARType.ACTION,
+    #         nesting_level = action_symbol.scope_level + 1,
+    #     )
         
-        formal_params = action_symbol.formal_params
-        actual_params = node.actual_params
+    #     formal_params = action_symbol.formal_params
+    #     actual_params = node.actual_params
 
-        for param_symbol, argument_node in zip(formal_params, actual_params):
-            ar[param_symbol.name] = self.visit(argument_node)
+    #     for param_symbol, argument_node in zip(formal_params, actual_params):
+    #         ar[param_symbol.name] = self.visit(argument_node)
 
-        self.call_stack.push(ar)
+    #     self.call_stack.push(ar)
 
-        self.log(f'ENTER: Action {action_name}')
-        self.log(str(self.call_stack))
+    #     self.log(f'ENTER: Action {action_name}')
+    #     self.log(str(self.call_stack))
 
-        # evaluate task body
-        self.visit(action_symbol.ast)
+    #     # evaluate task body
+    #     self.visit(action_symbol.ast)
 
-        self.log(f'LEAVE: Action {action_name}')
-        self.log(str(self.call_stack))
+    #     self.log(f'LEAVE: Action {action_name}')
+    #     self.log(str(self.call_stack))
 
-        self.call_stack.pop()
+    #     self.call_stack.pop()
 
     def visit_Agent(self, node):
         return self.visit(node.compound_statement)
@@ -69,16 +69,16 @@ class Interpreter(NodeVisitor):
         while not self.visit(node.goal_block):
             self.visit(node.routine_block)
     
-    def visit_BehaviorCall(self, node):
-        behavior_name = node.name
-        behavior_symbol = node.symbol
+    def visit_FunctionCall(self, node):
+        function_name = node.name
+        function_symbol = node.symbol
         ar = ActivationRecord(
-            name = behavior_name,
+            name = function_name,
             type = ARType.BEHAVIOR,
             nesting_level = len(self.call_stack._records),
         )
         
-        formal_params = behavior_symbol.formal_params
+        formal_params = function_symbol.formal_params
         actual_params = node.actual_params
 
         for param_symbol, argument_node in zip(formal_params, actual_params):
@@ -86,13 +86,13 @@ class Interpreter(NodeVisitor):
 
         self.call_stack.push(ar)
 
-        self.log(f'ENTER: Behavior {behavior_name}')
+        self.log(f'ENTER: Behavior {function_name}')
         self.log(str(self.call_stack))
 
         # evaluate task body
-        self.visit(behavior_symbol.ast)
+        self.visit(function_symbol.ast)
 
-        self.log(f'LEAVE: Behavior {behavior_name}')
+        self.log(f'LEAVE: Behavior {function_name}')
         self.log(str(self.call_stack))
 
         self.call_stack.pop()

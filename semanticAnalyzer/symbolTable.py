@@ -13,7 +13,8 @@ class ScopedSymbolTable(object):
 
     def __str__(self):
         h1 = 'SCOPE (SCOPED SYMBOL TABLE)'
-        lines = ['\n', h1, '=' * len(h1)]
+        h2 = 'Scope (Scoped symbol table) contents'
+        lines = ['=' * max(len(h1), len(h2)), h1, '-' * max(len(h1), len(h2))]
         for header_name, header_value in (
             ('Scope name', self.scope_name),
             ('Scope level', self.scope_level),
@@ -23,11 +24,12 @@ class ScopedSymbolTable(object):
         ):
             lines.append('%-15s: %s' % (header_name, header_value))
         h2 = 'Scope (Scoped symbol table) contents'
-        lines.extend([h2, '-' * len(h2)])
+        lines.extend([h2, '-' * max(len(h1), len(h2))])
         lines.extend(
             ('%-15s: %r' % (key, value))
             for key, value in self._symbols.items()
         )
+        lines.extend(['=' * max(len(h1), len(h2))])
         # lines.append('\n')
         s = '\n'.join(lines)
         return s
@@ -38,13 +40,15 @@ class ScopedSymbolTable(object):
         if self.log_or_not:
             print(msg)
 
-    def insert(self, symbol):
-        self.log('Insert: %s' % symbol)
+    def insert(self, symbol, log_or_not=True):
+        if log_or_not:
+            self.log('Insert: %s' % symbol)
         symbol.scope_level = self.scope_level
         self._symbols[symbol.name] = symbol
 
-    def lookup(self, name, current_scope_only=False):
-        self.log('Lookup: %s. (Scope name: %s)' % (name, self.scope_name))
+    def lookup(self, name, current_scope_only=False, log_or_not=True):
+        if log_or_not:
+            self.log('Lookup: %s. (Scope name: %s)' % (name, self.scope_name))
         # 'symbol' is either an instance of the Symbol class or None
         symbol = self._symbols.get(name)
 

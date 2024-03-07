@@ -6,18 +6,20 @@ from base.error import SemanticError, ErrorCode
 class SemanticAnalyzer(NodeVisitor):
     def __init__(self, log_or_not=False):
         self.current_scope = None
+        self.global_scope = None
         self.log_or_not = log_or_not
 
     def visit_Program(self, node):
-        self.log('ENTER scope: global')
-        global_scope = ScopedSymbolTable(
+        self.log('Enter scope: global')
+        program_scope = ScopedSymbolTable(
             scope_name='global',
             scope_level=1,
             enclosing_scope=self.current_scope, # None
             log_or_not=self.log_or_not
         )
-        global_scope._init_builtins()
-        self.current_scope = global_scope
+        program_scope._init_builtins()
+        self.global_scope = program_scope
+        self.current_scope = self.global_scope
 
         # visit subtree
         self.visit(node.action_list)
@@ -26,9 +28,9 @@ class SemanticAnalyzer(NodeVisitor):
         self.visit(node.task_list)
         self.visit(node.main)
 
-        self.log(global_scope)
+        self.log(self.current_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        self.log('LEAVE scope: global')
+        self.log('Leave scope: global')
 
     def visit_Port(self, node):
         pass
@@ -38,17 +40,19 @@ class SemanticAnalyzer(NodeVisitor):
             self.visit(child)
 
     def visit_Action(self, node):
-        action_name = 'ACTION_' + node.name
+        action_name = node.name
+        if self.global_scope.lookup(action_name) != None:
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
         action_symbol = ActionSymbol(action_name)
         # Insert parameters into the action_symbol.formal_params
         for param in node.formal_params.children:
             param_name = param.var_node.value
-            param_type = None
-            var_symbol = VarSymbol(param_name, param_type)
+            param_category = None
+            var_symbol = VarSymbol(param_name, param_category)
             action_symbol.formal_params.append(var_symbol)
-        self.current_scope.insert(action_symbol)
+        self.global_scope.insert(action_symbol)
 
-        self.log('ENTER scope: %s' %  action_name)
+        self.log('Enter ACTION scope: %s' %  action_name)
         # Scope for parameters and local variables
         action_scope = ScopedSymbolTable(
             scope_name = action_name,
@@ -61,45 +65,36 @@ class SemanticAnalyzer(NodeVisitor):
         # Insert parameters into the action scope
         for param in node.formal_params.children:
             param_name = param.var_node.value
-            param_type = None		# self.current_scope.lookup(param_name)
-            var_symbol = VarSymbol(param_name, param_type)
+            param_category = None		# self.current_scope.lookup(param_name)
+            var_symbol = VarSymbol(param_name, param_category)
             self.current_scope.insert(var_symbol)
 
         self.visit(node.compound_statement)
         self.log(action_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        self.log('LEAVE scope: %s \n\n' %  action_name)
+        self.log('Leave ACTION scope: %s \n\n' %  action_name)
         action_symbol.ast = node
-
-    def visit_ActionCall(self, node):
-        action_name = 'ACTION_' + node.name
-        action_symbol = self.current_scope.lookup(action_name)
-        # formal_params is in Symbol, do not need '.children'
-        formal_params = action_symbol.formal_params
-        # actual_params is in AST node, need '.children'
-        actual_params = node.actual_params.children
-        if len(actual_params) != len(formal_params):
-            self.error(
-                error_code=ErrorCode.WRONG_PARAMS_NUM,
-                token=node.token,
-            )
-        for param_node in node.actual_params:
-            self.visit(param_node)
-        
-        # accessed by the interpreter when executing procedure call
-        node.symbol = action_symbol
 
     def visit_AgentList(self, node):
         for child in node.children:
             self.visit(child)
 
     def visit_Agent(self, node):
-        agent_name = 'AGENT_' + node.name
+        agent_name = node.name
+        if self.global_scope.lookup(agent_name) != None:
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
         agent_symbol = AgentSymbol(agent_name)
         # Insert agent_symbol into the global scope
-        self.current_scope.insert(agent_symbol)
+        for ability in node.abilities.children:
+            ability_name = ability.value
+            ability_category = None
+            ability_symbol = self.global_scope.lookup(ability_name, log_or_not=False)
+            if ability_symbol == None:
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=ability.token)
+            agent_symbol.abilities.append(ability_symbol)
+        self.global_scope.insert(agent_symbol)
 
-        self.log('ENTER scope: %s' %  agent_name)
+        self.log('Enter AGENT scope: %s' %  agent_name)
         # Scope for parameters and local variables
         agent_scope = ScopedSymbolTable(
             scope_name = agent_name,
@@ -108,21 +103,25 @@ class SemanticAnalyzer(NodeVisitor):
             log_or_not = self.log_or_not
         )
         self.current_scope = agent_scope
-        # Insert abilities into the agent scope
+        # Don't need to insert abilities into the agent scope
         for ability in node.abilities.children:
             ability_name = ability.value
-            ability_type = None		# self.current_scope.lookup(param_name)
-            var_symbol = VarSymbol(ability_name, ability_type)
-            self.current_scope.insert(var_symbol)
-            agent_symbol.abilities.append(var_symbol)
+            ability_category = self.global_scope.lookup(ability_name, log_or_not=False)
+            var_symbol = VarSymbol(ability_name, ability_category)
+            self.current_scope.insert(var_symbol, log_or_not=False)
 
         self.log(agent_scope)
+        # for ability in agent_symbol.abilities:
+        #     self.log(ability)
         self.current_scope = self.current_scope.enclosing_scope
-        self.log('LEAVE scope: %s \n\n' %  agent_name)
+        self.log('Leave AGENT scope: %s \n\n' %  agent_name)
+        agent_symbol.ast = node
 
     def visit_AgentCall(self, node):
-        agent_name = 'AGENT_' + node.name
-        agent_symbol = self.current_scope.lookup(agent_name)
+        agent_name = node.name
+        agent_symbol = self.global_scope.lookup(agent_name)
+        if agent_symbol == None:
+            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
         node.symbol = agent_symbol
 
     def visit_BehaviorList(self, node):
@@ -130,17 +129,20 @@ class SemanticAnalyzer(NodeVisitor):
             self.visit(child)
 
     def visit_Behavior(self, node):
-        behavior_name = 'BEHAVIOR_' + node.name
+        behavior_name = node.name
+        if self.global_scope.lookup(behavior_name) != None:
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
         behavior_symbol = BehaviorSymbol(behavior_name)
-        # Insert behavior_symbol into the global scope
+        # Insert parameters into the behavior_symbol.formal_params.
         for param in node.formal_params.children:
             param_name = param.var_node.value
-            param_type = None
-            var_symbol = VarSymbol(param_name, param_type)
+            param_category = None
+            var_symbol = VarSymbol(param_name, param_category)
             behavior_symbol.formal_params.append(var_symbol)
-        self.current_scope.insert(behavior_symbol)
+        # Insert behavior_symbol into the global scope
+        self.global_scope.insert(behavior_symbol)
 
-        self.log('ENTER scope: %s' %  behavior_name)
+        self.log('Enter BEHAVIOR scope: %s' %  behavior_name)
         # Scope for parameters and local variables
         behavior_scope = ScopedSymbolTable(
             scope_name = behavior_name,
@@ -153,8 +155,8 @@ class SemanticAnalyzer(NodeVisitor):
         ## Insert parameters into the behavior scope
         for param in node.formal_params.children:
             param_name = param.var_node.value
-            param_type = None		# self.current_scope.lookup(param_name)
-            var_symbol = VarSymbol(param_name, param_type)
+            param_category = None		# self.current_scope.lookup(param_name)
+            var_symbol = VarSymbol(param_name, param_category)
             self.current_scope.insert(var_symbol)
         
         # visit routine_block before goal_block,
@@ -164,13 +166,19 @@ class SemanticAnalyzer(NodeVisitor):
         self.visit(node.goal_block)
         self.log(behavior_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        self.log('LEAVE scope: %s \n\n' %  behavior_name)
+        self.log('Leave BEHAVIOR scope: %s \n\n' %  behavior_name)
         behavior_symbol.ast = node
-
-    def visit_BehaviorCall(self, node):
-        behavior_name = 'BEHAVIOR_' + node.name
-        behavior_symbol = self.current_scope.lookup(behavior_name)
-        formal_params = behavior_symbol.formal_params
+        
+    def visit_FunctionCall(self, node):
+        function_name = node.name
+        function_symbol = self.global_scope.lookup(function_name)
+        if function_symbol == None:
+            # Check whether it is a RPC call
+            if_actionSymbol = self.global_scope.lookup(self.current_scope.scope_name, log_or_not=False)
+            if isinstance(if_actionSymbol, ActionSymbol):
+                self.log("%s is a RPC_call." % node.name)
+                return
+        formal_params = function_symbol.formal_params
         actual_params = node.actual_params
         if len(actual_params) != len(formal_params):
             self.error(
@@ -181,24 +189,26 @@ class SemanticAnalyzer(NodeVisitor):
             self.visit(param_node)
         
         # accessed by the interpreter when executing procedure call
-        node.symbol = behavior_symbol
+        node.symbol = function_symbol
 
     def visit_TaskList(self, node):
         for child in node.children:
             self.visit(child)
 
     def visit_Task(self, node):
-        task_name = 'TASK_' + node.name
+        task_name = node.name
+        if self.global_scope.lookup(task_name) != None:
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
         task_symbol = TaskSymbol(task_name)
-        # Insert behavior_symbol into the global scope
+        # Insert task_symbol into the global scope
         for param in node.formal_params.children:
             param_name = param.var_node.value
-            param_type = None
-            var_symbol = VarSymbol(param_name, param_type)
+            param_category = None
+            var_symbol = VarSymbol(param_name, param_category)
             task_symbol.formal_params.append(var_symbol)
         self.current_scope.insert(task_symbol)
 
-        self.log('ENTER scope: %s' %  task_name)
+        self.log('Enter TASK scope: %s' %  task_name)
         # Scope for parameters and local variables
         task_scope = ScopedSymbolTable(
             scope_name = task_name,
@@ -211,8 +221,8 @@ class SemanticAnalyzer(NodeVisitor):
        	# Insert parameters into the procedure scope
         for param in node.formal_params.children:
             param_name = param.var_node.value
-            param_type = None		# self.current_scope.lookup(param_name)
-            var_symbol = VarSymbol(param_name, param_type)
+            param_category = None		# self.current_scope.lookup(param_name)
+            var_symbol = VarSymbol(param_name, param_category)
             self.current_scope.insert(var_symbol)
         
         # visit routine_block before goal_block,
@@ -222,12 +232,14 @@ class SemanticAnalyzer(NodeVisitor):
         self.visit(node.goal_block)
         self.log(task_scope)
         self.current_scope = self.current_scope.enclosing_scope
-        self.log('LEAVE scope: %s \n\n' %  task_name)
+        self.log('Leave TASK scope: %s \n\n' %  task_name)
         task_symbol.ast = node
     
     def visit_TaskCall(self, node):
-        task_name = 'TASK_' + node.name
-        task_symbol = self.current_scope.lookup(task_name)
+        task_name = node.name
+        task_symbol = self.global_scope.lookup(task_name)
+        if task_symbol == None:
+            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
         formal_params = task_symbol.formal_params
         actual_params = node.actual_params
         if len(actual_params) != len(formal_params):
@@ -238,7 +250,6 @@ class SemanticAnalyzer(NodeVisitor):
         for param_node in node.actual_params:
             self.visit(param_node)
         
-        task_symbol = self.current_scope.lookup(task_name)
         # accessed by the interpreter when executing procedure call
         node.symbol = task_symbol
 
@@ -270,10 +281,10 @@ class SemanticAnalyzer(NodeVisitor):
     #     #   /   \
     #     #  x     5
     #     var_name = node.left.value
-    #     type_symbol = self.current_scope.lookup(var_name)
-    #     if type_symbol is None:
-    #         type_symbol = self.visit(node.right)
-    #         var_symbol = VarSymbol(var_name, type_symbol)
+    #     category_symbol = self.current_scope.lookup(var_name)
+    #     if category_symbol is None:
+    #         category_symbol = self.visit(node.right)
+    #         var_symbol = VarSymbol(var_name, category_symbol)
     #         self.current_scope.insert(var_symbol)
 
     def visit_Var(self, node):
@@ -288,30 +299,33 @@ class SemanticAnalyzer(NodeVisitor):
         return BuiltinTypeSymbol('INTEGER')
 
     def visit_BinOp(self, node):
-        if node.op.type == TokenType.ASSIGN:
-            var_name = node.left.value
-            type_symbol = self.current_scope.lookup(var_name)
-            if type_symbol is None:
-                type_symbol = self.visit(node.right)
-                var_symbol = VarSymbol(var_name, type_symbol)
+        if node.op.category == TokenType.ASSIGN:
+            left_var_name = node.left.value
+            category_symbol = self.current_scope.lookup(left_var_name)
+            if category_symbol is None:
+                right_symbol = self.visit(node.right)
+                if isinstance(right_symbol, BuiltinTypeSymbol):
+                    var_symbol = VarSymbol(left_var_name, right_symbol)
+                else:
+                    var_symbol = VarSymbol(left_var_name, right_symbol.category)
                 self.current_scope.insert(var_symbol)
-        elif node.op.type == TokenType.IS_EQUAL:
-            # don not check symbol type
-            # because both side can be formal_param whose type is 'None' or anything
+        elif node.op.category == TokenType.IS_EQUAL:
+            # don not check symbol category
+            # because both side can be formal_param whose category is 'None' or anything
             return
         else: # TODO: comparable symbol
-            left_type = self.visit(node.left)
-            if left_type != None:
-                while hasattr(left_type, 'type'):
-                    left_type = left_type.type
-            right_type = self.visit(node.right)
-            if right_type != None :
-                while hasattr(right_type, 'type'):
-                    right_type = right_type.type
-            if left_type == right_type:
-                return left_type
+            left_category = self.visit(node.left)
+            if left_category != None:
+                while hasattr(left_category, 'category'):
+                    left_category = left_category.category
+            right_category = self.visit(node.right)
+            if right_category != None :
+                while hasattr(right_category, 'category'):
+                    right_category = right_category.category
+            if type(left_category) == type(right_category):
+                return left_category
             else:
-                raise Exception("Different types on both sides of BinOp")
+                raise Exception("Different categorys on both sides of BinOp")
 
     def visit_UnaryOp(self, node):
         return self.visit(node.expr)

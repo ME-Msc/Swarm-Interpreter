@@ -24,7 +24,7 @@ class BaseParser(object):
         # type and if they match then "eat" the current token
         # and assign the next token to the self.current_token,
         # otherwise raise an exception.
-        if self.current_token.type == token_type:
+        if self.current_token.category == token_type:
             self.current_token = self.get_next_token()
         else:
             self.error(
@@ -58,7 +58,7 @@ class Parser(BaseParser):
 
     def action_list(self):
         root = ActionList()
-        while self.current_token.type == TokenType.ACTION:
+        while self.current_token.category == TokenType.ACTION:
             root.children.append(self.action())
         return root
 
@@ -82,51 +82,37 @@ class Parser(BaseParser):
         root = Compound()
         node = self.action_statement()
         root.children.append(node)
-        while self.current_token.type == TokenType.SEMI:
+        while self.current_token.category == TokenType.SEMI:
             self.eat(TokenType.SEMI)
             root.children.append(self.action_statement())
         self.eat(TokenType.R_BRACE)
         return root
 
     def action_statement(self):
-        if self.current_token.type == TokenType.ID:
+        if self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
+        elif self.current_token.category == TokenType.RPC_CALL:
+            node = self.action_RPC_call_statement()
         else:
             node = self.empty()
+        return node
+
+    def action_RPC_call_statement(self):
+        self.eat(TokenType.RPC_CALL)
+        node = self.function_call()
+        self.eat(TokenType.SEMI)
         return node
 
     '''
     TODO:
     action_RPC_call_assignment_statement
-    action_RPC_call_statement 
     action_return_statement 
     action_if_else
     '''
 
-    def action_call(self):
-        token = self.current_token
-        action_name = self.current_token.value
-        self.eat(TokenType.ID)
-        self.eat(TokenType.L_PAREN)
-        actual_params = []
-        if self.current_token.type != TokenType.R_PAREN:
-            node = self.additive_expression()
-            actual_params.append(node)
-        while self.current_token.type == TokenType.COMMA:
-            self.eat(TokenType.COMMA)
-            node = self.additive_expression()
-            actual_params.append(node)
-        self.eat(TokenType.R_PAREN)
-        node = ActionCall(
-            name=action_name,
-            actual_params=actual_params,
-            token=token
-        )
-        return node
-
     def agent_list(self):
         root = AgentList()
-        while self.current_token.type == TokenType.AGENT:
+        while self.current_token.category == TokenType.AGENT:
             root.children.append(self.agent())
         return root
 
@@ -138,7 +124,7 @@ class Parser(BaseParser):
         ability_node = Compound()
         node = self.variable()
         ability_node.children.append(node)
-        while self.current_token.type == TokenType.COMMA:
+        while self.current_token.category == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             ability_node.children.append(self.variable())
         self.eat(TokenType.SEMI)
@@ -157,7 +143,7 @@ class Parser(BaseParser):
 
     def behavior_list(self):
         root = BehaviorList()
-        while self.current_token.type == TokenType.BEHAVIOR:
+        while self.current_token.category == TokenType.BEHAVIOR:
             root.children.append(self.behavior())
         return root
 
@@ -187,8 +173,8 @@ class Parser(BaseParser):
         self.eat(TokenType.GOAL)
         self.eat(TokenType.L_BRACE)
         statements_node = Compound()
-        if not self.current_token.type == TokenType.R_BRACE:
-            while not self.current_token.type == TokenType.DOLLAR:
+        if not self.current_token.category == TokenType.R_BRACE:
+            while not self.current_token.category == TokenType.DOLLAR:
                 statements_node.children.append(self.behavior_statement())
             self.eat(TokenType.DOLLAR)
             goal_node = Expression(self.expression())
@@ -202,7 +188,7 @@ class Parser(BaseParser):
         self.eat(TokenType.ROUTINE)
         node = RoutineBlock()
         node.children.append(self.behavior_compound_statement())
-        while self.current_token.type == TokenType.PARALLEL:
+        while self.current_token.category == TokenType.PARALLEL:
             self.eat(TokenType.PARALLEL)
             node.children.append(self.behavior_compound_statement())
         return node
@@ -212,7 +198,7 @@ class Parser(BaseParser):
         root = Compound()
         node = self.behavior_statement()
         root.children.append(node)
-        while self.current_token.type == TokenType.SEMI:
+        while self.current_token.category == TokenType.SEMI:
             self.eat(TokenType.SEMI)
             root.children.append(self.behavior_statement())
         self.eat(TokenType.R_BRACE)
@@ -228,13 +214,13 @@ class Parser(BaseParser):
                         | behavior_unsubscribe_statement
                         | behavior_assignment_statement
                         | behavior_if_else
-                        | behavior_call
+                        | function_call
                         | action_call
                         | empty
         '''
-        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' :
-            node = self.action_call()
-        elif self.current_token.type == TokenType.ID:
+        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(' :
+            node = self.function_call()
+        elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty()
@@ -248,22 +234,22 @@ class Parser(BaseParser):
     behavior_if_else
     """
 
-    def behavior_call(self):
+    def function_call(self):
         token = self.current_token
-        behavior_name = self.current_token.value
+        function_name = self.current_token.value
         self.eat(TokenType.ID)
         self.eat(TokenType.L_PAREN)
         actual_params = []
-        if self.current_token.type != TokenType.R_PAREN:
+        if self.current_token.category != TokenType.R_PAREN:
             node = self.additive_expression()
             actual_params.append(node)
-        while self.current_token.type == TokenType.COMMA:
+        while self.current_token.category == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             node = self.additive_expression()
             actual_params.append(node)
         self.eat(TokenType.R_PAREN)
-        node = BehaviorCall(
-            name=behavior_name,
+        node = FunctionCall(
+            name=function_name,
             actual_params=actual_params,
             token=token
         )
@@ -271,7 +257,7 @@ class Parser(BaseParser):
 
     def task_list(self):
         root = TaskList()
-        while self.current_token.type == TokenType.TASK:
+        while self.current_token.category == TokenType.TASK:
             root.children.append(self.task())
         return root
 
@@ -301,8 +287,8 @@ class Parser(BaseParser):
         self.eat(TokenType.GOAL)
         self.eat(TokenType.L_BRACE)
         statements_node = Compound()
-        if not self.current_token.type == TokenType.R_BRACE:
-            while not self.current_token.type == TokenType.DOLLAR:
+        if not self.current_token.category == TokenType.R_BRACE:
+            while not self.current_token.category == TokenType.DOLLAR:
                 statements_node.children.append(self.task_statement())
             self.eat(TokenType.DOLLAR)
             goal_node = Expression(self.expression())
@@ -320,7 +306,7 @@ class Parser(BaseParser):
         # elif each:
         # else:
         node.children.append(self.task_compound_statement())
-        while self.current_token.type == TokenType.PARALLEL:
+        while self.current_token.category == TokenType.PARALLEL:
             self.eat(TokenType.PARALLEL)
             node.children.append(self.task_compound_statement())
         return node
@@ -336,7 +322,7 @@ class Parser(BaseParser):
         root = Compound()
         node = self.task_statement()
         root.children.append(node)
-        while self.current_token.type == TokenType.SEMI:
+        while self.current_token.category == TokenType.SEMI:
             self.eat(TokenType.SEMI)
             root.children.append(self.task_statement())
         self.eat(TokenType.R_BRACE)
@@ -344,11 +330,11 @@ class Parser(BaseParser):
 
     # TODO: task_statement not finish yet
     def task_statement(self):
-        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(' and self.lexer.peek() == '{':
+        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(' and self.lexer.peek() == '{':
             node = self.task_call()
-        elif self.current_token.type == TokenType.ID and self.lexer.current_char == '(' :
-            node = self.behavior_call()
-        elif self.current_token.type == TokenType.ID:
+        elif self.current_token.category == TokenType.ID and self.lexer.current_char == '(' :
+            node = self.function_call()
+        elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty()
@@ -364,7 +350,7 @@ class Parser(BaseParser):
         # TODO: actual_parameters_agent_list in task_call 
         self.eat(TokenType.R_BRACE)
         actual_params = []
-        while self.current_token.type == TokenType.COMMA:
+        while self.current_token.category == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             node = self.additive_expression()
             actual_params.append(node)
@@ -429,12 +415,12 @@ class Parser(BaseParser):
         """
         node = FormalParams()
         # No formal parameters
-        if not self.current_token.type == TokenType.ID:
+        if not self.current_token.category == TokenType.ID:
             return node
         param_node = Param(Var(self.current_token))
         node.children.append(param_node)
         self.eat(TokenType.ID)
-        while self.current_token.type == TokenType.COMMA:
+        while self.current_token.category == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             param_node = Param(Var(self.current_token))
             node.children.append(param_node)
@@ -445,7 +431,7 @@ class Parser(BaseParser):
         node = ActualParams()
         param_node = self.additive_expression()
         node.children.append(param_node)
-        while self.current_token.type == TokenType.COMMA:
+        while self.current_token.category == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             param_node = self.additive_expression()
             node.children.append(param_node)
@@ -471,11 +457,11 @@ class Parser(BaseParser):
 
         results = [node]
 
-        while self.current_token.type == TokenType.SEMI:
+        while self.current_token.category == TokenType.SEMI:
             self.eat(TokenType.SEMI)
             results.append(self.statement())
 
-        if self.current_token.type == TokenType.ID:
+        if self.current_token.category == TokenType.ID:
             self.error(
                 error_code=ErrorCode.UNEXPECTED_TOKEN,
                 token=self.current_token,
@@ -485,9 +471,9 @@ class Parser(BaseParser):
 
     # TODO: seperate into task_statement and behavior_statement and action_statement
     def statement(self):
-        if self.current_token.type == TokenType.ID and self.lexer.current_char == '(':
+        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(':
             node = self.task_call()
-        elif self.current_token.type == TokenType.ID:
+        elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty()
@@ -503,7 +489,7 @@ class Parser(BaseParser):
         """
         logical_not_expression ::= "not"? logical_or_expression
         """
-        if self.current_token.type == TokenType.NOT :
+        if self.current_token.category == TokenType.NOT :
             token = self.current_token
             self.eat(TokenType.NOT)
             node = self.logical_or_expression()
@@ -518,7 +504,7 @@ class Parser(BaseParser):
                                 | logical_and_expression "or" logical_or_expression
         """
         node = self.logical_and_expression()
-        if self.current_token.type == TokenType.OR :
+        if self.current_token.category == TokenType.OR :
             token = self.current_token
             self.eat(TokenType.OR)
             node = BinOp(left=node, op=token, right=self.logical_or_expression())
@@ -530,7 +516,7 @@ class Parser(BaseParser):
                         | equality_expression "and" logical_and_expression
         """
         node = self.equality_expression()
-        if self.current_token.type == TokenType.AND :
+        if self.current_token.category == TokenType.AND :
             token = self.current_token
             self.eat(TokenType.AND)
             node = BinOp(left=node, op=token, right=self.equality_expression())
@@ -543,11 +529,11 @@ class Parser(BaseParser):
                             | relational_expression "!=" equality_expression
         """
         node = self.relational_expression()
-        if self.current_token.type == TokenType.IS_EQUAL :
+        if self.current_token.category == TokenType.IS_EQUAL :
             token = self.current_token
             self.eat(TokenType.IS_EQUAL)
             node = BinOp(left=node, op=token, right=self.equality_expression())
-        elif self.current_token.type == TokenType.NOT_EQUAL :
+        elif self.current_token.category == TokenType.NOT_EQUAL :
             token = self.current_token
             self.eat(TokenType.NOT_EQUAL)
             node = BinOp(left=node, op=token, right=self.equality_expression())
@@ -562,19 +548,19 @@ class Parser(BaseParser):
                         | additive_expression ">=" relational_expression
         """
         node = self.additive_expression()
-        if self.current_token.type == TokenType.LESS :
+        if self.current_token.category == TokenType.LESS :
             token = self.current_token
             self.eat(TokenType.LESS)
             node = BinOp(left=node, op=token, right=self.relational_expression())
-        elif self.current_token.type == TokenType.LESS_EQUAL :
+        elif self.current_token.category == TokenType.LESS_EQUAL :
             token = self.current_token
             self.eat(TokenType.LESS_EQUAL)
             node = BinOp(left=node, op=token, right=self.relational_expression())
-        elif self.current_token.type == TokenType.GREATER :
+        elif self.current_token.category == TokenType.GREATER :
             token = self.current_token
             self.eat(TokenType.GREATER)
             node = BinOp(left=node, op=token, right=self.relational_expression())
-        elif self.current_token.type == TokenType.GREATER_EQUAL :
+        elif self.current_token.category == TokenType.GREATER_EQUAL :
             token = self.current_token
             self.eat(TokenType.GREATER_EQUAL)
             node = BinOp(left=node, op=token, right=self.relational_expression())
@@ -585,11 +571,11 @@ class Parser(BaseParser):
         additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative_expression )*
         """
         node = self.multiplicative_expression()
-        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
+        while self.current_token.category in (TokenType.PLUS, TokenType.MINUS):
             token = self.current_token
-            if token.type == TokenType.PLUS:
+            if token.category == TokenType.PLUS:
                 self.eat(TokenType.PLUS)
-            elif token.type == TokenType.MINUS:
+            elif token.category == TokenType.MINUS:
                 self.eat(TokenType.MINUS)
             node = BinOp(left=node, op=token, right=self.multiplicative_expression())
         return node
@@ -599,13 +585,13 @@ class Parser(BaseParser):
         multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
         """
         node = self.primary_expression()
-        while self.current_token.type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
+        while self.current_token.category in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
             token = self.current_token
-            if token.type == TokenType.MUL:
+            if token.category == TokenType.MUL:
                 self.eat(TokenType.MUL)
-            elif token.type == TokenType.DIV:
+            elif token.category == TokenType.DIV:
                 self.eat(TokenType.DIV)
-            elif token.type == TokenType.MOD:
+            elif token.category == TokenType.MOD:
                 self.eat(TokenType.MOD)
             node = BinOp(left=node, op=token, right=self.primary_expression())
         return node
@@ -618,18 +604,18 @@ class Parser(BaseParser):
                         | variable
         """
         token = self.current_token
-        if token.type == TokenType.PLUS:
+        if token.category == TokenType.PLUS:
             self.eat(TokenType.PLUS)
             node = UnaryOp(token, self.primary_expression())
             return node
-        elif token.type == TokenType.MINUS:
+        elif token.category == TokenType.MINUS:
             self.eat(TokenType.MINUS)
             node = UnaryOp(token, self.primary_expression())
             return node
-        elif token.type == TokenType.INTEGER:
+        elif token.category == TokenType.INTEGER:
             node = self.integer()
             return node
-        elif token.type == TokenType.L_PAREN:
+        elif token.category == TokenType.L_PAREN:
             self.eat(TokenType.LPAREN)
             node = self.expression()
             self.eat(TokenType.RPAREN)
@@ -654,7 +640,7 @@ class Parser(BaseParser):
 
     def parse(self):
         node = self.program()
-        if self.current_token.type != TokenType.EOF:
+        if self.current_token.category != TokenType.EOF:
             self.error(
                 error_code=ErrorCode.UNEXPECTED_TOKEN,
                 token=self.current_token,

@@ -58,8 +58,8 @@ class TokenType(Enum):
 
 
 class Token(object):
-    def __init__(self, type, value, lineno=None, column=None):
-        self.type = type
+    def __init__(self, category, value, lineno=None, column=None):
+        self.category = category
         self.value = value
         self.lineno = lineno
         self.column = column
@@ -71,8 +71,8 @@ class Token(object):
             >>> Token(TokenType.INTEGER, 7, lineno=5, column=10)
             Token(TokenType.INTEGER, 7, position=5:10)
         """
-        return 'Token({type}, {value}, position={lineno}:{column})'.format(
-            type=self.type,
+        return 'Token({category}, {value}, position={lineno}:{column})'.format(
+            category=self.category,
             value=repr(self.value),
             lineno=self.lineno,
             column=self.column,

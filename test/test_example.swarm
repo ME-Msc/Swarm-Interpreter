@@ -6,8 +6,7 @@ Action getGPS(){
 }
 
 Action flyTo(position){
-    e = 7;
-    f = e + 2;
+    := trees_go_RPC_call(position);
 }
 
 Agent testUav {
@@ -27,6 +26,19 @@ Behavior b_add(x, y){
     }
     @routine{
         z = z + x;
+        flyTo(z);
+    }
+}
+
+Behavior b_add_2(x, y){
+    @init{
+        z = y;
+    }
+    @goal{
+        $ z == 44
+    }
+    @routine{
+        b_add(x, y);
     }
 }
 
@@ -34,7 +46,7 @@ Task t_add(a, b){
     @init{}
     @goal{}
     @routine{
-        b_add(a, b);
+        b_add_2(a, b);
     }
 }
 

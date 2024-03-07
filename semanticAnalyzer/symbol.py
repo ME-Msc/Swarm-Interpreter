@@ -1,28 +1,30 @@
 class Symbol(object):
-    def __init__(self, name, type=None):
+    def __init__(self, name, category=None):
         self.name = name
-        self.type = type
+        self.category = category
         self.scope_level = 0
+    
+    def __str__(self):
+        return self.__repr__()
 
 class VarSymbol(Symbol):
-    def __init__(self, name, type):
-        super().__init__(name, type)
+    def __init__(self, name, category):
+        super().__init__(name, category)
 
-    def __str__(self):
-        return "<{class_name}(name='{name}', type='{type}')>".format(
+    def __repr__(self):
+        return "<{class_name}(name='{name}', category='{category}')>".format(
             class_name=self.__class__.__name__,
             name=self.name,
-            type=self.type,
+            category=self.category,
         )
 
-    __repr__ = __str__
-
-class BuiltinTypeSymbol(Symbol):
+class BuiltinTypeSymbol(object):
     def __init__(self, name):
-        super().__init__(name=name, type=name)
+        self.name = name
+        # Don't need category
 
     def __str__(self):
-        return self.name
+        return self.__repr__()
 
     def __repr__(self):
         return "<{class_name}(name='{name}')>".format(
@@ -38,14 +40,12 @@ class ProcedureSymbol(Symbol):
         # a reference to procedure's body (AST sub-tree)
         self.ast = None
 
-    def __str__(self):
+    def __repr__(self):
         return '<{class_name}(name={name}, formal_parameters={formal_params})>'.format(
             class_name=self.__class__.__name__,
             name=self.name,
             formal_params=self.formal_params,
         )
-
-    __repr__ = __str__
 
 class ActionSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):
@@ -55,6 +55,14 @@ class AgentSymbol(Symbol):
     def __init__(self, name):
         super().__init__(name)
         self.abilities = []
+        self.ast = None
+
+    def __repr__(self):
+        return '<{class_name}(name={name}, abilities={abilities})>'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            abilities=[ab.name for ab in self.abilities],
+        )
 
 class BehaviorSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):

@@ -84,7 +84,7 @@ class Lexer(object):
     def _id(self):
         """Handle identifiers and reserved keywords"""
         # Create a new token with current line and column number
-        token = Token(type=None, value=None, lineno=self.lineno, column=self.column)
+        token = Token(category=None, value=None, lineno=self.lineno, column=self.column)
 
         value = ''
         while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
@@ -93,11 +93,11 @@ class Lexer(object):
 
         token_type = RESERVED_KEYWORDS.get(value.upper())
         if token_type is None:
-            token.type = TokenType.ID
+            token.category = TokenType.ID
             token.value = value
         else:
             # reserved keyword
-            token.type = token_type
+            token.category = token_type
             token.value = value.upper()
 
         return token
@@ -106,7 +106,7 @@ class Lexer(object):
         """Return a (multidigit) integer or float consumed from the input."""
 
         # Create a new token with current line and column number
-        token = Token(type=None, value=None, lineno=self.lineno, column=self.column)
+        token = Token(category=None, value=None, lineno=self.lineno, column=self.column)
 
         result = ''
         while self.current_char is not None and self.current_char.isdigit():
@@ -122,13 +122,13 @@ class Lexer(object):
                 result += self.current_char
                 self.advance()
 
-            token.type = TokenType.REAL_CONST
+            token.category = TokenType.REAL_CONST
             token.value = float(result)
         else:
-            token.type = TokenType.INTEGER_CONST
+            token.category = TokenType.INTEGER_CONST
             token.value = int(result)
         '''
-        token.type = TokenType.INTEGER
+        token.category = TokenType.INTEGER
         token.value = int(result)
         return token
 
@@ -176,7 +176,7 @@ class Lexer(object):
                 else:
                     # create a token with a single-character lexeme as its value
                     token = Token(
-                        type=token_type,
+                        category=token_type,
                         value=token_type.value,  # e.g. ';', '.', etc
                         lineno=self.lineno,
                         column=self.column,
@@ -186,7 +186,7 @@ class Lexer(object):
             else:
                 # create a token with a multi-character lexeme as its value
                 token = Token(
-                    type = token_type,
+                    category = token_type,
                     value = token_type.value,  # e.g. '<<', '>>', etc
                     lineno = self.lineno,
                     column = self.column,
@@ -199,5 +199,5 @@ class Lexer(object):
 
         # EOF (end-of-file) token indicates that there is no more
         # input left for lexical analysis
-        return Token(type=TokenType.EOF, value=None)
+        return Token(category=TokenType.EOF, value=None)
 

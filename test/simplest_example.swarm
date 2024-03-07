@@ -1,7 +1,7 @@
 import NN_policy
 
-Action flyTo(position){
-    := NN_policy.nn_model(position);
+Action flyTo(){
+    := trees_go_RPC_call();
 }
 
 Agent testUav{

@@ -23,13 +23,6 @@ class Action(AST):
         self.formal_params = formal_params  # a list of Param nodes
         self.compound_statement = compound_statement
 
-class ActionCall(AST):
-    def __init__(self, name, actual_params, token):
-        self.name = name
-        self.actual_params = actual_params  # a list of AST nodes
-        self.token = token
-        self.symbol = None          # a reference to action symbol
-
 class AgentList(AST):
     def __init__(self):
         self.children = []
@@ -56,12 +49,12 @@ class Behavior(AST):
         self.goal_block = goal_block
         self.routine_block = routine_block
 
-class BehaviorCall(AST):
+class FunctionCall(AST):
     def __init__(self, name, actual_params, token):
         self.name = name
         self.actual_params = actual_params  # a list of AST nodes
         self.token = token
-        self.symbol = None          # a reference to behavior symbol
+        self.symbol = None          # a reference to function symbol
 
 class TaskList(AST):
     def __init__(self):
