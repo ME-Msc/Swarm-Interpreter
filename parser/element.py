@@ -106,10 +106,6 @@ class FormalParams(AST):
     def __init__(self):
         self.children = []
 
-class ActualParams(AST):
-    def __init__(self):
-        self.children = []
-
 # TODO: remove Param node in AST
 class Param(AST):
     def __init__(self, var_node):

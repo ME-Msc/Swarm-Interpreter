@@ -187,7 +187,7 @@ class SemanticAnalyzer(NodeVisitor):
                     error_code=ErrorCode.WRONG_PARAMS_NUM,
                     token=node.token,
                 )
-        for param_node in node.actual_params:
+        for param_node in actual_params:
             self.visit(param_node)
         
         # accessed by the interpreter when executing procedure call
@@ -249,7 +249,7 @@ class SemanticAnalyzer(NodeVisitor):
                 error_code=ErrorCode.WRONG_PARAMS_NUM,
                 token=node.token,
             )
-        for param_node in node.actual_params:
+        for param_node in actual_params:
             self.visit(param_node)
         
         # accessed by the interpreter when executing procedure call
