@@ -10,7 +10,8 @@ action ::= "Action" variable "(" formal_parameters? ")" action_compound_statemen
 
 action_compound_statement ::= "{" action_statement ( action_statement )* "}"
 
-action_statement ::= assignment_statement
+action_statement ::= action_RPC_call_statement
+                    | assignment_statement
                     | empty 
 
 action_RPC_call_statement ::= ":=" function_call ";"
