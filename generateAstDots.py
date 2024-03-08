@@ -299,15 +299,6 @@ class ASTVisualizer(NodeVisitor):
             s = '  node{} -> node{}\n'.format(node._num, child._num)
             self.dot_body.append(s)
 
-    def visit_Param(self, node):
-        s = '  node{} [label="Param"]\n'.format(self.ncount)
-        self.dot_body.append(s)
-        node._num = self.ncount
-        self.ncount += 1
-        self.visit(node.var_node)
-        s = '  node{} -> node{}\n'.format(node._num, node.var_node._num)
-        self.dot_body.append(s)
-
     def visit_Var(self, node):
         s = '  node{} [label="{}"]\n'.format(self.ncount, node.value)
         self.dot_body.append(s)

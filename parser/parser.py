@@ -420,11 +420,11 @@ class Parser(BaseParser):
         root = FormalParams()
         # No formal parameters
         if self.current_token.category == TokenType.ID:
-            param_node = Param(self.variable())
+            param_node = self.variable()
             root.children.append(param_node)
             while self.current_token.category == TokenType.COMMA:
                 self.eat(TokenType.COMMA)
-                param_node = Param(self.variable())
+                param_node = self.variable()
                 root.children.append(param_node)
         return root
 

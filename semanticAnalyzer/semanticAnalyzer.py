@@ -46,7 +46,7 @@ class SemanticAnalyzer(NodeVisitor):
         action_symbol = ActionSymbol(action_name)
         # Insert parameters into the action_symbol.formal_params
         for param in node.formal_params.children:
-            param_name = param.var_node.value
+            param_name = param.value
             param_category = None
             var_symbol = VarSymbol(param_name, param_category)
             action_symbol.formal_params.append(var_symbol)
@@ -64,7 +64,7 @@ class SemanticAnalyzer(NodeVisitor):
 
         # Insert parameters into the action scope
         for param in node.formal_params.children:
-            param_name = param.var_node.value
+            param_name = param.value
             param_category = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_category)
             self.current_scope.insert(var_symbol)
@@ -135,7 +135,7 @@ class SemanticAnalyzer(NodeVisitor):
         behavior_symbol = BehaviorSymbol(behavior_name)
         # Insert parameters into the behavior_symbol.formal_params.
         for param in node.formal_params.children:
-            param_name = param.var_node.value
+            param_name = param.value
             param_category = None
             var_symbol = VarSymbol(param_name, param_category)
             behavior_symbol.formal_params.append(var_symbol)
@@ -154,7 +154,7 @@ class SemanticAnalyzer(NodeVisitor):
 
         ## Insert parameters into the behavior scope
         for param in node.formal_params.children:
-            param_name = param.var_node.value
+            param_name = param.value
             param_category = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_category)
             self.current_scope.insert(var_symbol)
@@ -204,7 +204,7 @@ class SemanticAnalyzer(NodeVisitor):
         task_symbol = TaskSymbol(task_name)
         # Insert task_symbol into the global scope
         for param in node.formal_params.children:
-            param_name = param.var_node.value
+            param_name = param.value
             param_category = None
             var_symbol = VarSymbol(param_name, param_category)
             task_symbol.formal_params.append(var_symbol)
@@ -222,7 +222,7 @@ class SemanticAnalyzer(NodeVisitor):
 
        	# Insert parameters into the procedure scope
         for param in node.formal_params.children:
-            param_name = param.var_node.value
+            param_name = param.value
             param_category = None		# self.current_scope.lookup(param_name)
             var_symbol = VarSymbol(param_name, param_category)
             self.current_scope.insert(var_symbol)
