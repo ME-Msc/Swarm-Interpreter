@@ -22,7 +22,7 @@ Behavior b_add(x, y){
         z = y;
     }
     @goal{
-        $ z == 44
+        $ z == 37
     }
     @routine{
         z = z + x;
@@ -30,23 +30,11 @@ Behavior b_add(x, y){
     }
 }
 
-Behavior b_add_2(x, y){
-    @init{
-        z = y;
-    }
-    @goal{
-        $ z == 44
-    }
-    @routine{
-        b_add(x, y);
-    }
-}
-
 Task t_add(a, b){
     @init{}
     @goal{}
     @routine{
-        b_add_2(a, b);
+        b_add(a, b);
     }
 }
 

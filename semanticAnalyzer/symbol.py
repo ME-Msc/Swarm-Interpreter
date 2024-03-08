@@ -1,3 +1,15 @@
+from enum import Enum
+
+
+class SymbolCategroy(Enum):         # Symbol Category for Procedure
+    PROGRAM = 'PROGRAM'
+    MAIN    = 'MAIN'
+    TASK    = 'TASK'
+    BEHAVIOR= 'BEHAVIOR'
+    ACTION  = 'ACTION'
+    AGENT   = 'AGENT'
+    RPC     = 'RPC'
+
 class Symbol(object):
     def __init__(self, name, category=None):
         self.name = name
@@ -33,8 +45,8 @@ class BuiltinTypeSymbol(object):
         )
 
 class ProcedureSymbol(Symbol):
-    def __init__(self, name, formal_params=None):
-        super().__init__(name)
+    def __init__(self, name, category, formal_params=None):
+        super().__init__(name=name, category=category)
         # a list of formal parameters
         self.formal_params = [] if formal_params is None else formal_params
         # a reference to procedure's body (AST sub-tree)
@@ -49,11 +61,15 @@ class ProcedureSymbol(Symbol):
 
 class ActionSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):
-        super().__init__(name)
+        super().__init__(name=name, category=SymbolCategroy.ACTION)
+
+class RpcCallSymbol(ProcedureSymbol):
+    def __init__(self, name, formal_params=None):
+        super().__init__(name=name, category=SymbolCategroy.RPC)
 
 class AgentSymbol(Symbol):
     def __init__(self, name):
-        super().__init__(name)
+        super().__init__(name, category=SymbolCategroy.AGENT)
         self.abilities = []
         self.ast = None
 
@@ -66,8 +82,8 @@ class AgentSymbol(Symbol):
 
 class BehaviorSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):
-        super().__init__(name)
+        super().__init__(name=name, category=SymbolCategroy.BEHAVIOR)
 
 class TaskSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):
-        super().__init__(name)
+        super().__init__(name=name, category=SymbolCategroy.TASK)

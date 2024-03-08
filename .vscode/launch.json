@@ -13,7 +13,6 @@
             "justMyCode": true,
             "args": [
                 "test/test_example.swarm",
-                "--scope",
                 "--stack",
             ]
         },

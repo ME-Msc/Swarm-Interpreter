@@ -8,12 +8,13 @@ class ARType(Enum):         # Activation Record Type
     BEHAVIOR= 'BEHAVIOR'
     ACTION  = 'ACTION'
     AGENT   = 'AGENT'
+    RPC     = 'RPC'
 
 
 class ActivationRecord:
-    def __init__(self, name, type, nesting_level):
+    def __init__(self, name, category, nesting_level):
         self.name = name
-        self.type = type
+        self.category = category
         self.nesting_level = nesting_level
         self.members = {}
 
@@ -28,9 +29,9 @@ class ActivationRecord:
 
     def __str__(self):
         lines = [
-            '{level}: {type} {name}'.format(
+            '{level}: {category} {name}'.format(
                 level=self.nesting_level,
-                type=self.type.value,
+                category=self.category.value,
                 name=self.name,
             )
         ]
@@ -58,8 +59,10 @@ class CallStack:
         return self._records[-1]
 
     def __str__(self):
+        minus = '-' * 30
+        equal = '=' * 30
         s = '\n'.join(repr(ar) for ar in reversed(self._records))
-        s = f'CALL STACK\n{s}\n'
+        s = f'{equal}\nCALL STACK\n{minus}\n{s}\n{equal}\n\n'
         return s
 
     def __repr__(self):

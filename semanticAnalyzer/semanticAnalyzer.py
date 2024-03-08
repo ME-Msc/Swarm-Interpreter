@@ -177,14 +177,16 @@ class SemanticAnalyzer(NodeVisitor):
             if_actionSymbol = self.global_scope.lookup(self.current_scope.scope_name, log_or_not=False)
             if isinstance(if_actionSymbol, ActionSymbol):
                 self.log("%s is a RPC_call." % node.name)
-                return
-        formal_params = function_symbol.formal_params
+                function_symbol = RpcCallSymbol(function_name)
+                function_symbol.ast = None
         actual_params = node.actual_params
-        if len(actual_params) != len(formal_params):
-            self.error(
-                error_code=ErrorCode.WRONG_PARAMS_NUM,
-                token=node.token,
-            )
+        if not isinstance(function_symbol, RpcCallSymbol):
+            formal_params = function_symbol.formal_params
+            if len(actual_params) != len(formal_params):
+                self.error(
+                    error_code=ErrorCode.WRONG_PARAMS_NUM,
+                    token=node.token,
+                )
         for param_node in node.actual_params:
             self.visit(param_node)
         
