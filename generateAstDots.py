@@ -10,6 +10,7 @@
 import argparse
 import subprocess
 import textwrap
+import re
 
 from lexer.lexer import Lexer
 from parser.parser import Parser
@@ -93,19 +94,6 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.compound_statement._num)
         self.dot_body.append(s)
 
-    def visit_ActionCall(self, node):
-        s = '  node{} [label="ActionCall:{}"]\n'.format(
-            self.ncount,
-            node.name
-        )
-        self.dot_body.append(s)
-        node._num = self.ncount
-        self.ncount += 1
-        for param_node in node.actual_params:
-            self.visit(param_node)
-            s = '  node{} -> node{}\n'.format(node._num, param_node._num)
-            self.dot_body.append(s)
-
     def visit_AgentList(self, node):
         s = '  node{} [label="AgentList"]\n'.format(self.ncount)
         self.dot_body.append(s)
@@ -174,8 +162,8 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.routine_block._num)
         self.dot_body.append(s)
 
-    def visit_BehaviorCall(self, node):
-        s = '  node{} [label="BehaviorCall:{}"]\n'.format(
+    def visit_FunctionCall(self, node):
+        s = '  node{} [label="FunctionCall:{}"]\n'.format(
             self.ncount,
             node.name
         )
@@ -268,8 +256,8 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.statements._num)
         self.dot_body.append(s)
 
-        self.visit(node.expression)
-        s = '  node{} -> node{}\n'.format(node._num, node.expression._num)
+        self.visit(node.goal)
+        s = '  node{} -> node{}\n'.format(node._num, node.goal._num)
         self.dot_body.append(s)
 
     def visit_RoutineBlock(self, node):
@@ -297,22 +285,12 @@ class ASTVisualizer(NodeVisitor):
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
-        self.visit(node.expression)
-        s = '  node{} -> node{}\n'.format(node._num, node.expression._num)
+        self.visit(node.expr)
+        s = '  node{} -> node{}\n'.format(node._num, node.expr._num)
         self.dot_body.append(s)
 
     def visit_FormalParams(self, node):
         s = '  node{} [label="FormalParams"]\n'.format(self.ncount)
-        self.dot_body.append(s)
-        node._num = self.ncount
-        self.ncount += 1
-        for child in node.children:
-            self.visit(child)
-            s = '  node{} -> node{}\n'.format(node._num, child._num)
-            self.dot_body.append(s)
-
-    def visit_ActualParams(self, node):
-        s = '  node{} [label="ActualParams"]\n'.format(self.ncount)
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
@@ -384,7 +362,7 @@ def main():
     )
     args = argparser.parse_args()
     fname = args.fname
-    file_name = args.fname.split('.')[0]  # Extract file name without extension
+    file_name = re.split(r'[./]', fname)[1]  # Extract file name without extension
     text = open(fname, 'r').read()
 
     lexer = Lexer(text)
