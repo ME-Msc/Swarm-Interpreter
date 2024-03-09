@@ -6,97 +6,98 @@ port ::= "Port" ":" integer
 /* Action */
 action_list ::= action+
 
-action ::= "Action" variable "(" formal_parameters? ")" action_compound
+action ::= "Action" variable "(" formal_parameters ")" action_compound
 
-action_compound ::= "{" ( action_statement ";" )* "}"
+action_compound ::= "{" action_statement* "}"
 
+/* TODO: action_statement ::= action_RPC_call_assignment_statement
+                    | action_return_statement
+                    | action_if_else  */
 action_statement ::= action_RPC_call_statement
                     | assignment_statement
-                    | empty
+                    | empty_statement
 
-action_RPC_call_statement ::= ":=" function_call
-
-/* TODO: 
-action_RPC_call_assignment_statement 
-action_RPC_call_statement 
-action_return_statement 
-action_if_else 
-*/
+action_RPC_call_statement ::= ":=" function_call_statement
 
 /* Agent */
 agent_list ::= agent+
 
 agent ::= "Agent" variable "{" ( variable ( "," variable )* )? ";" "}"
 
-agent_call ::= "Agent" variable integer ";"
+agent_call_statement ::= "Agent" variable integer ";"
 
 /* Behavior */
 behavior_list ::= behavior+
 
-behavior ::= "Behavior" variable "(" formal_parameters? ")" "{" behavior_init_block behavior_goal_block behavior_routine_block "}"
+behavior ::= "Behavior" variable "(" formal_parameters ")" "{" behavior_init_block behavior_goal_block behavior_routine_block "}"
 
 behavior_init_block ::= "@init" behavior_compound
 
-behavior_goal_block ::= "@goal" "{" ( behavior_statement ";" )* "$" expression "}"
+behavior_goal_block ::= "@goal" "{" ( behavior_statement* "$" expression )? "}"
 
 behavior_routine_block ::= "@routine" behavior_compound ( "||" behavior_compound )*
 
-behavior_compound ::= "{" ( behavior_statement ";" )* "}"
+behavior_compound ::= "{" behavior_statement* "}"
 
 /* TODO: behavior_statement ::= put_statement
                         | get_statement
                         | behavior_publish_statement
-                        | behavior_subscribe_statement
+                        | behavior_subscribe
                         | behavior_unsubscribe_statement
                         | behavior_assignment_statement
-                        | behavior_if_else
-                        | behavior_call
-                        | action_call
-                        | empty */
-behavior_statement ::= function_call
+                        | behavior_if_else */
+behavior_statement ::= function_call_statement
                     | assignment_statement
-                    | empty
+                    | empty_statement
 
-function_call ::= variable "(" actual_parameters? ")"
+function_call_statement ::= variable "(" actual_parameters ")" ";"
 
 /* Task */
 task_list ::= task+
 
-/* TODO: task ::= "Task" variable "(" formal_parameters_agent_list formal_parameters? ")" "{" task_init_block task_goal_block task_routine_block "}" */
+/* TODO: task ::= "Task" variable "(" formal_parameters_agent_list formal_parameters ")" "{" task_init_block task_goal_block task_routine_block "}" */
 
-task ::= "Task" variable "(" formal_parameters? ")" "{" task_init_block task_goal_block task_routine_block "}"
+task ::= "Task" variable "(" formal_parameters ")" "{" task_init_block task_goal_block task_routine_block "}"
 
 task_init_block ::= "@init" task_compound
 
-task_goal_block ::= "@goal" "{" ( task_statement ";" )* "$" expression "}"
+task_goal_block ::= "@goal" "{" ( task_statement* "$" expression )? "}"
 
-/* TODO: task_routine_block ::= "@routine" ( task_routine_parallel | task_routine_order | task_routine_each ) */
 task_routine_block ::= "@routine" task_compound ( "||" task_compound )*
 
-task_compound ::= "{" ( task_statement ";" )* "}"
+task_compound ::= "{" task_statement* "}"
 
 /* TODO: task_statement ::= put_statement
                 | get_statement
-                | assignment_statement
                 | task_if_else
-                | empty */
-task_statement ::= task_call
-                | function_call         /* behavior only */
+                | task_order
+                | task_each */
+task_statement ::= task_call_statement
                 | assignment_statement
-                | empty
+                | empty_statement
 
-/* TODO: task_call */
-task_call ::= variable "(" "{" "}" "," actual_parameters ")" ";"
+/* TODO: task_call_statement ::= variable "(" actual_parameters_agent_list actual_parameters ")" ";" */
+task_call_statement ::= variable "(" "{" "}" "," actual_parameters ")" ";"
 
-/* TODO: agent_call* task_call+ */
-main ::= "Main" "{" agent_call task_call "}"
+/* TODO: main ::= "Main" "{" agent_call_statement+ task_call_statement* "}" */
+main ::= "Main" "{" agent_call_statement task_call_statement "}"
 
-assignment_statement ::= variable "=" additive_expression
+/* TODO:put_statement ::= "put" expression "to" stigmergy ";"
+        get_statement ::= "get" variable "from" stigmergy ";"
+        assignment_statement ::= variable "=" ( string | logical_not_expression ) ";" */
+assignment_statement ::= variable "=" additive_expression ";"
 
-empty ::= 
+empty_statement ::= ";"
 
-/* parameter */
-formal_parameters ::= variable ( "," variable )*
+/* TODO:stigmergy ::= "#" variable "#"
+        topic_p2p ::= "<" variable ">"
+        topic_multicast ::= "<<" variable ">>"
+
+        formal_parameters_agent_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range ) "}"
+        actual_parameters_agent_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range ) "}"
+        formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
+        actual_parameters_agent_range ::= variable "[" ( integer | variable) "~" ( integer | variable) "]" */
+formal_parameters ::= ( variable ( "," variable )* )?
 
 actual_parameters ::= ( ( integer | variable ) ( "," ( integer | variable ) )* )?
 
@@ -130,6 +131,12 @@ primary_expression ::= integer
                         | "(" additive_expression ")"
                         | variable
 
+/* TODO:range_expression ::= ( integer | variable) "~" ( integer | variable)
+                    | ( integer | variable) "~" ( integer | variable) "~" ( integer | variable)
+                    | ( integer | variable) ( "," ( integer | variable) )* 
+        string ::= '"' ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  '"'
+        comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/"
+*/
 variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 
 integer ::= "0" | ( [1-9] [0-9]* )
