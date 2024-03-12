@@ -1,8 +1,7 @@
 Port : 14457
 
 Action flyTo(position){
-    step := nn_model(position);
-    := fly(step);
+    := FlyAPI_Model(position);
 }
 
 Action pickUp(){
