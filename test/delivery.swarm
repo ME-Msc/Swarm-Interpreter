@@ -1,19 +1,24 @@
 Port : 14457
 
 Action flyTo(position){
+    /* 调用神经网络指导无人机飞往目的地 */
     := FlyAPI_Model(position);
 }
 
 Action pickUp(){
+    /* 调用既定动作 */
     := pickUpAPI();
 }
 
 Action drop(){
+    /* 调用既定动作 */
     := dropAPI();
 }
 
 Action chooseDest(){
+    /* dst 接收调用结果，一个目的地 */
     dst := chooseDestAPI();
+    /* 将 dst 返回给调用者 */
     return dst;
 }
 
