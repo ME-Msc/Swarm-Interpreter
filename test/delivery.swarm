@@ -5,8 +5,8 @@ Action flyTo(position){
     := fly(step);
 }
 
-Action pickup(){
-    := pickAPI();
+Action pickUp(){
+    := pickUpAPI();
 }
 
 Action drop(){
@@ -14,14 +14,15 @@ Action drop(){
 }
 
 Action chooseDest(){
-    := chooseDestAPI();
+    dst := chooseDestAPI();
+    return dst;
 }
 
 Agent Uav {
-    flyTo, pickup, drop, chooseDest;
+    flyTo, pickUp, drop, chooseDest;
 }
 
-Behavior delivery() {
+Behavior delivering() {
     @init{
         pickup();
         dest = chooseDest();
@@ -35,31 +36,28 @@ Behavior delivery() {
     }
 }
 
-Behavior dropGoods() {
-    @init{
-        times = 0;
-    }
-    @goal{
-        $ times == 1
-    }
+Behavior dropGood() {
+    @init{}
+    @goal{}
     @routine{
         drop();
-        times = times + 1;
+        get delivery_cnt from #delivery_count# ;
+        put delivery_cnt+1 to #delivery_count#
     }
 }
 
 Task delivery({uavA:countA}, goods_cnt){
     @init{
-        delivery_cnt = 0;
+        put 0 to #delivery_count# ;
     }
     @goal{
+        get delivery_cnt from #delivery_count# ;
         $ delivery_cnt == goods_cnt
     }
     @routine{
         order uavA[0~countA]{
-            delivery();
-            dropGoods();
-            delivery_cnt = delivery_cnt + 1;
+            delivering();
+            dropGood();
         }
     }
 }
