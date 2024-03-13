@@ -6,7 +6,7 @@ port ::= "Port" ":" integer
 /* Action */
 action_list ::= action+
 
-action ::= "Action" variable "(" formal_parameters ")" action_compound
+action ::= "Action" variable "(" formal_parameters? ")" action_compound
 
 action_compound ::= "{" action_statement* "}"
 
@@ -29,7 +29,7 @@ agent_call_statement ::= "Agent" variable integer ";"
 /* Behavior */
 behavior_list ::= behavior+
 
-behavior ::= "Behavior" variable "(" formal_parameters ")" "{" behavior_init_block behavior_goal_block behavior_routine_block "}"
+behavior ::= "Behavior" variable "(" formal_parameters? ")" "{" behavior_init_block behavior_goal_block behavior_routine_block "}"
 
 behavior_init_block ::= "@init" behavior_compound
 
@@ -50,14 +50,12 @@ behavior_statement ::= function_call_statement
                     | assignment_statement
                     | empty_statement
 
-function_call_statement ::= variable "(" actual_parameters ")" ";"
+function_call_statement ::= variable "(" actual_parameters? ")" ";"
 
 /* Task */
 task_list ::= task+
 
-/* TODO: task ::= "Task" variable "(" formal_parameters_agent_list formal_parameters ")" "{" task_init_block task_goal_block task_routine_block "}" */
-
-task ::= "Task" variable "(" formal_parameters ")" "{" task_init_block task_goal_block task_routine_block "}"
+task ::= "Task" variable "(" formal_parameters_agent_range_list ( "," formal_parameters )? ")" "{" task_init_block task_goal_block task_routine_block "}"
 
 task_init_block ::= "@init" task_compound
 
@@ -69,15 +67,18 @@ task_compound ::= "{" task_statement* "}"
 
 /* TODO: task_statement ::= put_statement
                 | get_statement
-                | task_if_else
-                | task_order
-                | task_each */
+                | task_if_else */
 task_statement ::= task_call_statement
+                | task_order
+                | task_each
                 | assignment_statement
                 | empty_statement
 
-/* TODO: task_call_statement ::= variable "(" actual_parameters_agent_list actual_parameters ")" ";" */
-task_call_statement ::= variable "(" "{" "}" "," actual_parameters ")" ";"
+task_order ::= "order" actual_parameters_agent_range "{" function_call_statement* "}"
+
+task_each ::= "each" actual_parameters_agent_range "{" function_call_statement* "}"
+
+task_call_statement ::= variable "(" actual_parameters_agent_range_list ( "," actual_parameters )? ")" ";"
 
 /* TODO: main ::= "Main" "{" agent_call_statement+ task_call_statement* "}" */
 main ::= "Main" "{" agent_call_statement task_call_statement "}"
@@ -91,15 +92,18 @@ empty_statement ::= ";"
 
 /* TODO:stigmergy ::= "#" variable "#"
         topic_p2p ::= "<" variable ">"
-        topic_multicast ::= "<<" variable ">>"
+        topic_multicast ::= "<<" variable ">>" */
+formal_parameters_agent_range_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range ) "}"
 
-        formal_parameters_agent_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range ) "}"
-        actual_parameters_agent_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range ) "}"
-        formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
-        actual_parameters_agent_range ::= variable "[" ( integer | variable) "~" ( integer | variable) "]" */
-formal_parameters ::= ( variable ( "," variable )* )?
+actual_parameters_agent_range_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range ) "}"
 
-actual_parameters ::= ( ( integer | variable ) ( "," ( integer | variable ) )* )?
+formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
+
+actual_parameters_agent_range ::= variable "[" additive_expression "~" additive_expression "]"
+
+formal_parameters ::= variable ( "," variable )*
+
+actual_parameters ::= additive_expression ( "," additive_expression )*
 
 /* Expressions */
 expression ::= logical_not_expression

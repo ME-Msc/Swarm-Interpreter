@@ -71,10 +71,12 @@ class Parser(BaseParser):
         var_node = self.variable()
         action_name = var_node.value
         self.eat(TokenType.L_PAREN)
-        parameters_nodes = self.formal_parameters()
+        formal_params_nodes = FormalParams() # No formal parameters
+        if self.current_token.category != TokenType.R_PAREN:
+            formal_params_nodes = self.formal_parameters()
         self.eat(TokenType.R_PAREN)
         action_compound_node = self.action_compound()
-        node = Action(name=action_name, formal_params=parameters_nodes, compound_statement=action_compound_node)
+        node = Action(name=action_name, formal_params=formal_params_nodes, compound_statement=action_compound_node)
         return node
     
     def action_compound(self):
@@ -134,10 +136,9 @@ class Parser(BaseParser):
 
     def agent_call_statement(self):
         self.eat(TokenType.AGENT)
-        var_node = self.variable()
-        agent_name = var_node.value
+        agt_node = self.variable()
         cnt_node = self.integer()
-        node = AgentCall(name=agent_name, count=cnt_node)
+        node = AgentCall(agent=agt_node, count=cnt_node)
         self.eat(TokenType.SEMI)
         return node
 
@@ -152,13 +153,15 @@ class Parser(BaseParser):
         var_node = self.variable()
         behavior_name = var_node.value
         self.eat(TokenType.L_PAREN)
-        parameters_nodes = self.formal_parameters()
+        formal_params_nodes = FormalParams() # No formal parameters
+        if self.current_token.category != TokenType.R_PAREN:
+            formal_params_nodes = self.formal_parameters()
         self.eat(TokenType.R_PAREN)
         self.eat(TokenType.L_BRACE)
         init_node = self.behavior_init_block()
         goal_node = self.behavior_goal_block()
         routine_node = self.behavior_routine_block()
-        node = Behavior(name = behavior_name, formal_params = parameters_nodes, 
+        node = Behavior(name = behavior_name, formal_params = formal_params_nodes, 
                         init_block = init_node, goal_block = goal_node, routine_block = routine_node)
         self.eat(TokenType.R_BRACE)
         return node
@@ -237,16 +240,17 @@ class Parser(BaseParser):
     """
 
     def function_call_statement(self):
-        token = self.variable()
-        function_name = token.value
+        function_call = self.variable()
         self.eat(TokenType.L_PAREN)
-        actual_params = self.actual_parameters()
+        actual_params = []
+        if self.current_token.category != TokenType.R_PAREN:
+            actual_params = self.actual_parameters()
         self.eat(TokenType.R_PAREN)
         self.eat(TokenType.SEMI)
         node = FunctionCall(
-            name=function_name,
+            name=function_call.value,
             actual_params=actual_params,
-            token=token
+            token=function_call.token
         )
         return node
 
@@ -261,13 +265,17 @@ class Parser(BaseParser):
         var_node = self.variable()
         task_name = var_node.value
         self.eat(TokenType.L_PAREN)
-        parameters_nodes = self.formal_parameters()
+        formal_params_agent_list = self.formal_parameters_agent_range_list()
+        formal_params_nodes = FormalParams() # No formal parameters
+        if self.current_token.category != TokenType.R_PAREN:
+            self.eat(TokenType.COMMA)
+            formal_params_nodes = self.formal_parameters()
         self.eat(TokenType.R_PAREN)
         self.eat(TokenType.L_BRACE)
         init_node = self.task_init_block()
         goal_node = self.task_goal_block()
         routine_node = self.task_routine_block()
-        node = Task(name = task_name, formal_params = parameters_nodes, 
+        node = Task(name = task_name, formal_params_agent_list = formal_params_agent_list ,formal_params = formal_params_nodes, 
                         init_block = init_node, goal_block = goal_node, routine_block = routine_node)
         self.eat(TokenType.R_BRACE)
         return node
@@ -325,30 +333,51 @@ class Parser(BaseParser):
 
     # TODO: task_statement not finish yet
     def task_statement(self):
-        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(' and self.lexer.peek() == '{':
+        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(' :
             node = self.task_call_statement()
-        elif self.current_token.category == TokenType.ID and self.lexer.current_char == '(' :
-            node = self.function_call_statement()
+        elif self.current_token.category == TokenType.ORDER:
+            node = self.task_order()
+        elif self.current_token.category == TokenType.EACH:
+            node = self.task_each()
         elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
         else:
             node = self.empty_statement()
         return node
 
-    def task_call_statement(self):
-        token = self.variable()
-        task_name = token.value
-        self.eat(TokenType.L_PAREN)
+    def task_order(self):
+        self.eat(TokenType.ORDER)
+        agt_range = self.actual_parameters_agent_range()
         self.eat(TokenType.L_BRACE)
-        # TODO: actual_parameters_agent_list in task_call 
+        func_call_statements = Compound()
+        while self.current_token.category != TokenType.R_BRACE:
+            func_call_node = self.function_call_statement()
+            func_call_statements.children.append(func_call_node)
         self.eat(TokenType.R_BRACE)
-        self.eat(TokenType.COMMA)
-        actual_params = self.actual_parameters()
+        root = TaskOrder(
+            agent_range=agt_range,
+            function_call_statements=func_call_statements
+        )
+        return root
+
+    # TODO： task_each
+    def task_each(self):
+        pass
+
+    def task_call_statement(self):
+        task_call = self.variable()
+        self.eat(TokenType.L_PAREN)
+        actual_params_agent_list = self.actual_parameters_agent_range_list()
+        actual_params = []
+        if self.current_token.category != TokenType.R_PAREN:
+            self.eat(TokenType.COMMA)
+            actual_params = self.actual_parameters()
         self.eat(TokenType.R_PAREN)
         node = TaskCall(
-            name=task_name,
+            name=task_call.value,
+            actual_params_agent_list=actual_params_agent_list,
             actual_params=actual_params,
-            token=token
+            token=task_call.token
         )
         self.eat(TokenType.SEMI)
         return node
@@ -393,32 +422,73 @@ class Parser(BaseParser):
     topic_multicast ::= "<<" variable ">>"
 
     /* Parameters */
-    formal_parameters_agent_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range ) "}"
-    actual_parameters_agent_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range ) "}"
+    formal_parameters_agent_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range )* "}"
+    actual_parameters_agent_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range )* "}"
     formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
     actual_parameters_agent_range ::= variable "[" ( integer | variable) "~" ( integer | variable) "]"
     """
+
+    def formal_parameters_agent_range_list(self):
+        root = AgentRangeList()
+        self.eat(TokenType.L_BRACE)
+        agent_range_node = self.formal_parameters_agent_range()
+        root.children.append(agent_range_node)
+        while self.current_token.category == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
+            agent_range_node = self.formal_parameters_agent_range()
+            root.children.append(agent_range_node)
+        self.eat(TokenType.R_BRACE)
+        return root
+
+    def actual_parameters_agent_range_list(self):
+        actual_params_agent_list = []
+        self.eat(TokenType.L_BRACE)
+        agent_range_node = self.actual_parameters_agent_range()
+        actual_params_agent_list.append(agent_range_node)
+        while self.current_token.category != TokenType.R_BRACE:
+            self.eat(TokenType.COMMA)
+            agent_range_node = self.actual_parameters_agent_range()
+            actual_params_agent_list.append(agent_range_node)
+        self.eat(TokenType.R_BRACE)
+        return actual_params_agent_list
+
+    def formal_parameters_agent_range(self):
+        agent = self.variable()
+        self.eat(TokenType.L_BRACKET)
+        start = self.variable()
+        self.eat(TokenType.TILDE)
+        end = self.variable()
+        self.eat(TokenType.R_BRACKET)
+        root = AgentRange(agent=agent, start=start, end=end)
+        return root
+
+    def actual_parameters_agent_range(self):
+        agent = self.variable()
+        self.eat(TokenType.L_BRACKET)
+        start = self.additive_expression()
+        self.eat(TokenType.TILDE)
+        end = self.additive_expression()
+        self.eat(TokenType.R_BRACKET)
+        root = AgentRange(agent=agent, start=start, end=end)
+        return root
 
     def formal_parameters(self):
         """
         formal_parameters ::= variable ( "," variable )* 
         """
         root = FormalParams()
-        # No formal parameters
-        if self.current_token.category == TokenType.ID:
+        param_node = self.variable()
+        root.children.append(param_node)
+        while self.current_token.category == TokenType.COMMA:
+            self.eat(TokenType.COMMA)
             param_node = self.variable()
             root.children.append(param_node)
-            while self.current_token.category == TokenType.COMMA:
-                self.eat(TokenType.COMMA)
-                param_node = self.variable()
-                root.children.append(param_node)
         return root
 
     def actual_parameters(self):
         actual_params = []
-        if self.current_token.category != TokenType.R_PAREN:
-            node = self.additive_expression()
-            actual_params.append(node)
+        node = self.additive_expression()
+        actual_params.append(node)
         while self.current_token.category == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             node = self.additive_expression()

@@ -9,6 +9,7 @@ class SymbolCategroy(Enum):         # Symbol Category for Procedure
     ACTION  = 'ACTION'
     AGENT   = 'AGENT'
     RPC     = 'RPC'
+    AGENT_RANGE    = 'AGENT_RANGE'
 
 class Symbol(object):
     def __init__(self, name, category=None):
@@ -56,7 +57,7 @@ class ProcedureSymbol(Symbol):
         return '<{class_name}(name={name}, formal_parameters={formal_params})>'.format(
             class_name=self.__class__.__name__,
             name=self.name,
-            formal_params=self.formal_params,
+            formal_params=[prm.name for prm in self.formal_params]
         )
 
 class ActionSymbol(ProcedureSymbol):
@@ -79,11 +80,36 @@ class AgentSymbol(Symbol):
             name=self.name,
             abilities=[ab.name for ab in self.abilities],
         )
+    
+class AgentRangeSymbol(Symbol):
+    def __init__(self, agent, start, end):
+        self.agent = agent
+        self.start = start
+        self.end = end
+
+    def __repr__(self):
+        return '{agent}[{start}~{end}]'.format(
+            agent = self.agent,
+            start = self.start,
+            end = self.end
+        )
 
 class BehaviorSymbol(ProcedureSymbol):
     def __init__(self, name, formal_params=None):
         super().__init__(name=name, category=SymbolCategroy.BEHAVIOR)
 
-class TaskSymbol(ProcedureSymbol):
-    def __init__(self, name, formal_params=None):
+class TaskSymbol(Symbol):
+    def __init__(self, name, formal_params_agent_list=None, formal_params=None):
         super().__init__(name=name, category=SymbolCategroy.TASK)
+        self.formal_params_agent_list = [] if formal_params_agent_list is None else formal_params_agent_list
+        self.formal_params = [] if formal_params is None else formal_params
+        # a reference to procedure's body (AST sub-tree)
+        self.ast = None
+
+    def __repr__(self):
+        return '<{class_name}(name={name}, formal_params_agent_list={formal_params_agent_list}, formal_params={formal_params})>'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            formal_params_agent_list = self.formal_params_agent_list,
+            formal_params = [prm.name for prm in self.formal_params]
+        )

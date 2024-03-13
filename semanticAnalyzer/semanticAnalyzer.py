@@ -118,10 +118,11 @@ class SemanticAnalyzer(NodeVisitor):
         agent_symbol.ast = node
 
     def visit_AgentCall(self, node):
-        agent_name = node.name
+        agent_name = node.agent.value
         agent_symbol = self.global_scope.lookup(agent_name)
         if agent_symbol == None:
-            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
+            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.agent.token) 
+        self.current_scope.insert(agent_symbol)
         node.symbol = agent_symbol
 
     def visit_BehaviorList(self, node):
@@ -179,6 +180,8 @@ class SemanticAnalyzer(NodeVisitor):
                 self.log("%s is a RPC_call." % node.name)
                 function_symbol = RpcCallSymbol(function_name)
                 function_symbol.ast = None
+            else:
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
         actual_params = node.actual_params
         if not isinstance(function_symbol, RpcCallSymbol):
             formal_params = function_symbol.formal_params
@@ -203,6 +206,9 @@ class SemanticAnalyzer(NodeVisitor):
             self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
         task_symbol = TaskSymbol(task_name)
         # Insert task_symbol into the global scope
+        for agent_range in node.formal_params_agent_list.children:
+            agent_smbl = AgentRangeSymbol(agent_range.agent.value, agent_range.start.value, agent_range.end.value)
+            task_symbol.formal_params_agent_list.append(agent_smbl)
         for param in node.formal_params.children:
             param_name = param.value
             param_category = None
@@ -221,6 +227,13 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = task_scope
 
        	# Insert parameters into the procedure scope
+        for agent_range in node.formal_params_agent_list.children:
+            agt_smbl = VarSymbol(agent_range.agent.value, SymbolCategroy.AGENT_RANGE)
+            self.current_scope.insert(agt_smbl)
+            st_smbl = VarSymbol(agent_range.start.value, None)
+            self.current_scope.insert(st_smbl)
+            nd_smbl = VarSymbol(agent_range.end.value, None)
+            self.current_scope.insert(nd_smbl)
         for param in node.formal_params.children:
             param_name = param.value
             param_category = None		# self.current_scope.lookup(param_name)
@@ -242,22 +255,53 @@ class SemanticAnalyzer(NodeVisitor):
         task_symbol = self.global_scope.lookup(task_name)
         if task_symbol == None:
             self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
-        formal_params = task_symbol.formal_params
-        actual_params = node.actual_params
-        if len(actual_params) != len(formal_params):
-            self.error(
-                error_code=ErrorCode.WRONG_PARAMS_NUM,
-                token=node.token,
-            )
-        for param_node in actual_params:
+
+        for agt_range in node.actual_params_agent_list:
+            agt_name = agt_range.agent.value
+            agt_symbol = self.current_scope.lookup(name=agt_name, current_scope_only=True)
+            if agt_symbol == None:
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
+
+        if len(node.actual_params_agent_list) != len(task_symbol.formal_params_agent_list):
+            self.error(error_code=ErrorCode.WRONG_PARAMS_NUM, token=node.token)
+        for agent_range_node in node.actual_params_agent_list:
+            self.visit(agent_range_node)
+        if len(node.actual_params) != len(task_symbol.formal_params):
+            self.error(error_code=ErrorCode.WRONG_PARAMS_NUM, token=node.token)
+        for param_node in node.actual_params:
             self.visit(param_node)
         
         # accessed by the interpreter when executing procedure call
         node.symbol = task_symbol
 
+    def visit_TaskOrder(self, node):
+        self.visit(node.agent_range)
+        self.visit(node.function_call_statements)
+
+    def visit_AgentRange(self, node):
+        agent_symbol = self.visit(node.agent)
+        if (agent_symbol.category != SymbolCategroy.AGENT_RANGE) and (agent_symbol.category != SymbolCategroy.AGENT):
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.agent.token)
+        self.visit(node.start)
+        self.visit(node.end)
+        
     def visit_Main(self, node):
+        # FIXME: 进入MAIN scope
+        # agent_call在global里查找agent
+        # task_call在global里查找task，在current_scope里查找每一个agent_range.agent
+        # 离开MAIN scope
+        self.log('Enter MAIN scope')
+        main_scope = ScopedSymbolTable(
+            scope_name="Main",
+            scope_level=self.current_scope.scope_level + 1,
+            enclosing_scope = self.current_scope,
+            log_or_not = self.log_or_not
+        )
+        self.current_scope = main_scope
         self.visit(node.agent_call)
         self.visit(node.task_call)
+        self.current_scope = self.current_scope.enclosing_scope
+        self.log('Leave MAIN scope')
 
     def visit_InitBlock(self, node):
         self.visit(node.compound_statement)
@@ -277,18 +321,6 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Expression(self, node):
         self.visit(node.expr)
 
-    # def visit_Assign(self, node):
-    #     # 'x = 5', node is '='
-    #     #     = 
-    #     #   /   \
-    #     #  x     5
-    #     var_name = node.left.value
-    #     category_symbol = self.current_scope.lookup(var_name)
-    #     if category_symbol is None:
-    #         category_symbol = self.visit(node.right)
-    #         var_symbol = VarSymbol(var_name, category_symbol)
-    #         self.current_scope.insert(var_symbol)
-
     def visit_Var(self, node):
         var_name = node.value
         var_symbol = self.current_scope.lookup(var_name)
@@ -301,7 +333,35 @@ class SemanticAnalyzer(NodeVisitor):
         return BuiltinTypeSymbol('INTEGER')
 
     def visit_BinOp(self, node):
-        if node.op.category == TokenType.ASSIGN:
+        if node.op.category == TokenType.PLUS:
+            left_symbol = self.visit(node.left)
+            right_symbol = self.visit(node.right)
+            if isinstance(left_symbol, BuiltinTypeSymbol):
+                return left_symbol
+            if isinstance(right_symbol, BuiltinTypeSymbol):
+                return right_symbol
+        elif node.op.category == TokenType.MINUS:
+            left_symbol = self.visit(node.left)
+            right_symbol = self.visit(node.right)
+            if isinstance(left_symbol, BuiltinTypeSymbol):
+                return left_symbol
+            if isinstance(right_symbol, BuiltinTypeSymbol):
+                return right_symbol
+        elif node.op.category == TokenType.MUL:
+            left_symbol = self.visit(node.left)
+            right_symbol = self.visit(node.right)
+            if isinstance(left_symbol, BuiltinTypeSymbol):
+                return left_symbol
+            if isinstance(right_symbol, BuiltinTypeSymbol):
+                return right_symbol
+        elif node.op.category == TokenType.DIV:
+            left_symbol = self.visit(node.left)
+            right_symbol = self.visit(node.right)
+            if isinstance(left_symbol, BuiltinTypeSymbol):
+                return left_symbol
+            if isinstance(right_symbol, BuiltinTypeSymbol):
+                return right_symbol
+        elif node.op.category == TokenType.ASSIGN:
             left_var_name = node.left.value
             category_symbol = self.current_scope.lookup(left_var_name)
             if category_symbol is None:
@@ -311,11 +371,13 @@ class SemanticAnalyzer(NodeVisitor):
                 else:
                     var_symbol = VarSymbol(left_var_name, right_symbol.category)
                 self.current_scope.insert(var_symbol)
-        elif node.op.category == TokenType.IS_EQUAL:
-            # don not check symbol category
+        else:
+            # don not need to check symbol category
             # because both side can be formal_param whose category is 'None' or anything
             return
-        else: # TODO: comparable symbol
+        '''
+        else: 
+              comparable symbol
             left_category = self.visit(node.left)
             if left_category != None:
                 while hasattr(left_category, 'category'):
@@ -328,6 +390,7 @@ class SemanticAnalyzer(NodeVisitor):
                 return left_category
             else:
                 raise Exception("Different categorys on both sides of BinOp")
+        '''
 
     def visit_UnaryOp(self, node):
         return self.visit(node.expr)

@@ -33,8 +33,8 @@ class Agent(AST):
         self.abilities = abilities
 
 class AgentCall(AST):
-    def __init__(self, name, count):
-        self.name = name
+    def __init__(self, agent, count):
+        self.agent = agent
         self.count = count
 
 class BehaviorList(AST):
@@ -61,19 +61,26 @@ class TaskList(AST):
         self.children = []
 
 class Task(AST):
-    def __init__(self, name, formal_params, init_block, goal_block, routine_block):
+    def __init__(self, name, formal_params_agent_list, formal_params, init_block, goal_block, routine_block):
         self.name = name
+        self.formal_params_agent_list = formal_params_agent_list
         self.formal_params = formal_params
         self.init_block = init_block
         self.goal_block = goal_block
         self.routine_block = routine_block
 
 class TaskCall(AST):
-    def __init__(self, name, actual_params, token):
+    def __init__(self, name, actual_params_agent_list, actual_params, token):
         self.name = name
+        self.actual_params_agent_list = actual_params_agent_list
         self.actual_params = actual_params  # a list of AST nodes
         self.token = token
         self.symbol = None          # a reference to task symbol
+
+class TaskOrder(AST):
+    def __init__(self, agent_range, function_call_statements):
+        self.agent_range = agent_range
+        self.function_call_statements = function_call_statements
     
 class Main(AST):
     def __init__(self, agent_call, task_call):
@@ -105,6 +112,16 @@ class Expression(AST):
 class FormalParams(AST):
     def __init__(self):
         self.children = []
+
+class AgentRangeList(AST):
+    def __init__(self):
+        self.children = []
+
+class AgentRange(AST):
+    def __init__(self, agent, start, end):
+        self.agent = agent
+        self.start = start
+        self.end = end
 
 class Var(AST):
     """The Var node is constructed out of ID token."""

@@ -118,13 +118,35 @@ class ASTVisualizer(NodeVisitor):
             self.dot_body.append(s)
 
     def visit_AgentCall(self, node):
-        s = '  node{} [label="AgentCall:{}"]\n'.format(self.ncount, node.name)
+        s = '  node{} [label="AgentCall"]\n'.format(self.ncount)
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
 
+        self.visit(node.agent)
+        s = '  node{} -> node{}\n'.format(node._num, node.agent._num)
+        self.dot_body.append(s)
+
         self.visit(node.count)
         s = '  node{} -> node{}\n'.format(node._num, node.count._num)
+        self.dot_body.append(s)
+
+    def visit_AgentRange(self, node):
+        s = '  node{} [label="AgentRange"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.agent)
+        s = '  node{} -> node{}\n'.format(node._num, node.agent._num)
+        self.dot_body.append(s)
+
+        self.visit(node.start)
+        s = '  node{} -> node{}\n'.format(node._num, node.start._num)
+        self.dot_body.append(s)
+
+        self.visit(node.end)
+        s = '  node{} -> node{}\n'.format(node._num, node.end._num)
         self.dot_body.append(s)
 
     def visit_BehaviorList(self, node):
@@ -163,7 +185,7 @@ class ASTVisualizer(NodeVisitor):
         self.dot_body.append(s)
 
     def visit_FunctionCall(self, node):
-        s = '  node{} [label="FunctionCall:{}"]\n'.format(
+        s = '  node{} [label="FunctionCall:\n{}"]\n'.format(
             self.ncount,
             node.name
         )
@@ -194,6 +216,11 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
         
+        for agent_range in node.formal_params_agent_list.children:
+            self.visit(agent_range)
+            s = '  node{} -> node{}\n'.format(node._num, agent_range._num)
+            self.dot_body.append(s)
+
         self.visit(node.formal_params)
         s = '  node{} -> node{}\n'.format(node._num, node.formal_params._num)
         self.dot_body.append(s)
@@ -210,14 +237,35 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.routine_block._num)
         self.dot_body.append(s)
 
+    def visit_TaskOrder(self, node):
+        s = '  node{} [label="TaskOrder"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.agent_range)
+        s = '  node{} -> node{}\n'.format(node._num, node.agent_range._num)
+        self.dot_body.append(s)
+
+        self.visit(node.function_call_statements)
+        s = '  node{} -> node{}\n'.format(node._num, node.function_call_statements._num)
+        self.dot_body.append(s)
+
     def visit_TaskCall(self, node):
-        s = '  node{} [label="TaskCall:{}"]\n'.format(
+        s = '  node{} [label="TaskCall:\n{}"]\n'.format(
             self.ncount,
             node.name
         )
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
+
+        # TODO: AST node for node.actual_params_agent_list
+        for agent_range in node.actual_params_agent_list:
+            self.visit(agent_range)
+            s = '  node{} -> node{}\n'.format(node._num, agent_range._num)
+            self.dot_body.append(s)
+
         for param_node in node.actual_params:
             self.visit(param_node)
             s = '  node{} -> node{}\n'.format(node._num, param_node._num)
@@ -298,6 +346,24 @@ class ASTVisualizer(NodeVisitor):
             self.visit(child)
             s = '  node{} -> node{}\n'.format(node._num, child._num)
             self.dot_body.append(s)
+
+    def visit_AgentRange(self, node):
+        s = '  node{} [label="AgentRange"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.agent)
+        s = '  node{} -> node{}\n'.format(node._num, node.agent._num)
+        self.dot_body.append(s)
+        
+        self.visit(node.start)
+        s = '  node{} -> node{}\n'.format(node._num, node.start._num)
+        self.dot_body.append(s)
+        
+        self.visit(node.end)
+        s = '  node{} -> node{}\n'.format(node._num, node.end._num)
+        self.dot_body.append(s)
 
     def visit_Var(self, node):
         s = '  node{} [label="{}"]\n'.format(self.ncount, node.value)
