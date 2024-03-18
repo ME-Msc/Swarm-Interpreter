@@ -81,7 +81,7 @@ task_each ::= "each" actual_parameters_agent_range "{" function_call_statement* 
 task_call_statement ::= variable "(" actual_parameters_agent_range_list ( "," actual_parameters )? ")" ";"
 
 /* TODO: main ::= "Main" "{" agent_call_statement+ task_call_statement* "}" */
-main ::= "Main" "{" agent_call_statement task_call_statement "}"
+main ::= "Main" "{" agent_call_statement+ task_call_statement "}"
 
 /* TODO:put_statement ::= "put" expression "to" stigmergy ";"
         get_statement ::= "get" variable "from" stigmergy ";"

@@ -37,6 +37,10 @@ class AgentCall(AST):
         self.agent = agent
         self.count = count
 
+class AgentCallList(AST):
+    def __init__(self):
+        self.children = []
+
 class BehaviorList(AST):
     def __init__(self):
         self.children = []
@@ -83,8 +87,8 @@ class TaskOrder(AST):
         self.function_call_statements = function_call_statements
     
 class Main(AST):
-    def __init__(self, agent_call, task_call):
-        self.agent_call = agent_call
+    def __init__(self, agent_call_list, task_call):
+        self.agent_call_list = agent_call_list
         self.task_call = task_call
 
 class InitBlock(AST):

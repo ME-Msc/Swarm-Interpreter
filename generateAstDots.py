@@ -131,6 +131,16 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.count._num)
         self.dot_body.append(s)
 
+    def visit_AgentCallList(self, node):
+        s = '  node{} [label="AgentCallList"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+        for child in node.children:
+            self.visit(child)
+            s = '  node{} -> node{}\n'.format(node._num, child._num)
+            self.dot_body.append(s)
+
     def visit_AgentRange(self, node):
         s = '  node{} [label="AgentRange"]\n'.format(self.ncount)
         self.dot_body.append(s)
@@ -277,8 +287,8 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
-        self.visit(node.agent_call)
-        s = '  node{} -> node{}\n'.format(node._num, node.agent_call._num)
+        self.visit(node.agent_call_list)
+        s = '  node{} -> node{}\n'.format(node._num, node.agent_call_list._num)
         self.dot_body.append(s)
 
         self.visit(node.task_call)

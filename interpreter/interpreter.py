@@ -56,7 +56,6 @@ class Interpreter(NodeVisitor):
             self.ID_MAP[key] = value
         # FIXME: improve clien API : addUavs
         getattr(client, "createUavs")(cnt)
-        getattr(client, "resetWorld")()
 
     def visit_Behavior(self, node):
         self.visit(node.init_block)
@@ -123,6 +122,7 @@ class Interpreter(NodeVisitor):
             self.visit(node.routine_block)
     
     def visit_TaskCall(self, node):
+        getattr(client, "resetWorld")()
         for actual_agent_node in node.actual_params_agent_list:
             agent_range = self.visit(actual_agent_node.agent)
             if agent_range is None:
@@ -197,7 +197,8 @@ class Interpreter(NodeVisitor):
 
         self.log(f'ENTER: Main')
 
-        self.visit(node.agent_call)
+        for agent_call_node in node.agent_call_list.children:
+            self.visit(agent_call_node)
         self.log(str(self.call_stack))
         self.visit(node.task_call)
         

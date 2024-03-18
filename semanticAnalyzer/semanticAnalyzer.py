@@ -125,6 +125,10 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope.insert(agent_symbol)
         node.symbol = agent_symbol
 
+    def visit_AgentCallList(self, node):
+        for child in node.children:
+            self.visit(child)
+
     def visit_BehaviorList(self, node):
         for child in node.children:
             self.visit(child)
@@ -298,7 +302,7 @@ class SemanticAnalyzer(NodeVisitor):
             log_or_not = self.log_or_not
         )
         self.current_scope = main_scope
-        self.visit(node.agent_call)
+        self.visit(node.agent_call_list)
         self.visit(node.task_call)
         self.current_scope = self.current_scope.enclosing_scope
         self.log('Leave MAIN scope')

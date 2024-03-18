@@ -382,13 +382,15 @@ class Parser(BaseParser):
         self.eat(TokenType.SEMI)
         return node
 
-    # TODO: main not finish yet. agent_call_list, task_call_list
     def main(self):
         self.eat(TokenType.MAIN)
         self.eat(TokenType.L_BRACE)
-        agent_call_node = self.agent_call_statement()
+        agentCallRoot = AgentCallList()
+        while self.current_token.category == TokenType.AGENT:
+            agent_call_node = self.agent_call_statement()
+            agentCallRoot.children.append(agent_call_node)
         task_call_node = self.task_call_statement()
-        node = Main(agent_call = agent_call_node, task_call = task_call_node)
+        node = Main(agent_call_list = agentCallRoot, task_call = task_call_node)
         self.eat(TokenType.R_BRACE)
         return node
 

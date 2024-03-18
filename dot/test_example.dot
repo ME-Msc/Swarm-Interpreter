@@ -7,145 +7,152 @@ digraph astgraph {
   node2 [label="Port:14457"]
   node1 -> node2
   node3 [label="ActionList"]
-  node4 [label="Action:getGPS"]
+  node4 [label="Action:trees_go_action"]
   node5 [label="FormalParams"]
   node4 -> node5
   node6 [label="Compound"]
-  node7 [label="="]
-  node8 [label="c"]
-  node9 [label="5"]
-  node7 -> node8
-  node7 -> node9
+  node7 [label="FunctionCall:
+treesGo"]
   node6 -> node7
-  node10 [label="="]
-  node11 [label="d"]
-  node12 [label="+"]
-  node13 [label="c"]
-  node14 [label="1"]
-  node12 -> node13
-  node12 -> node14
-  node10 -> node11
-  node10 -> node12
-  node6 -> node10
   node4 -> node6
   node3 -> node4
-  node15 [label="Action:flyTo"]
-  node16 [label="FormalParams"]
-  node17 [label="position"]
-  node16 -> node17
-  node15 -> node16
-  node18 [label="Compound"]
-  node19 [label="FunctionCall:trees_go_RPC_call"]
-  node20 [label="position"]
-  node19 -> node20
-  node18 -> node19
-  node15 -> node18
-  node3 -> node15
   node1 -> node3
-  node21 [label="AgentList"]
-  node22 [label="Agent:testUav"]
-  node23 [label="getGPS"]
+  node8 [label="AgentList"]
+  node9 [label="Agent:test_uav"]
+  node10 [label="trees_go_action"]
+  node9 -> node10
+  node8 -> node9
+  node11 [label="Agent:test_uav2"]
+  node12 [label="trees_go_action"]
+  node11 -> node12
+  node8 -> node11
+  node1 -> node8
+  node13 [label="BehaviorList"]
+  node14 [label="Behavior:trees_go_behavior"]
+  node15 [label="FormalParams"]
+  node14 -> node15
+  node16 [label="InitBlock"]
+  node17 [label="Compound"]
+  node16 -> node17
+  node14 -> node16
+  node18 [label="GoalBlock"]
+  node19 [label="Compound"]
+  node18 -> node19
+  node20 [label="Expression"]
+  node21 [label="NoOp"]
+  node20 -> node21
+  node18 -> node20
+  node14 -> node18
+  node22 [label="RoutineBlock"]
+  node23 [label="Compound"]
+  node24 [label="FunctionCall:
+trees_go_action"]
+  node23 -> node24
   node22 -> node23
-  node24 [label="flyTo"]
-  node22 -> node24
-  node21 -> node22
-  node25 [label="Agent:testUav2"]
-  node26 [label="getGPS"]
-  node25 -> node26
-  node21 -> node25
-  node1 -> node21
-  node27 [label="BehaviorList"]
-  node28 [label="Behavior:b_add"]
-  node29 [label="FormalParams"]
-  node30 [label="x"]
-  node29 -> node30
-  node31 [label="y"]
-  node29 -> node31
-  node28 -> node29
-  node32 [label="InitBlock"]
-  node33 [label="Compound"]
-  node34 [label="="]
-  node35 [label="z"]
-  node36 [label="y"]
-  node34 -> node35
-  node34 -> node36
-  node33 -> node34
-  node32 -> node33
-  node28 -> node32
-  node37 [label="GoalBlock"]
-  node38 [label="Compound"]
-  node37 -> node38
-  node39 [label="Expression"]
-  node40 [label="=="]
-  node41 [label="z"]
-  node42 [label="37"]
-  node40 -> node41
-  node40 -> node42
-  node39 -> node40
-  node37 -> node39
-  node28 -> node37
-  node43 [label="RoutineBlock"]
-  node44 [label="Compound"]
-  node45 [label="="]
-  node46 [label="z"]
-  node47 [label="+"]
-  node48 [label="z"]
-  node49 [label="x"]
-  node47 -> node48
-  node47 -> node49
-  node45 -> node46
-  node45 -> node47
-  node44 -> node45
-  node50 [label="FunctionCall:flyTo"]
-  node51 [label="z"]
-  node50 -> node51
-  node44 -> node50
-  node43 -> node44
-  node28 -> node43
+  node14 -> node22
+  node13 -> node14
+  node1 -> node13
+  node25 [label="TaskList"]
+  node26 [label="Task:test_task"]
+  node27 [label="AgentRange"]
+  node28 [label="agtA"]
   node27 -> node28
-  node1 -> node27
-  node52 [label="TaskList"]
-  node53 [label="Task:t_add"]
-  node54 [label="FormalParams"]
-  node55 [label="a"]
-  node54 -> node55
-  node56 [label="b"]
-  node54 -> node56
-  node53 -> node54
-  node57 [label="InitBlock"]
-  node58 [label="Compound"]
-  node57 -> node58
-  node53 -> node57
-  node59 [label="GoalBlock"]
-  node60 [label="Compound"]
-  node59 -> node60
-  node61 [label="Expression"]
-  node62 [label="NoOp"]
-  node61 -> node62
-  node59 -> node61
-  node53 -> node59
-  node63 [label="RoutineBlock"]
-  node64 [label="Compound"]
-  node65 [label="FunctionCall:b_add"]
-  node66 [label="a"]
-  node65 -> node66
-  node67 [label="b"]
-  node65 -> node67
-  node64 -> node65
-  node63 -> node64
-  node53 -> node63
+  node29 [label="stA"]
+  node27 -> node29
+  node30 [label="edA"]
+  node27 -> node30
+  node26 -> node27
+  node31 [label="AgentRange"]
+  node32 [label="agtB"]
+  node31 -> node32
+  node33 [label="stB"]
+  node31 -> node33
+  node34 [label="edB"]
+  node31 -> node34
+  node26 -> node31
+  node35 [label="FormalParams"]
+  node26 -> node35
+  node36 [label="InitBlock"]
+  node37 [label="Compound"]
+  node36 -> node37
+  node26 -> node36
+  node38 [label="GoalBlock"]
+  node39 [label="Compound"]
+  node38 -> node39
+  node40 [label="Expression"]
+  node41 [label="NoOp"]
+  node40 -> node41
+  node38 -> node40
+  node26 -> node38
+  node42 [label="RoutineBlock"]
+  node43 [label="Compound"]
+  node44 [label="TaskOrder"]
+  node45 [label="AgentRange"]
+  node46 [label="agtA"]
+  node45 -> node46
+  node47 [label="stA"]
+  node45 -> node47
+  node48 [label="edA"]
+  node45 -> node48
+  node44 -> node45
+  node49 [label="Compound"]
+  node50 [label="FunctionCall:
+trees_go_behavior"]
+  node49 -> node50
+  node44 -> node49
+  node43 -> node44
+  node51 [label="TaskOrder"]
+  node52 [label="AgentRange"]
+  node53 [label="agtB"]
   node52 -> node53
-  node1 -> node52
-  node68 [label="Main"]
-  node69 [label="AgentCall:testUav"]
-  node70 [label="5"]
-  node69 -> node70
-  node68 -> node69
-  node71 [label="TaskCall:t_add"]
-  node72 [label="7"]
+  node54 [label="stB"]
+  node52 -> node54
+  node55 [label="edB"]
+  node52 -> node55
+  node51 -> node52
+  node56 [label="Compound"]
+  node57 [label="FunctionCall:
+trees_go_behavior"]
+  node56 -> node57
+  node51 -> node56
+  node43 -> node51
+  node42 -> node43
+  node26 -> node42
+  node25 -> node26
+  node1 -> node25
+  node58 [label="Main"]
+  node59 [label="AgentCallList"]
+  node60 [label="AgentCall"]
+  node61 [label="test_uav"]
+  node60 -> node61
+  node62 [label="1"]
+  node60 -> node62
+  node59 -> node60
+  node63 [label="AgentCall"]
+  node64 [label="test_uav2"]
+  node63 -> node64
+  node65 [label="2"]
+  node63 -> node65
+  node59 -> node63
+  node58 -> node59
+  node66 [label="TaskCall:
+test_task"]
+  node67 [label="AgentRange"]
+  node68 [label="test_uav"]
+  node67 -> node68
+  node69 [label="0"]
+  node67 -> node69
+  node70 [label="1"]
+  node67 -> node70
+  node66 -> node67
+  node71 [label="AgentRange"]
+  node72 [label="test_uav2"]
   node71 -> node72
-  node73 [label="30"]
+  node73 [label="0"]
   node71 -> node73
-  node68 -> node71
-  node1 -> node68
+  node74 [label="2"]
+  node71 -> node74
+  node66 -> node71
+  node58 -> node66
+  node1 -> node58
 }
