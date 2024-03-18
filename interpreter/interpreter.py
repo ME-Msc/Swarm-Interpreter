@@ -33,6 +33,7 @@ class Interpreter(NodeVisitor):
         self.call_stack.push(ar)
         self.visit(node.main)
 
+        self.log(str(self.call_stack))
         self.call_stack.pop()
         self.log(f'LEAVE: Program')
         self.log(str(self.call_stack))
@@ -111,6 +112,7 @@ class Interpreter(NodeVisitor):
                 rpc_args.append(actual_value)
             getattr(client, node.name)(*rpc_args)
 
+        self.log(str(self.call_stack))
         self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
         self.call_stack.pop()
         self.log(str(self.call_stack))
@@ -166,6 +168,7 @@ class Interpreter(NodeVisitor):
         # evaluate task body
         self.visit(task_symbol.ast)
 
+        self.log(str(self.call_stack))
         self.call_stack.pop()
         self.log(f'LEAVE: Task {task_name}')
         self.log(str(self.call_stack))
@@ -202,6 +205,7 @@ class Interpreter(NodeVisitor):
         self.log(str(self.call_stack))
         self.visit(node.task_call)
         
+        self.log(str(self.call_stack))
         self.call_stack.pop()
         self.log(f'LEAVE: Main')
         self.log(str(self.call_stack))
@@ -256,6 +260,18 @@ class Interpreter(NodeVisitor):
             var_value = self.visit(node.right)
             ar = self.call_stack.peek()
             ar[var_name] = var_value
+        elif node.op.category == TokenType.PUT:
+            stigmergy_name = node.right.value
+            expr_value = self.visit(node.left)
+            ar = self.call_stack.bottom()
+            ar[stigmergy_name] = expr_value
+        elif node.op.category == TokenType.GET:
+            var_name = node.left.value
+            stigmergy_name = node.right.value
+            ar = self.call_stack.bottom()
+            var_value = ar[stigmergy_name]
+            cur_ar = self.call_stack.peek()
+            cur_ar[var_name] = var_value
         elif node.op.category == TokenType.LESS:
             return self.visit(node.left) < self.visit(node.right)
         elif node.op.category == TokenType.GREATER:

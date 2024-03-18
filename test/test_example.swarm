@@ -16,6 +16,8 @@ Behavior trees_go_behavior(){
     @init{ }
     @goal{ }
     @routine{
+        put 1+2 to #hello#;
+        get a from #hello#;
         trees_go_action();
     }
 }

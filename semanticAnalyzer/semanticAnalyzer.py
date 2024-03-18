@@ -375,6 +375,25 @@ class SemanticAnalyzer(NodeVisitor):
                 else:
                     var_symbol = VarSymbol(left_var_name, right_symbol.category)
                 self.current_scope.insert(var_symbol)
+        elif node.op.category == TokenType.PUT:
+            expr_node = node.left
+            expr_symbol = self.visit(expr_node)
+            stigmergy_name = node.right.value
+            stigmergy_symbol = self.global_scope.lookup(stigmergy_name)
+            if stigmergy_symbol is None:
+                var_symbol = VarSymbol(stigmergy_name, expr_symbol)
+                self.global_scope.insert(var_symbol)
+        elif node.op.category == TokenType.GET:
+            var_node = node.left
+            var_symbol = self.current_scope.lookup(var_node.value)
+            if var_symbol is not None:
+                self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.left.token)
+            stigmergy_name = node.right.value
+            stigmergy_symbol = self.global_scope.lookup(stigmergy_name)
+            if stigmergy_symbol is None:
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.right.token)
+            var_symbol = VarSymbol(var_node.value, stigmergy_symbol.category)
+            self.current_scope.insert(var_symbol)
         else:
             # don not need to check symbol category
             # because both side can be formal_param whose category is 'None' or anything

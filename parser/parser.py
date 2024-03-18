@@ -94,6 +94,10 @@ class Parser(BaseParser):
             node = self.assignment_statement()
         elif self.current_token.category == TokenType.RPC_CALL:
             node = self.action_RPC_call_statement()
+        elif self.current_token.category == TokenType.PUT:
+            node = self.put_statement()
+        elif self.current_token.category == TokenType.GET:
+            node = self.get_statement()
         else:
             node = self.empty_statement()
         return node
@@ -227,6 +231,10 @@ class Parser(BaseParser):
             node = self.function_call_statement()
         elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
+        elif self.current_token.category == TokenType.PUT:
+            node = self.put_statement()
+        elif self.current_token.category == TokenType.GET:
+            node = self.get_statement()
         else:
             node = self.empty_statement()
         return node
@@ -341,6 +349,10 @@ class Parser(BaseParser):
             node = self.task_each()
         elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
+        elif self.current_token.category == TokenType.PUT:
+            node = self.put_statement()
+        elif self.current_token.category == TokenType.GET:
+            node = self.get_statement()
         else:
             node = self.empty_statement()
         return node
@@ -394,12 +406,26 @@ class Parser(BaseParser):
         self.eat(TokenType.R_BRACE)
         return node
 
-    """
-    TODO: put_statement ::= "put" expression "to" stigmergy ";"
-    get_statement ::= "get" variable "from" stigmergy ";"
-    """
+    def put_statement(self):
+        token = self.current_token
+        self.eat(TokenType.PUT)
+        expr = self.expression()
+        self.eat(TokenType.TO)
+        stigmergy = self.stigmergy()
+        self.eat(TokenType.SEMI)
+        node = BinOp(expr, token, stigmergy)
+        return node
     
-    # TODO: seperate into task_assignment_statement and behavior_assignment_statement and action_assignment_statement
+    def get_statement(self):
+        token = self.current_token
+        self.eat(TokenType.GET)
+        var = self.variable()
+        self.eat(TokenType.FROM)
+        stigmergy = self.stigmergy()
+        self.eat(TokenType.SEMI)
+        node = BinOp(var, token, stigmergy)
+        return node
+
     def assignment_statement(self):
         """
         assignment_statement : variable ASSIGN additive_expression
@@ -417,17 +443,16 @@ class Parser(BaseParser):
         self.eat(TokenType.SEMI)
         return NoOp()
 
+    def stigmergy(self):
+        self.eat(TokenType.HASH)
+        node = self.variable()
+        self.eat(TokenType.HASH)
+        return node
+
     """
     TODO: /* Basic Elements */
-    stigmergy ::= "#" variable "#"
     topic_p2p ::= "<" variable ">"
     topic_multicast ::= "<<" variable ">>"
-
-    /* Parameters */
-    formal_parameters_agent_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range )* "}"
-    actual_parameters_agent_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range )* "}"
-    formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
-    actual_parameters_agent_range ::= variable "[" ( integer | variable) "~" ( integer | variable) "]"
     """
 
     def formal_parameters_agent_range_list(self):

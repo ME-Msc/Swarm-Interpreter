@@ -14,6 +14,8 @@ action_compound ::= "{" action_statement* "}"
                     | action_return_statement
                     | action_if_else  */
 action_statement ::= action_RPC_call_statement
+                    | put_statement
+                    | get_statement
                     | assignment_statement
                     | empty_statement
 
@@ -39,14 +41,15 @@ behavior_routine_block ::= "@routine" behavior_compound ( "||" behavior_compound
 
 behavior_compound ::= "{" behavior_statement* "}"
 
-/* TODO: behavior_statement ::= put_statement
-                        | get_statement
+/* TODO: behavior_statement ::= 
                         | behavior_publish_statement
                         | behavior_subscribe
                         | behavior_unsubscribe_statement
                         | behavior_assignment_statement
                         | behavior_if_else */
 behavior_statement ::= function_call_statement
+                    | put_statement
+                    | get_statement
                     | assignment_statement
                     | empty_statement
 
@@ -65,10 +68,11 @@ task_routine_block ::= "@routine" task_compound ( "||" task_compound )*
 
 task_compound ::= "{" task_statement* "}"
 
-/* TODO: task_statement ::= put_statement
+/* TODO: task_statement ::= task_if_else */
+task_statement ::= put_statement
                 | get_statement
-                | task_if_else */
-task_statement ::= task_call_statement
+                | task_call_statement
+                | function_call_statement
                 | task_order
                 | task_each
                 | assignment_statement
@@ -83,19 +87,22 @@ task_call_statement ::= variable "(" actual_parameters_agent_range_list ( "," ac
 /* TODO: main ::= "Main" "{" agent_call_statement+ task_call_statement* "}" */
 main ::= "Main" "{" agent_call_statement+ task_call_statement "}"
 
-/* TODO:put_statement ::= "put" expression "to" stigmergy ";"
-        get_statement ::= "get" variable "from" stigmergy ";"
-        assignment_statement ::= variable "=" ( string | logical_not_expression ) ";" */
+put_statement ::= "put" expression "to" stigmergy ";"
+
+get_statement ::= "get" variable "from" stigmergy ";"
+
+/* TODO:assignment_statement ::= variable "=" ( string | expression ) ";" */
 assignment_statement ::= variable "=" additive_expression ";"
 
 empty_statement ::= ";"
 
-/* TODO:stigmergy ::= "#" variable "#"
-        topic_p2p ::= "<" variable ">"
-        topic_multicast ::= "<<" variable ">>" */
-formal_parameters_agent_range_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range ) "}"
+stigmergy ::= "#" variable "#"
 
-actual_parameters_agent_range_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range ) "}"
+/* TODO:topic_p2p ::= "<" variable ">"
+        topic_multicast ::= "<<" variable ">>" */
+formal_parameters_agent_range_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range )* "}"
+
+actual_parameters_agent_range_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range )* "}"
 
 formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
 

@@ -62,6 +62,9 @@ class CallStack:
 
     def peek(self):
         return self._records[-1]
+    
+    def bottom(self):
+        return self._records[0]
 
     def __str__(self):
         minus = '-' * 30
