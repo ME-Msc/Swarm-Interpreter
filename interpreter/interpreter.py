@@ -1,17 +1,27 @@
 from base.nodeVisitor import NodeVisitor
+from base.error import InterpreterError, ErrorCode
 from lexer.token import TokenType
 from semanticAnalyzer.symbol import SymbolCategroy
 from interpreter.memory import ARType, ActivationRecord, CallStack
+from interpreter.rpc import client
 
 class Interpreter(NodeVisitor):
     def __init__(self, tree, log_or_not=False):
         self.tree = tree
         self.log_or_not = log_or_not
         self.call_stack = CallStack()
+        self.ID_MAP = {}
 
     def log(self, msg):
         if self.log_or_not:
             print(msg)
+
+    def error(self, error_code, token):
+        raise InterpreterError(
+            error_code=error_code,
+            token=token,
+            message=f'{error_code.value} -> {token}',
+        )
 
     def visit_Program(self, node):
         self.log(f'ENTER: Program')
@@ -34,7 +44,19 @@ class Interpreter(NodeVisitor):
         return self.visit(node.compound_statement)
 
     def visit_AgentCall(self, node):
-        pass
+        agt_smbl = node.symbol
+        agt_name = agt_smbl.name
+        cnt = self.visit(node.count)
+        ar = self.call_stack.peek()
+
+        ar[agt_name] = (agt_name, 0, cnt)
+        for i in range(cnt):
+            key = (agt_name, i)
+            value = len(self.ID_MAP)
+            self.ID_MAP[key] = value
+        # FIXME: improve clien API : addUavs
+        getattr(client, "createUavs")(cnt)
+        getattr(client, "resetWorld")()
 
     def visit_Behavior(self, node):
         self.visit(node.init_block)
@@ -43,6 +65,7 @@ class Interpreter(NodeVisitor):
             self.visit(node.routine_block)
     
     def visit_FunctionCall(self, node):
+        last_ar = self.call_stack.peek()
         function_name = node.name
         function_symbol = node.symbol
         ar_category_switch_case = {
@@ -55,6 +78,7 @@ class Interpreter(NodeVisitor):
             category = ar_category_switch_case[function_symbol.category],
             nesting_level = len(self.call_stack._records)
         )
+        ar.agent_now = last_ar.agent_now
         
         if function_symbol.category != SymbolCategroy.RPC: # BeahviorCall or ActionCall
             formal_params = function_symbol.formal_params
@@ -79,8 +103,14 @@ class Interpreter(NodeVisitor):
         # evaluate function body
         if function_symbol.category != SymbolCategroy.RPC:
             self.visit(function_symbol.ast)
-        # else:
-            # TODO: call RPC server
+        else: # call RPC server
+            # add ID as first arg
+            rpc_args = [self.ID_MAP[(ar.agent_now[0], ar.agent_now[1])], ]
+            # add rpc_call args
+            for actual_param in node.actual_params:
+                actual_value = self.visit(actual_param)
+                rpc_args.append(actual_value)
+            getattr(client, node.name)(*rpc_args)
 
         self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
         self.call_stack.pop()
@@ -93,6 +123,19 @@ class Interpreter(NodeVisitor):
             self.visit(node.routine_block)
     
     def visit_TaskCall(self, node):
+        for actual_agent_node in node.actual_params_agent_list:
+            agent_range = self.visit(actual_agent_node.agent)
+            if agent_range is None:
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=actual_agent_node.agent.token)
+
+            agent_start = self.visit(actual_agent_node.start)
+            if agent_start < agent_range[1]:
+                self.error(error_code=ErrorCode.OUT_OF_RANGE, token=actual_agent_node.start.token)
+
+            agent_end = self.visit(actual_agent_node.end)
+            if agent_end > agent_range[2]:
+                self.error(error_code=ErrorCode.OUT_OF_RANGE, token=actual_agent_node.end.token)
+
         task_name = node.name
         task_symbol = node.symbol
         ar = ActivationRecord(
@@ -101,8 +144,16 @@ class Interpreter(NodeVisitor):
             nesting_level = len(self.call_stack._records),
         )
         
+        formal_params_agent_list = task_symbol.formal_params_agent_list
+        actual_params_agent_list = node.actual_params_agent_list
+
         formal_params = task_symbol.formal_params
         actual_params = node.actual_params
+
+        for param_agent_symbol, argument_agent_node in zip(formal_params_agent_list, actual_params_agent_list):
+            ar[param_agent_symbol.agent] = self.visit(argument_agent_node.agent)
+            ar[param_agent_symbol.start] = self.visit(argument_agent_node.start)
+            ar[param_agent_symbol.end] = self.visit(argument_agent_node.end)
 
         for param_symbol, argument_node in zip(formal_params, actual_params):
             ar[param_symbol.name] = self.visit(argument_node)
@@ -119,17 +170,37 @@ class Interpreter(NodeVisitor):
         self.log(f'LEAVE: Task {task_name}')
         self.log(str(self.call_stack))
 
+    def visit_TaskOrder(self, node):
+        agent, start, end = self.visit(node.agent_range)
+        ar = self.call_stack.peek()
+        now = start
+        while now < end:
+            ar.agent_now = (agent[0], now)
+            self.visit(node.function_call_statements)
+            now += 1
+        ar.agent_now = None
+
+    def visit_AgentRange(self, node):
+        agent = self.visit(node.agent)
+        start = self.visit(node.start)
+        end = self.visit(node.end)
+        return (agent, start, end)
+
     def visit_Main(self, node):
-        self.log(f'ENTER: Main')
         ar = ActivationRecord(
             name = "Main",
             category = ARType.MAIN,
             nesting_level = len(self.call_stack._records),
         )
+        
         self.call_stack.push(ar)
-        self.visit(node.agent_call)
-        self.visit(node.task_call)
 
+        self.log(f'ENTER: Main')
+
+        self.visit(node.agent_call)
+        self.log(str(self.call_stack))
+        self.visit(node.task_call)
+        
         self.call_stack.pop()
         self.log(f'LEAVE: Main')
         self.log(str(self.call_stack))
