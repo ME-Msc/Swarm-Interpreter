@@ -4,7 +4,7 @@ from lexer.lexer import Lexer
 from parser.parser import Parser
 from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
 from interpreter.interpreter import Interpreter
-from base.error import LexerError, ParserError, SemanticError
+from base.error import LexerError, ParserError, SemanticError, InterpreterError
 import sys
 
 def main():
@@ -47,7 +47,11 @@ def main():
         sys.exit(1)
 
     interpreter = Interpreter(tree, log_or_not=SHOULD_LOG_STACK)
-    interpreter.interpret()
+    try:
+        interpreter.interpret()
+    except InterpreterError as e:
+        print(e.message)
+        sys.exit(1)
 
 
 

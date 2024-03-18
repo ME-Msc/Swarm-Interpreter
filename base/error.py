@@ -5,6 +5,7 @@ class ErrorCode(Enum):
     ID_NOT_FOUND     = 'Identifier not found'
     DUPLICATE_ID     = 'Duplicate id found'
     WRONG_PARAMS_NUM = 'Wrong number of arguments'
+    OUT_OF_RANGE     = 'Out of range'
 
 
 class Error(Exception):
@@ -24,4 +25,7 @@ class ParserError(Error):
 
 
 class SemanticError(Error):
+    pass
+
+class InterpreterError(Error):
     pass
