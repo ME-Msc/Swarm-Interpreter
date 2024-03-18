@@ -42,7 +42,7 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Action(self, node):
         action_name = node.name
         if self.global_scope.lookup(action_name) != None:
-            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.token)
         action_symbol = ActionSymbol(action_name)
         # Insert parameters into the action_symbol.formal_params
         for param in node.formal_params.children:
@@ -82,7 +82,7 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Agent(self, node):
         agent_name = node.name
         if self.global_scope.lookup(agent_name) != None:
-            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.token)
         agent_symbol = AgentSymbol(agent_name)
         # Insert agent_symbol into the global scope
         for ability in node.abilities.children:
@@ -132,7 +132,7 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Behavior(self, node):
         behavior_name = node.name
         if self.global_scope.lookup(behavior_name) != None:
-            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.token)
         behavior_symbol = BehaviorSymbol(behavior_name)
         # Insert parameters into the behavior_symbol.formal_params.
         for param in node.formal_params.children:
@@ -181,7 +181,7 @@ class SemanticAnalyzer(NodeVisitor):
                 function_symbol = RpcCallSymbol(function_name)
                 function_symbol.ast = None
             else:
-                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
         actual_params = node.actual_params
         if not isinstance(function_symbol, RpcCallSymbol):
             formal_params = function_symbol.formal_params
@@ -203,7 +203,7 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Task(self, node):
         task_name = node.name
         if self.global_scope.lookup(task_name) != None:
-            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.name)
+            self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.token)
         task_symbol = TaskSymbol(task_name)
         # Insert task_symbol into the global scope
         for agent_range in node.formal_params_agent_list.children:
@@ -254,13 +254,13 @@ class SemanticAnalyzer(NodeVisitor):
         task_name = node.name
         task_symbol = self.global_scope.lookup(task_name)
         if task_symbol == None:
-            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
+            self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
 
         for agt_range in node.actual_params_agent_list:
             agt_name = agt_range.agent.value
             agt_symbol = self.current_scope.lookup(name=agt_name, current_scope_only=True)
             if agt_symbol == None:
-                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.name)
+                self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
 
         if len(node.actual_params_agent_list) != len(task_symbol.formal_params_agent_list):
             self.error(error_code=ErrorCode.WRONG_PARAMS_NUM, token=node.token)
