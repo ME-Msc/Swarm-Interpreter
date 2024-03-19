@@ -270,7 +270,6 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
-        # TODO: AST node for node.actual_params_agent_list
         for agent_range in node.actual_params_agent_list:
             self.visit(agent_range)
             s = '  node{} -> node{}\n'.format(node._num, agent_range._num)
@@ -338,6 +337,24 @@ class ASTVisualizer(NodeVisitor):
             s = '  node{} -> node{}\n'.format(node._num, child._num)
             self.dot_body.append(s)
 
+    def visit_IfElse(self, node):
+        s = '  node{} [label="If-Else"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+        
+        self.visit(node.expression)
+        s = '  node{} -> node{}\n'.format(node._num, node.expression._num)
+        self.dot_body.append(s)
+        
+        self.visit(node.true_compound)
+        s = '  node{} -> node{}\n'.format(node._num, node.true_compound._num)
+        self.dot_body.append(s)
+
+        self.visit(node.false_compound)
+        s = '  node{} -> node{}\n'.format(node._num, node.false_compound._num)
+        self.dot_body.append(s)
+        
     def visit_Expression(self, node):
         s = '  node{} [label="Expression"]\n'.format(self.ncount)
         self.dot_body.append(s)

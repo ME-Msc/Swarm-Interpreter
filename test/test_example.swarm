@@ -18,6 +18,12 @@ Behavior trees_go_behavior(){
     @routine{
         put 1+2 to #hello#;
         get a from #hello#;
+        if (a==3) {
+            put 4 to #hello#;
+        }else{
+            put 5 to #hello#;
+        }
+        get b from #hello#;
         trees_go_action();
     }
 }
