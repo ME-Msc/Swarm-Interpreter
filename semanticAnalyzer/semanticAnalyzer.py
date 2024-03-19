@@ -290,10 +290,6 @@ class SemanticAnalyzer(NodeVisitor):
         self.visit(node.end)
         
     def visit_Main(self, node):
-        # FIXME: 进入MAIN scope
-        # agent_call在global里查找agent
-        # task_call在global里查找task，在current_scope里查找每一个agent_range.agent
-        # 离开MAIN scope
         self.log('Enter MAIN scope')
         main_scope = ScopedSymbolTable(
             scope_name="Main",
@@ -321,6 +317,12 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Compound(self, node):
         for child in node.children:
             self.visit(child)
+
+    def visit_IfElse(self, node):
+        self.visit(node.expression)
+        self.visit(node.true_compound)
+        if node.false_compound is not None:
+            self.visit(node.false_compound)
 
     def visit_Expression(self, node):
         self.visit(node.expr)

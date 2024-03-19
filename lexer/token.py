@@ -45,6 +45,8 @@ class TokenType(Enum):
     INIT        = 'INIT'
     GOAL        = 'GOAL'
     ROUTINE     = 'ROUTINE'
+    IF          = 'IF'
+    ELSE        = 'ELSE'
     GET         = 'GET'
     PUT         = 'PUT'
     FROM        = 'FROM'

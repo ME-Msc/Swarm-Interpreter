@@ -55,7 +55,6 @@ class Interpreter(NodeVisitor):
             key = (agt_name, i)
             value = len(self.ID_MAP)
             self.ID_MAP[key] = value
-        # FIXME: improve clien API : addUavs
         getattr(client, "createUavs")(cnt)
 
     def visit_Behavior(self, node):
@@ -228,6 +227,14 @@ class Interpreter(NodeVisitor):
     def visit_Compound(self, node):
         for child in node.children:
             self.visit(child)
+
+    def visit_IfElse(self, node):
+        expr_result = self.visit(node.expression)
+        if expr_result:
+            self.visit(node.true_compound)
+        else:
+            if node.false_compound is not None:
+                self.visit(node.false_compound)
 
     def visit_Expression(self, node):
         return self.visit(node.expr)

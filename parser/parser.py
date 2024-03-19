@@ -98,6 +98,8 @@ class Parser(BaseParser):
             node = self.put_statement()
         elif self.current_token.category == TokenType.GET:
             node = self.get_statement()
+        elif self.current_token.category == TokenType.IF:
+            node = self.action_if_else()
         else:
             node = self.empty_statement()
         return node
@@ -111,8 +113,19 @@ class Parser(BaseParser):
     TODO:
     action_RPC_call_assignment_statement
     action_return_statement 
-    action_if_else
     '''
+    def action_if_else(self):
+        self.eat(TokenType.IF)
+        self.eat(TokenType.L_PAREN)
+        expr_node = self.expression()
+        self.eat(TokenType.R_PAREN)
+        true_cmpd_node = self.action_compound()
+        false_cmpd_node = None
+        if self.current_token.category == TokenType.ELSE:
+            self.eat(TokenType.ELSE)
+            false_cmpd_node = self.action_compound()
+        node = IfElse(expr=expr_node, true_cmpd=true_cmpd_node, false_cmpd=false_cmpd_node)
+        return node
 
     def agent_list(self):
         root = AgentList()
@@ -235,6 +248,8 @@ class Parser(BaseParser):
             node = self.put_statement()
         elif self.current_token.category == TokenType.GET:
             node = self.get_statement()
+        elif self.current_token.category == TokenType.IF:
+            node = self.behavior_if_else()
         else:
             node = self.empty_statement()
         return node
@@ -244,8 +259,20 @@ class Parser(BaseParser):
     behavior_subscribe_statement
     behavior_unsubscribe_statement
     behavior_assignment_statement
-    behavior_if_else
     """
+
+    def behavior_if_else(self):
+        self.eat(TokenType.IF)
+        self.eat(TokenType.L_PAREN)
+        expr_node = self.expression()
+        self.eat(TokenType.R_PAREN)
+        true_cmpd_node = self.behavior_compound()
+        false_cmpd_node = None
+        if self.current_token.category == TokenType.ELSE:
+            self.eat(TokenType.ELSE)
+            false_cmpd_node = self.behavior_compound()
+        node = IfElse(expr=expr_node, true_cmpd=true_cmpd_node, false_cmpd=false_cmpd_node)
+        return node
 
     def function_call_statement(self):
         function_call = self.variable()
@@ -353,6 +380,8 @@ class Parser(BaseParser):
             node = self.put_statement()
         elif self.current_token.category == TokenType.GET:
             node = self.get_statement()
+        elif self.current_token.category == TokenType.IF:
+            node = self.task_if_else()
         else:
             node = self.empty_statement()
         return node
@@ -375,6 +404,19 @@ class Parser(BaseParser):
     # TODO： task_each
     def task_each(self):
         pass
+
+    def task_if_else(self):
+        self.eat(TokenType.IF)
+        self.eat(TokenType.L_PAREN)
+        expr_node = self.expression()
+        self.eat(TokenType.R_PAREN)
+        true_cmpd_node = self.task_compound()
+        false_cmpd_node = None
+        if self.current_token.category == TokenType.ELSE:
+            self.eat(TokenType.ELSE)
+            false_cmpd_node = self.task_compound()
+        node = IfElse(expr=expr_node, true_cmpd=true_cmpd_node, false_cmpd=false_cmpd_node)
+        return node
 
     def task_call_statement(self):
         task_call = self.variable()

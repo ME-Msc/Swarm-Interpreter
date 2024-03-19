@@ -109,6 +109,12 @@ class Compound(AST):
     def __init__(self):
         self.children = []
 
+class IfElse(AST):
+    def __init__(self, expr, true_cmpd, false_cmpd):
+        self.expression = expr
+        self.true_compound = true_cmpd
+        self.false_compound = false_cmpd
+
 class Expression(AST):
     def __init__(self, expr):
         self.expr = expr
