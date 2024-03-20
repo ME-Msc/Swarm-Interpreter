@@ -17,7 +17,6 @@ class ActivationRecord:
         self.category = category
         self.nesting_level = nesting_level
         self.members = {}
-        self.agent_now = None
 
     def __setitem__(self, key, value):
         self.members[key] = value
@@ -38,10 +37,6 @@ class ActivationRecord:
         ]
         for name, val in self.members.items():
             lines.append(f'   {name:<20}: {val}')
-
-        if self.agent_now != None:
-            if self.category in [ARType.TASK, ARType.BEHAVIOR, ARType.ACTION]:
-                lines.append(f'   <NOW>{self.agent_now[0]:<15}: {self.agent_now[1]}')
 
         s = '\n'.join(lines)
         return s
