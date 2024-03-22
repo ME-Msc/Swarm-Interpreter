@@ -282,6 +282,10 @@ class SemanticAnalyzer(NodeVisitor):
         self.visit(node.agent_range)
         self.visit(node.function_call_statements)
 
+    def visit_TaskEach(self, node):
+        self.visit(node.agent_range)
+        self.visit(node.function_call_statements)
+
     def visit_AgentRange(self, node):
         agent_symbol = self.visit(node.agent)
         if (agent_symbol.category != SymbolCategroy.AGENT_RANGE) and (agent_symbol.category != SymbolCategroy.AGENT):

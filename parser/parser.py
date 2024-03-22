@@ -401,9 +401,20 @@ class Parser(BaseParser):
         )
         return root
 
-    # TODO： task_each
     def task_each(self):
-        pass
+        self.eat(TokenType.EACH)
+        agt_range = self.actual_parameters_agent_range()
+        self.eat(TokenType.L_BRACE)
+        func_call_statements = Compound()
+        while self.current_token.category != TokenType.R_BRACE:
+            func_call_node = self.function_call_statement()
+            func_call_statements.children.append(func_call_node)
+        self.eat(TokenType.R_BRACE)
+        root = TaskEach(
+            agent_range=agt_range,
+            function_call_statements=func_call_statements
+        )
+        return root
 
     def task_if_else(self):
         self.eat(TokenType.IF)

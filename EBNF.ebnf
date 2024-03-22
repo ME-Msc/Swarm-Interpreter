@@ -11,15 +11,17 @@ action ::= "Action" variable "(" formal_parameters? ")" action_compound
 action_compound ::= "{" action_statement* "}"
 
 /* TODO: action_statement ::= action_RPC_call_assignment_statement
-                    | action_return_statement
-                    | action_if_else  */
+                    | action_return_statement */
 action_statement ::= action_RPC_call_statement
+                    | action_if_else
                     | put_statement
                     | get_statement
                     | assignment_statement
-                    | empty_statement
+                    | empty_statement 
 
 action_RPC_call_statement ::= ":=" function_call_statement
+
+action_if_else ::= "if" "(" expression ")" action_compound ( "else" action_compound )?
 
 /* Agent */
 agent_list ::= agent+
@@ -41,17 +43,18 @@ behavior_routine_block ::= "@routine" behavior_compound ( "||" behavior_compound
 
 behavior_compound ::= "{" behavior_statement* "}"
 
-/* TODO: behavior_statement ::= 
-                        | behavior_publish_statement
-                        | behavior_subscribe
-                        | behavior_unsubscribe_statement
-                        | behavior_assignment_statement
-                        | behavior_if_else */
-behavior_statement ::= function_call_statement
-                    | put_statement
-                    | get_statement
-                    | assignment_statement
-                    | empty_statement
+/* TODO: behavior_statement ::= behavior_publish_statement
+                                | behavior_subscribe
+                                | behavior_unsubscribe_statement
+                                | behavior_assignment_statement */
+behavior_statement ::= behavior_if_else
+                        | function_call_statement
+                        | put_statement
+                        | get_statement
+                        | assignment_statement
+                        | empty_statement
+
+behavior_if_else ::= "if" "(" expression ")" behavior_compound ( "else" behavior_compound )?
 
 function_call_statement ::= variable "(" actual_parameters? ")" ";"
 
@@ -68,23 +71,24 @@ task_routine_block ::= "@routine" task_compound ( "||" task_compound )*
 
 task_compound ::= "{" task_statement* "}"
 
-/* TODO: task_statement ::= task_if_else */
 task_statement ::= put_statement
                 | get_statement
+                | assignment_statement
+                | task_if_else
                 | task_call_statement
                 | function_call_statement
                 | task_order
                 | task_each
-                | assignment_statement
                 | empty_statement
 
 task_order ::= "order" actual_parameters_agent_range "{" function_call_statement* "}"
 
 task_each ::= "each" actual_parameters_agent_range "{" function_call_statement* "}"
 
+task_if_else ::= "if" "(" expression ")" task_compound ( "else" task_compound )?
+
 task_call_statement ::= variable "(" actual_parameters_agent_range_list ( "," actual_parameters )? ")" ";"
 
-/* TODO: main ::= "Main" "{" agent_call_statement+ task_call_statement* "}" */
 main ::= "Main" "{" agent_call_statement+ task_call_statement "}"
 
 put_statement ::= "put" expression "to" stigmergy ";"
@@ -142,12 +146,14 @@ primary_expression ::= integer
                         | "(" additive_expression ")"
                         | variable
 
-/* TODO:range_expression ::= ( integer | variable) "~" ( integer | variable)
+/* range_expression ::= ( integer | variable) "~" ( integer | variable)
                     | ( integer | variable) "~" ( integer | variable) "~" ( integer | variable)
                     | ( integer | variable) ( "," ( integer | variable) )* 
-        string ::= '"' ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  '"'
-        comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/"
 */
 variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 
 integer ::= "0" | ( [1-9] [0-9]* )
+
+/* TODO: string ::= '"' ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  '"'
+comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/"
+*/

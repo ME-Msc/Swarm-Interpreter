@@ -22,10 +22,12 @@ Action chooseDest(){
     return dst;
 }
 
+/* 描述 Agent 具备的执行动作能力 */
 Agent Uav {
     flyTo, pickUp, drop, chooseDest;
 }
 
+/* 配送行为：拾取货物，飞往目的地 */
 Behavior delivering() {
     @init{
         pickup();
@@ -40,17 +42,19 @@ Behavior delivering() {
     }
 }
 
+/* 投放行为：投放货物，更新全局计数器 */
 Behavior dropGood() {
     @init{}
     @goal{}
     @routine{
         drop();
         get delivery_cnt from #delivery_count# ;
-        put delivery_cnt+1 to #delivery_count#
+        put delivery_cnt+1 to #delivery_count# ;
     }
 }
 
-Task delivery({uavA:countA}, goods_cnt){
+/* 配送任务：指定参与任务的无人机类型、数量，要配送的货物数量 */
+Task delivery({uavA[A_start~A_end]}, goods_cnt){
     @init{
         put 0 to #delivery_count# ;
     }
@@ -59,7 +63,9 @@ Task delivery({uavA:countA}, goods_cnt){
         $ delivery_cnt == goods_cnt
     }
     @routine{
-        order uavA[0~countA]{
+        /* order语句的无人机范围值可以用表达式 */
+        /* 如 uavA[ A_start ~ A_end-1 ] */
+        order uavA[A_start~A_end] {
             delivering();
             dropGood();
         }
@@ -67,6 +73,8 @@ Task delivery({uavA:countA}, goods_cnt){
 }
 
 Main {
+    /* 声明无人机类型、数量 */
     Agent Uav 5;
-    delivery({Uav:5}, 20);
+    /* 任务调用 */
+    delivery({Uav[1~3]}, 20);
 }

@@ -1,4 +1,5 @@
 import asyncio
+import threading
 
 from base.nodeVisitor import NodeVisitor
 from base.error import InterpreterError, ErrorCode
@@ -182,13 +183,29 @@ class Interpreter(NodeVisitor):
             now += 1
 
     def visit_TaskEach(self, node, **kwargs):
-        pass
+        agent_s_e, start, end = self.visit(node.agent_range)
+
+        def agent_work(agent_id):
+            self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id)
+
+        threads = []
+        for now in range(start, end):
+            thread = threading.Thread(target=agent_work, args=(now,))
+            threads.append(thread)
+
+        # start all threads
+        for thread in threads:
+            thread.start()
+
+        # wait for all threads finish
+        for thread in threads:
+            thread.join()
 
     def visit_AgentRange(self, node, **kwargs):
-        agent = self.visit(node.agent)
+        agent_s_e = self.visit(node.agent)
         start = self.visit(node.start)
         end = self.visit(node.end)
-        return (agent, start, end)
+        return (agent_s_e, start, end)
 
     def visit_Main(self, node, **kwargs):
         ar = ActivationRecord(

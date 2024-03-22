@@ -8,41 +8,25 @@ Agent test_uav {
     trees_go_action;
 }
 
-Agent test_uav2 {
-    trees_go_action;
-}
-
 Behavior trees_go_behavior(){
     @init{ }
     @goal{ }
     @routine{
-        put 1+2 to #hello#;
-        get a from #hello#;
-        if (a==3) {
-            put 4 to #hello#;
-        }else{
-            put 5 to #hello#;
-        }
-        get b from #hello#;
         trees_go_action();
     }
 }
 
-Task test_task({agtA[stA~edA], agtB[stB~edB]}){
+Task test_task({agtA[stA~edA]}){
     @init{}
     @goal{}
     @routine{
-        order agtA[stA~edA] {
-            trees_go_behavior();
-        }
-        order agtB[stB~edB] {
+        each agtA[stA~edA] {
             trees_go_behavior();
         }
     }
 }
 
 Main {
-    Agent test_uav 1;
-    Agent test_uav2 2;
-    test_task({test_uav[0~1], test_uav2[0~2]});
+    Agent test_uav 3;
+    test_task({test_uav[0~3]});
 }

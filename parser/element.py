@@ -85,7 +85,12 @@ class TaskOrder(AST):
     def __init__(self, agent_range, function_call_statements):
         self.agent_range = agent_range
         self.function_call_statements = function_call_statements
-    
+
+class TaskEach(AST):
+    def __init__(self, agent_range, function_call_statements):
+        self.agent_range = agent_range
+        self.function_call_statements = function_call_statements
+
 class Main(AST):
     def __init__(self, agent_call_list, task_call):
         self.agent_call_list = agent_call_list
