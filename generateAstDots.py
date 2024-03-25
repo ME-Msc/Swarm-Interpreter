@@ -261,6 +261,20 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.function_call_statements._num)
         self.dot_body.append(s)
 
+    def visit_TaskEach(self, node):
+        s = '  node{} [label="TaskEach"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.agent_range)
+        s = '  node{} -> node{}\n'.format(node._num, node.agent_range._num)
+        self.dot_body.append(s)
+
+        self.visit(node.function_call_statements)
+        s = '  node{} -> node{}\n'.format(node._num, node.function_call_statements._num)
+        self.dot_body.append(s)
+
     def visit_TaskCall(self, node):
         s = '  node{} [label="TaskCall:\n{}"]\n'.format(
             self.ncount,
@@ -400,6 +414,12 @@ class ASTVisualizer(NodeVisitor):
 
     def visit_Num(self, node):
         s = '  node{} [label="{}"]\n'.format(self.ncount, node.token.value)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+    def visit_String(self, node):
+        s = '  node{} [label="\"{}\""]\n'.format(self.ncount, node.token.value)
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
