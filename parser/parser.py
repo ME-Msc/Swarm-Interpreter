@@ -462,11 +462,14 @@ class Parser(BaseParser):
     def put_statement(self):
         token = self.current_token
         self.eat(TokenType.PUT)
-        expr = self.expression()
+        if self.current_token.category == TokenType.STRING:
+            message = self.string()
+        else:
+            message = self.expression()
         self.eat(TokenType.TO)
         stigmergy = self.stigmergy()
         self.eat(TokenType.SEMI)
-        node = BinOp(expr, token, stigmergy)
+        node = BinOp(message, token, stigmergy)
         return node
     
     def get_statement(self):
@@ -486,7 +489,10 @@ class Parser(BaseParser):
         left = self.variable()
         token = self.current_token
         self.eat(TokenType.ASSIGN)
-        right = self.additive_expression()
+        if self.current_token.category == TokenType.STRING:
+            right = self.string()
+        else:
+            right = self.expression()
         self.eat(TokenType.SEMI)
         node = BinOp(left, token, right)
         return node
@@ -733,6 +739,10 @@ class Parser(BaseParser):
         self.eat(TokenType.INTEGER)
         return node
 
+    def string(self):
+        node = String(self.current_token)
+        self.eat(TokenType.STRING)
+        return node
 
     def parse(self):
         node = self.program()

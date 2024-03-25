@@ -36,6 +36,8 @@ class ActivationRecord:
             )
         ]
         for name, val in self.members.items():
+            if isinstance(val, str):
+                val = '"' + val.replace('\\', '\\\\') + '"'  # Escape backslashes
             lines.append(f'   {name:<20}: {val}')
 
         s = '\n'.join(lines)

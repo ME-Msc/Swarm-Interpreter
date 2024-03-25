@@ -342,6 +342,9 @@ class SemanticAnalyzer(NodeVisitor):
     def visit_Num(self, node):
         return BuiltinTypeSymbol('INTEGER')
 
+    def visit_String(self, node):
+        return BuiltinTypeSymbol('STRING')
+
     def visit_BinOp(self, node):
         if node.op.category == TokenType.PLUS:
             left_symbol = self.visit(node.left)

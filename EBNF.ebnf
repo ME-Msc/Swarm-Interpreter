@@ -95,8 +95,7 @@ put_statement ::= "put" expression "to" stigmergy ";"
 
 get_statement ::= "get" variable "from" stigmergy ";"
 
-/* TODO:assignment_statement ::= variable "=" ( string | expression ) ";" */
-assignment_statement ::= variable "=" additive_expression ";"
+assignment_statement ::= variable "=" ( string | expression ) ";"
 
 empty_statement ::= ";"
 
@@ -154,6 +153,6 @@ variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 
 integer ::= "0" | ( [1-9] [0-9]* )
 
-/* TODO: string ::= '"' ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  '"'
-comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/"
-*/
+string ::= ( "'" | '"' ) ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  ( "'" | '"' )
+
+/* comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/" */

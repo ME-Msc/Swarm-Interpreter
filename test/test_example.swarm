@@ -20,6 +20,7 @@ Task test_task({agtA[stA~edA]}){
     @init{}
     @goal{}
     @routine{
+        a = "abc\\123" ;
         each agtA[stA~edA] {
             trees_go_behavior();
         }

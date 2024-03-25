@@ -60,6 +60,7 @@ class TokenType(Enum):
     EOF         = 'EOF'
     INTEGER     = 'INTEGER'
     ID          = 'ID'
+    STRING      = 'STRING'
 
 
 class Token(object):

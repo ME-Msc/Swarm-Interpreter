@@ -131,6 +131,43 @@ class Lexer(object):
         token.category = TokenType.INTEGER
         token.value = int(result)
         return token
+    
+    def string(self):
+        """Return a string consumed from the input."""
+
+        # Create a new token with current line and column number
+        token = Token(category=None, value=None, lineno=self.lineno, column=self.column)
+
+        quote = self.current_char   # " or '
+        self.advance()
+        result = ''
+        while (self.current_char is not None) and (self.current_char != quote):
+            if self.current_char == '\\':
+                self.advance()                  # Skip the backslash
+                if self.current_char is None:   # Handle the case where the backslash is at the end of the input
+                    break
+                elif self.current_char == 'n':
+                    result += '\n'
+                elif self.current_char == 't':
+                    result += '\t'
+                elif self.current_char == 'r':
+                    result += '\r'
+                else:                           # For other escape sequences, simply include the escaped character
+                    result += self.current_char
+                self.advance()                  # Skip the character after the escape sequence
+            else:
+                result += self.current_char
+                self.advance()
+
+        # Check if the closing quote was found
+        if self.current_char != quote:
+            self.error()
+
+        self.advance()  # Move past the closing quote
+
+        token.category = TokenType.STRING
+        token.value = str(result)
+        return token
 
     def get_next_token(self):
         """Lexical analyzer (also known as scanner or tokenizer)
@@ -153,6 +190,9 @@ class Lexer(object):
             if self.current_char == '@':
                 self.advance()
                 return self._id()
+            
+            if self.current_char == '"' or self.current_char == "'":
+                return self.string()
             
             # multi-character token
             try:

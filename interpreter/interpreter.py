@@ -270,6 +270,9 @@ class Interpreter(NodeVisitor):
     def visit_Num(self, node, **kwargs):
         return node.value
 
+    def visit_String(self, node, **kwargs):
+        return node.value
+
     def visit_BinOp(self, node, **kwargs):
         if node.op.category == TokenType.PLUS:
             return self.visit(node.left) + self.visit(node.right)
