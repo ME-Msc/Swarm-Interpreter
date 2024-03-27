@@ -241,3 +241,19 @@ class Lexer(object):
         # input left for lexical analysis
         return Token(category=TokenType.EOF, value=None)
 
+    def peek_next_token(self):
+        """Peek at the next next token without consuming it."""
+        pos = self.pos
+        current_char = self.current_char
+        lineno = self.lineno
+        column = self.column
+
+        next_token = self.get_next_token()
+
+        # Restore the original state of the lexer
+        self.pos = pos
+        self.current_char = current_char
+        self.lineno = lineno
+        self.column = column
+
+        return next_token
