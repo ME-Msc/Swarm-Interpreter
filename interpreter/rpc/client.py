@@ -32,7 +32,7 @@ def treesGo(id):
         print(swarm_pb2.TreesGoRequest(uav_id = 0))
         response = stub.trees_go_RPC_call(swarm_pb2.TreesGoRequest(uav_id = id))
     print("Swarm client received: " + response.message)
-
+    return response.message
 
 
 if __name__ == "__main__":

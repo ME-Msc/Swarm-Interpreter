@@ -21,6 +21,8 @@ action_statement ::= action_RPC_call_statement
 
 action_RPC_call_statement ::= ":=" function_call_statement
 
+action_return_statement ::= "return" variable ";"
+
 action_if_else ::= "if" "(" expression ")" action_compound ( "else" action_compound )?
 
 /* Agent */

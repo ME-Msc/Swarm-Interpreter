@@ -53,6 +53,7 @@ class TokenType(Enum):
     TO          = 'TO'
     ORDER       = 'ORDER'
     EACH        = 'EACH'
+    RETURN      = 'RETURN'
     NOT         = 'NOT'
     AND         = 'AND'
     OR          = 'OR'

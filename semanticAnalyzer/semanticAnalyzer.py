@@ -199,6 +199,8 @@ class SemanticAnalyzer(NodeVisitor):
         
         # accessed by the interpreter when executing procedure call
         node.symbol = function_symbol
+        if isinstance(function_symbol, RpcCallSymbol) or isinstance(function_symbol, ActionSymbol):
+            return function_symbol
 
     def visit_TaskList(self, node):
         for child in node.children:
@@ -328,6 +330,9 @@ class SemanticAnalyzer(NodeVisitor):
         if node.false_compound is not None:
             self.visit(node.false_compound)
 
+    def visit_Return(self, node):
+        self.visit(node.variable)
+
     def visit_Expression(self, node):
         self.visit(node.expr)
 
@@ -384,6 +389,10 @@ class SemanticAnalyzer(NodeVisitor):
                 else:
                     var_symbol = VarSymbol(left_var_name, right_symbol.category)
                 self.current_scope.insert(var_symbol)
+        elif node.op.category == TokenType.RPC_CALL:
+            left_var_name = node.left.value
+            var_symbol = VarSymbol(left_var_name, self.visit(node.right))
+            self.current_scope.insert(var_symbol)
         elif node.op.category == TokenType.PUT:
             expr_node = node.left
             expr_symbol = self.visit(expr_node)

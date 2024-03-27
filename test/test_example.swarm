@@ -1,7 +1,8 @@
 Port : 14457
 
 Action trees_go_action(){
-    := treesGo();
+    val := treesGo();
+    return val;
 }
 
 Agent test_uav {
@@ -12,7 +13,7 @@ Behavior trees_go_behavior(){
     @init{ }
     @goal{ }
     @routine{
-        trees_go_action();
+        bhv_val = trees_go_action();
     }
 }
 
@@ -21,7 +22,7 @@ Task test_task({agtA[stA~edA]}){
     @goal{}
     @routine{
         a = "abc\\123" ;
-        each agtA[stA~edA] {
+        order agtA[stA~edA] {
             trees_go_behavior();
         }
     }

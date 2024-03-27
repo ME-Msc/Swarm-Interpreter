@@ -1,9 +1,9 @@
-import asyncio
 import threading
 
 from base.nodeVisitor import NodeVisitor
 from base.error import InterpreterError, ErrorCode
 from lexer.token import TokenType
+from parser.element import FunctionCall
 from semanticAnalyzer.symbol import SymbolCategroy
 from interpreter.memory import ARType, ActivationRecord, CallStack
 from interpreter.rpc import client
@@ -14,6 +14,7 @@ class Interpreter(NodeVisitor):
         self.log_or_not = log_or_not
         self.call_stack = CallStack()
         self.ID_MAP = {}
+        self.return_value = None
 
     def log(self, msg):
         if self.log_or_not:
@@ -34,7 +35,7 @@ class Interpreter(NodeVisitor):
             nesting_level=0,
         )
         self.call_stack.push(ar)
-        self.visit(node.main)
+        self.visit(node.main, **kwargs)
 
         self.log(str(self.call_stack))
         self.call_stack.pop()
@@ -45,12 +46,12 @@ class Interpreter(NodeVisitor):
         self.visit(node.compound_statement, **kwargs)
 
     def visit_Agent(self, node, **kwargs):
-        return self.visit(node.compound_statement)
+        return self.visit(node.compound_statement, **kwargs)
 
     def visit_AgentCall(self, node, **kwargs):
         agt_smbl = node.symbol
         agt_name = agt_smbl.name
-        cnt = self.visit(node.count)
+        cnt = self.visit(node.count, **kwargs)
         ar = self.call_stack.peek()
 
         ar[agt_name] = (agt_name, 0, cnt)
@@ -84,11 +85,11 @@ class Interpreter(NodeVisitor):
             formal_params = function_symbol.formal_params
             actual_params = node.actual_params
             for param_symbol, argument_node in zip(formal_params, actual_params):
-                ar[param_symbol.name] = self.visit(argument_node)
+                ar[param_symbol.name] = self.visit(argument_node, **kwargs)
         else:
             actual_params = node.actual_params
             for argument_node in actual_params:
-                ar[argument_node.value] = self.visit(argument_node)
+                ar[argument_node.value] = self.visit(argument_node, **kwargs)
             
         self.call_stack.push(ar)
 
@@ -101,6 +102,7 @@ class Interpreter(NodeVisitor):
         self.log(f'Agent now: {kwargs["agent"]} : {kwargs["id"]}')
         self.log(str(self.call_stack))
 
+        RPC_return_value = None
         # evaluate function body
         if function_symbol.category != SymbolCategroy.RPC:
             self.visit(function_symbol.ast, **kwargs)
@@ -111,13 +113,15 @@ class Interpreter(NodeVisitor):
             for actual_param in node.actual_params:
                 actual_value = self.visit(actual_param)
                 rpc_args.append(actual_value)
-            getattr(client, node.name)(*rpc_args)
+            RPC_return_value = getattr(client, node.name)(*rpc_args)
 
         self.log(str(self.call_stack))
         self.log(f'Agent now: {kwargs["agent"]} : {kwargs["id"]}')
         self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
         self.call_stack.pop()
         self.log(str(self.call_stack))
+        if function_symbol.category == SymbolCategroy.RPC:
+            return RPC_return_value
 
     def visit_Task(self, node, **kwargs):
         self.visit(node.init_block)
@@ -183,7 +187,7 @@ class Interpreter(NodeVisitor):
             now += 1
 
     def visit_TaskEach(self, node, **kwargs):
-        agent_s_e, start, end = self.visit(node.agent_range)
+        agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
         def agent_work(agent_id):
             self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id)
@@ -202,9 +206,9 @@ class Interpreter(NodeVisitor):
             thread.join()
 
     def visit_AgentRange(self, node, **kwargs):
-        agent_s_e = self.visit(node.agent)
-        start = self.visit(node.start)
-        end = self.visit(node.end)
+        agent_s_e = self.visit(node.agent, **kwargs)
+        start = self.visit(node.start, **kwargs)
+        end = self.visit(node.end, **kwargs)
         return (agent_s_e, start, end)
 
     def visit_Main(self, node, **kwargs):
@@ -233,7 +237,7 @@ class Interpreter(NodeVisitor):
 
     def visit_GoalBlock(self, node, **kwargs):
         self.visit(node.statements, **kwargs)
-        result = self.visit(node.goal)
+        result = self.visit(node.goal, **kwargs)
         if result == None:
             return True
         return result
@@ -248,15 +252,19 @@ class Interpreter(NodeVisitor):
             self.visit(child, **kwargs)
 
     def visit_IfElse(self, node, **kwargs):
-        expr_result = self.visit(node.expression)
+        expr_result = self.visit(node.expression, **kwargs)
         if expr_result:
             self.visit(node.true_compound)
         else:
             if node.false_compound is not None:
                 self.visit(node.false_compound)
 
+    def visit_Return(self, node, **kwargs):
+        # FIXME: finish return
+        self.return_value = self.visit(node.variable, **kwargs)
+
     def visit_Expression(self, node, **kwargs):
-        return self.visit(node.expr)
+        return self.visit(node.expr, **kwargs)
 
     def visit_Var(self, node, **kwargs):
         var_name = node.value
@@ -275,23 +283,32 @@ class Interpreter(NodeVisitor):
 
     def visit_BinOp(self, node, **kwargs):
         if node.op.category == TokenType.PLUS:
-            return self.visit(node.left) + self.visit(node.right)
+            return self.visit(node.left, **kwargs) + self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.MINUS:
-            return self.visit(node.left) - self.visit(node.right)
+            return self.visit(node.left, **kwargs) - self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.MUL:
-            return self.visit(node.left) * self.visit(node.right)
+            return self.visit(node.left, **kwargs) * self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.DIV:
-            return self.visit(node.left) // self.visit(node.right)
+            return self.visit(node.left, **kwargs) // self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.MOD:
-            return self.visit(node.left) % self.visit(node.right)
+            return self.visit(node.left, **kwargs) % self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.ASSIGN:
             var_name = node.left.value
-            var_value = self.visit(node.right)
+            if not isinstance(node.right, FunctionCall):
+                var_value = self.visit(node.right, **kwargs)
+            else:
+                self.visit(node.right, **kwargs)
+                var_value = node.return_value
+            ar = self.call_stack.peek()
+            ar[var_name] = var_value
+        elif node.op.category == TokenType.RPC_CALL:
+            var_name = node.left.value
+            var_value = self.visit(node.right, **kwargs)
             ar = self.call_stack.peek()
             ar[var_name] = var_value
         elif node.op.category == TokenType.PUT:
             stigmergy_name = node.right.value
-            expr_value = self.visit(node.left)
+            expr_value = self.visit(node.left, **kwargs)
             ar = self.call_stack.bottom()
             ar[stigmergy_name] = expr_value
         elif node.op.category == TokenType.GET:
@@ -302,26 +319,26 @@ class Interpreter(NodeVisitor):
             cur_ar = self.call_stack.peek()
             cur_ar[var_name] = var_value
         elif node.op.category == TokenType.LESS:
-            return self.visit(node.left) < self.visit(node.right)
+            return self.visit(node.left, **kwargs) < self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.GREATER:
-            return self.visit(node.left) < self.visit(node.right)
+            return self.visit(node.left, **kwargs) < self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.LESS_EQUAL:
-            return self.visit(node.left) <= self.visit(node.right)
+            return self.visit(node.left, **kwargs) <= self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.GREATER_EQUAL:
-            return self.visit(node.left) >= self.visit(node.right)
+            return self.visit(node.left, **kwargs) >= self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.IS_EQUAL:
-            return self.visit(node.left) == self.visit(node.right)
+            return self.visit(node.left, **kwargs) == self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.NOT_EQUAL:
-            return self.visit(node.left) != self.visit(node.right)
+            return self.visit(node.left, **kwargs) != self.visit(node.right, **kwargs)
 
     def visit_UnaryOp(self, node, **kwargs):
         op = node.op.category
         if op == TokenType.PLUS:
-            return +self.visit(node.expr)
+            return +self.visit(node.expr, **kwargs)
         elif op == TokenType.MINUS:
-            return -self.visit(node.expr)
+            return -self.visit(node.expr, **kwargs)
         elif op == TokenType.NOT:
-            return not self.visit(node.expr)
+            return not self.visit(node.expr, **kwargs)
 
     def visit_NoOp(self, node, **kwargs):
         pass

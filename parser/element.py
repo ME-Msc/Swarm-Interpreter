@@ -120,6 +120,10 @@ class IfElse(AST):
         self.true_compound = true_cmpd
         self.false_compound = false_cmpd
 
+class Return(AST):
+    def __init__(self, var):
+        self.variable = var
+
 class Expression(AST):
     def __init__(self, expr):
         self.expr = expr

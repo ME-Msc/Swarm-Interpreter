@@ -12,6 +12,9 @@ class BaseParser(object):
     def get_next_token(self):
         return self.lexer.get_next_token()
 
+    def peek_next_token(self):
+        return self.lexer.peek_next_token()
+
     def error(self, error_code, token):
         raise ParserError(
             error_code=error_code,
@@ -90,8 +93,10 @@ class Parser(BaseParser):
         return root
 
     def action_statement(self):
-        if self.current_token.category == TokenType.ID:
+        if self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN :
             node = self.assignment_statement()
+        elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.RPC_CALL :
+            node = self.action_RPC_call_assignment_statement()
         elif self.current_token.category == TokenType.RPC_CALL:
             node = self.action_RPC_call_statement()
         elif self.current_token.category == TokenType.PUT:
@@ -100,6 +105,8 @@ class Parser(BaseParser):
             node = self.get_statement()
         elif self.current_token.category == TokenType.IF:
             node = self.action_if_else()
+        elif self.current_token.category == TokenType.RETURN:
+            node = self.action_return_statement()
         else:
             node = self.empty_statement()
         return node
@@ -109,11 +116,22 @@ class Parser(BaseParser):
         node = self.function_call_statement()
         return node
 
-    '''
-    TODO:
-    action_RPC_call_assignment_statement
-    action_return_statement 
-    '''
+    def action_RPC_call_assignment_statement(self):
+        var = self.variable()
+        token = self.current_token
+        # := is in self.function_call_statement()
+        # self.eat(TokenType.RPC_CALL)
+        call_node = self.action_RPC_call_statement()
+        node = BinOp(var, token, call_node)
+        return node
+
+    def action_return_statement(self):
+        self.eat(TokenType.RETURN)
+        var_node = self.variable()
+        self.eat(TokenType.SEMI)
+        node = Return(var=var_node)
+        return node
+
     def action_if_else(self):
         self.eat(TokenType.IF)
         self.eat(TokenType.L_PAREN)
@@ -240,7 +258,7 @@ class Parser(BaseParser):
                         | behavior_if_else
                         | empty_statement
         '''
-        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(' :
+        if self.current_token.category == TokenType.ID and self.peek_next_token().category ==TokenType.L_PAREN :
             node = self.function_call_statement()
         elif self.current_token.category == TokenType.ID:
             node = self.assignment_statement()
@@ -368,7 +386,7 @@ class Parser(BaseParser):
 
     # TODO: task_statement not finish yet
     def task_statement(self):
-        if self.current_token.category == TokenType.ID and self.lexer.current_char == '(' :
+        if self.current_token.category == TokenType.ID and self.peek_next_token().category ==TokenType.L_PAREN :
             node = self.task_call_statement()
         elif self.current_token.category == TokenType.ORDER:
             node = self.task_order()
@@ -484,16 +502,22 @@ class Parser(BaseParser):
 
     def assignment_statement(self):
         """
-        assignment_statement : variable ASSIGN additive_expression
+        assignment_statement ::= variable "=" ( ( string ";" ) 
+                                                | ( expression ";" )
+                                                | function_call_statement
+                                                )
         """
         left = self.variable()
         token = self.current_token
         self.eat(TokenType.ASSIGN)
         if self.current_token.category == TokenType.STRING:
             right = self.string()
+            self.eat(TokenType.SEMI)
+        elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.L_PAREN:
+            right = self.function_call_statement()
         else:
             right = self.expression()
-        self.eat(TokenType.SEMI)
+            self.eat(TokenType.SEMI)
         node = BinOp(left, token, right)
         return node
 
