@@ -345,7 +345,10 @@ class SemanticAnalyzer(NodeVisitor):
             return var_symbol
 
     def visit_Num(self, node):
-        return BuiltinTypeSymbol('INTEGER')
+        if node.value.is_integer():
+            return BuiltinTypeSymbol('INTEGER')
+        else:
+            return BuiltinTypeSymbol('FLOAT')
 
     def visit_String(self, node):
         return BuiltinTypeSymbol('STRING')
@@ -356,29 +359,53 @@ class SemanticAnalyzer(NodeVisitor):
             right_symbol = self.visit(node.right)
             if isinstance(left_symbol, BuiltinTypeSymbol):
                 return left_symbol
-            if isinstance(right_symbol, BuiltinTypeSymbol):
+            elif isinstance(left_symbol, VarSymbol) and left_symbol.category!=None:
+                return left_symbol.category
+            elif isinstance(right_symbol, BuiltinTypeSymbol):
                 return right_symbol
+            elif isinstance(right_symbol, VarSymbol) and right_symbol.category!=None:
+                return right_symbol.category
+            else:
+                return None
         elif node.op.category == TokenType.MINUS:
             left_symbol = self.visit(node.left)
             right_symbol = self.visit(node.right)
             if isinstance(left_symbol, BuiltinTypeSymbol):
                 return left_symbol
-            if isinstance(right_symbol, BuiltinTypeSymbol):
+            elif isinstance(left_symbol, VarSymbol) and left_symbol.category!=None:
+                return left_symbol.category
+            elif isinstance(right_symbol, BuiltinTypeSymbol):
                 return right_symbol
+            elif isinstance(right_symbol, VarSymbol) and right_symbol.category!=None:
+                return right_symbol.category
+            else:
+                return None
         elif node.op.category == TokenType.MUL:
             left_symbol = self.visit(node.left)
             right_symbol = self.visit(node.right)
             if isinstance(left_symbol, BuiltinTypeSymbol):
                 return left_symbol
-            if isinstance(right_symbol, BuiltinTypeSymbol):
+            elif isinstance(left_symbol, VarSymbol) and left_symbol.category!=None:
+                return left_symbol.category
+            elif isinstance(right_symbol, BuiltinTypeSymbol):
                 return right_symbol
+            elif isinstance(right_symbol, VarSymbol) and right_symbol.category!=None:
+                return right_symbol.category
+            else:
+                return None
         elif node.op.category == TokenType.DIV:
             left_symbol = self.visit(node.left)
             right_symbol = self.visit(node.right)
             if isinstance(left_symbol, BuiltinTypeSymbol):
                 return left_symbol
-            if isinstance(right_symbol, BuiltinTypeSymbol):
+            elif isinstance(left_symbol, VarSymbol) and left_symbol.category!=None:
+                return left_symbol.category
+            elif isinstance(right_symbol, BuiltinTypeSymbol):
                 return right_symbol
+            elif isinstance(right_symbol, VarSymbol) and right_symbol.category!=None:
+                return right_symbol.category
+            else:
+                return None
         elif node.op.category == TokenType.ASSIGN:
             left_var_name = node.left.value
             category_symbol = self.current_scope.lookup(left_var_name)

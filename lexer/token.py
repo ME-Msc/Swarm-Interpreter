@@ -60,6 +60,7 @@ class TokenType(Enum):
     # others
     EOF         = 'EOF'
     INTEGER     = 'INTEGER'
+    FLOAT       = 'FLOAT'
     ID          = 'ID'
     STRING      = 'STRING'
 

@@ -738,6 +738,9 @@ class Parser(BaseParser):
             self.eat(TokenType.MINUS)
             node = UnaryOp(token, self.primary_expression())
             return node
+        elif token.category == TokenType.FLOAT:
+            node = self.float()
+            return node
         elif token.category == TokenType.INTEGER:
             node = self.integer()
             return node
@@ -761,6 +764,11 @@ class Parser(BaseParser):
     def integer(self):
         node = Num(self.current_token)
         self.eat(TokenType.INTEGER)
+        return node
+    
+    def float(self):
+        node = Num(self.current_token)
+        self.eat(TokenType.FLOAT)
         return node
 
     def string(self):

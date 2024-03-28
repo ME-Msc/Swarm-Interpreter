@@ -10,6 +10,7 @@ class ScopedSymbolTable(object):
 
     def _init_builtins(self):
         self.insert(BuiltinTypeSymbol('INTEGER'))
+        self.insert(BuiltinTypeSymbol('FLOAT'))
         self.insert(BuiltinTypeSymbol('STRING'))
 
     def __str__(self):

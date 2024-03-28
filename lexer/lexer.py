@@ -73,14 +73,6 @@ class Lexer(object):
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
-    def integer(self):
-        """Return a (multidigit) integer consumed from the input."""
-        result = ''
-        while self.current_char is not None and self.current_char.isdigit():
-            result += self.current_char
-            self.advance()
-        return int(result)
-
     def _id(self):
         """Handle identifiers and reserved keywords"""
         # Create a new token with current line and column number
@@ -113,7 +105,6 @@ class Lexer(object):
             result += self.current_char
             self.advance()
 
-        '''
         if self.current_char == '.':
             result += self.current_char
             self.advance()
@@ -122,14 +113,11 @@ class Lexer(object):
                 result += self.current_char
                 self.advance()
 
-            token.category = TokenType.REAL_CONST
+            token.category = TokenType.FLOAT
             token.value = float(result)
         else:
-            token.category = TokenType.INTEGER_CONST
+            token.category = TokenType.INTEGER
             token.value = int(result)
-        '''
-        token.category = TokenType.INTEGER
-        token.value = int(result)
         return token
     
     def string(self):
