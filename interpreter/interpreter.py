@@ -15,6 +15,7 @@ class Interpreter(NodeVisitor):
         self.call_stack = CallStack()
         self.ID_MAP = {}
         self.return_value = None
+        self.lock = threading.Lock()
 
     def log(self, msg):
         if self.log_or_not:
@@ -68,6 +69,14 @@ class Interpreter(NodeVisitor):
             self.visit(node.routine_block, **kwargs)
     
     def visit_FunctionCall(self, node, **kwargs):
+        # stash the call_stack for each_statement
+        if "call_stack" in kwargs:
+            self.lock.acquire()
+            self.call_stack_stash = self.call_stack
+            self.call_stack = kwargs["call_stack"]
+            self.lock.release()
+        
+        # push ar into the call_stack
         function_name = node.name
         function_symbol = node.symbol
         ar_category_switch_case = {
@@ -102,8 +111,8 @@ class Interpreter(NodeVisitor):
         self.log(f'Agent now: {kwargs["agent"]} : {kwargs["id"]}')
         self.log(str(self.call_stack))
 
-        RPC_return_value = None
         # evaluate function body
+        RPC_return_value = None
         if function_symbol.category != SymbolCategroy.RPC:
             self.visit(function_symbol.ast, **kwargs)
         else: # call RPC server
@@ -120,6 +129,14 @@ class Interpreter(NodeVisitor):
         self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
         self.call_stack.pop()
         self.log(str(self.call_stack))
+
+        # recover the call_stack
+        if "call_stack" in kwargs:
+            self.lock.acquire()
+            self.call_stack = self.call_stack_stash
+            self.call_stack_stash = None
+            self.lock.release()
+        # return RPC result for action
         if function_symbol.category == SymbolCategroy.RPC:
             return RPC_return_value
 
@@ -190,7 +207,7 @@ class Interpreter(NodeVisitor):
         agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
         def agent_work(agent_id):
-            self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id)
+            self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=self.call_stack.deepcopy())
 
         threads = []
         for now in range(start, end):
@@ -260,9 +277,8 @@ class Interpreter(NodeVisitor):
                 self.visit(node.false_compound)
 
     def visit_Return(self, node, **kwargs):
-        # FIXME: finish return
         self.return_value = self.visit(node.variable, **kwargs)
-
+        
     def visit_Expression(self, node, **kwargs):
         return self.visit(node.expr, **kwargs)
 
@@ -298,7 +314,7 @@ class Interpreter(NodeVisitor):
                 var_value = self.visit(node.right, **kwargs)
             else:
                 self.visit(node.right, **kwargs)
-                var_value = node.return_value
+                var_value = self.return_value
             ar = self.call_stack.peek()
             ar[var_name] = var_value
         elif node.op.category == TokenType.RPC_CALL:
