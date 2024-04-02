@@ -26,6 +26,14 @@
             "args": [
                 "test/test_example.swarm"
             ]
+        },
+        {
+            "name": "memory.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/interpreter/memory.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
