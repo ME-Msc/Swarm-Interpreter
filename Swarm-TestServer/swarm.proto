@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.swarm";
+option java_outer_classname = "SwarmProto";
+option objc_class_prefix = "SWM";
+
+package swarm;
+
+// The greeting service definition.
+service Swarm {
+  // Sends a greeting
+  rpc trees_go_RPC_call (TreesGoRequest) returns (CommonReply) {}
+  rpc createUavs (CreateUavsRequest) returns (CommonReply) {}
+  rpc resetWorld (ResetWorldRequest) returns (CommonReply) {}
+}
+
+// The request message containing the user's name.
+message TreesGoRequest {
+  int64 uav_id = 1;
+}
+
+message CreateUavsRequest {
+  int64 uav_cnt = 1;
+}
+
+message ResetWorldRequest {}
+
+// The response message containing the greetings
+message CommonReply {
+  string message = 1;
+}
+
+
+// pip install grpcio grpcio-tools protobuf
+// python -m grpc_tools.protoc -I ./ --python_out=./ --grpc_python_out=. ./swarm.proto
