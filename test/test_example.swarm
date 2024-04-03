@@ -22,7 +22,7 @@ Task test_task({agtA[stA~edA]}){
     @goal{}
     @routine{
         a = "abc\\123" ;
-        order agtA[stA~edA] {
+        each agtA[stA~edA] {
             trees_go_behavior();
         }
     }

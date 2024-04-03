@@ -8,6 +8,9 @@ from semanticAnalyzer.symbol import SymbolCategroy
 from interpreter.memory import ARType, ActivationRecord, CallStack
 from interpreter.rpc import client
 
+LogLock = threading.Lock()
+
+
 class Interpreter(NodeVisitor):
     def __init__(self, tree, log_or_not=False):
         self.tree = tree
@@ -15,7 +18,6 @@ class Interpreter(NodeVisitor):
         self.call_stack = CallStack()
         self.ID_MAP = {}
         self.return_value = None
-        self.lock = threading.Lock()
 
     def log(self, msg):
         if self.log_or_not:
@@ -29,20 +31,26 @@ class Interpreter(NodeVisitor):
         )
 
     def visit_Program(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+
         self.log(f'ENTER: Program')
         ar = ActivationRecord(
             name="Program",
             category=ARType.PROGRAM,
             nesting_level=0,
         )
-        self.call_stack.push(ar)
+        CALL_STACK.push(ar)
         self.visit(node.main, **kwargs)
 
-        self.log(str(self.call_stack))
-        self.call_stack.pop()
+        self.log(str(CALL_STACK))
+        CALL_STACK = CALL_STACK.pop()
+        LogLock.acquire()
         self.log(f'LEAVE: Program')
-        self.log(str(self.call_stack))
-    
+        self.log(str(CALL_STACK))
+        LogLock.release()
+
     def visit_Action(self, node, **kwargs):
         self.visit(node.compound_statement, **kwargs)
 
@@ -50,10 +58,14 @@ class Interpreter(NodeVisitor):
         return self.visit(node.compound_statement, **kwargs)
 
     def visit_AgentCall(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+
         agt_smbl = node.symbol
         agt_name = agt_smbl.name
         cnt = self.visit(node.count, **kwargs)
-        ar = self.call_stack.peek()
+        ar = CALL_STACK.peek()
 
         ar[agt_name] = (agt_name, 0, cnt)
         for i in range(cnt):
@@ -67,30 +79,27 @@ class Interpreter(NodeVisitor):
         self.visit(node.routine_block, **kwargs)
         while not self.visit(node.goal_block, **kwargs):
             self.visit(node.routine_block, **kwargs)
-    
+
     def visit_FunctionCall(self, node, **kwargs):
-        # stash the call_stack for each_statement
+        CALL_STACK = self.call_stack
         if "call_stack" in kwargs:
-            self.lock.acquire()
-            self.call_stack_stash = self.call_stack
-            self.call_stack = kwargs["call_stack"]
-            self.lock.release()
-        
+            CALL_STACK = kwargs["call_stack"]
+
         # push ar into the call_stack
         function_name = node.name
         function_symbol = node.symbol
         ar_category_switch_case = {
-            SymbolCategroy.BEHAVIOR : ARType.BEHAVIOR,
-            SymbolCategroy.ACTION : ARType.ACTION,
-            SymbolCategroy.RPC : ARType.RPC
+            SymbolCategroy.BEHAVIOR: ARType.BEHAVIOR,
+            SymbolCategroy.ACTION: ARType.ACTION,
+            SymbolCategroy.RPC: ARType.RPC
         }
         ar = ActivationRecord(
-            name = function_name,
-            category = ar_category_switch_case[function_symbol.category],
-            nesting_level = len(self.call_stack._records)
+            name=function_name,
+            category=ar_category_switch_case[function_symbol.category],
+            nesting_level=CALL_STACK.get_base_level() + len(CALL_STACK._records),
         )
-        
-        if function_symbol.category != SymbolCategroy.RPC: # BeahviorCall or ActionCall
+
+        if function_symbol.category != SymbolCategroy.RPC:  # BehaviorCall or ActionCall
             formal_params = function_symbol.formal_params
             actual_params = node.actual_params
             for param_symbol, argument_node in zip(formal_params, actual_params):
@@ -99,23 +108,24 @@ class Interpreter(NodeVisitor):
             actual_params = node.actual_params
             for argument_node in actual_params:
                 ar[argument_node.value] = self.visit(argument_node, **kwargs)
-            
-        self.call_stack.push(ar)
+
+        CALL_STACK.push(ar)
 
         log_switch_case = {
-            SymbolCategroy.BEHAVIOR : "Behavior",
-            SymbolCategroy.ACTION : "Action",
-            SymbolCategroy.RPC : "Rpc"
+            SymbolCategroy.BEHAVIOR: "Behavior",
+            SymbolCategroy.ACTION: "Action",
+            SymbolCategroy.RPC: "Rpc"
         }
-        self.log(f'ENTER: {log_switch_case[function_symbol.category]} {function_name}')
-        self.log(f'Agent now: {kwargs["agent"]} : {kwargs["id"]}')
-        self.log(str(self.call_stack))
+        LogLock.acquire()
+        self.log(f'{CALL_STACK.name} ENTER: {log_switch_case[function_symbol.category]} {function_name}')
+        self.log(str(CALL_STACK))
+        LogLock.release()
 
         # evaluate function body
         RPC_return_value = None
         if function_symbol.category != SymbolCategroy.RPC:
             self.visit(function_symbol.ast, **kwargs)
-        else: # call RPC server
+        else:  # call RPC server
             # add ID as first arg
             rpc_args = [self.ID_MAP[(kwargs['agent'], kwargs['id'])], ]
             # add rpc_call args
@@ -124,18 +134,13 @@ class Interpreter(NodeVisitor):
                 rpc_args.append(actual_value)
             RPC_return_value = getattr(client, node.name)(*rpc_args)
 
-        self.log(str(self.call_stack))
-        self.log(f'Agent now: {kwargs["agent"]} : {kwargs["id"]}')
+        self.log(str(CALL_STACK))
+        CALL_STACK = CALL_STACK.pop()
+        LogLock.acquire()
         self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
-        self.call_stack.pop()
-        self.log(str(self.call_stack))
+        self.log(str(CALL_STACK))
+        LogLock.release()
 
-        # recover the call_stack
-        if "call_stack" in kwargs:
-            self.lock.acquire()
-            self.call_stack = self.call_stack_stash
-            self.call_stack_stash = None
-            self.lock.release()
         # return RPC result for action
         if function_symbol.category == SymbolCategroy.RPC:
             return RPC_return_value
@@ -145,8 +150,12 @@ class Interpreter(NodeVisitor):
         self.visit(node.routine_block)
         while not self.visit(node.goal_block):
             self.visit(node.routine_block)
-    
+
     def visit_TaskCall(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+
         getattr(client, "resetWorld")()
         for actual_agent_node in node.actual_params_agent_list:
             agent_range = self.visit(actual_agent_node.agent)
@@ -164,11 +173,11 @@ class Interpreter(NodeVisitor):
         task_name = node.name
         task_symbol = node.symbol
         ar = ActivationRecord(
-            name = task_name,
-            category = ARType.TASK,
-            nesting_level = len(self.call_stack._records),
+            name=task_name,
+            category=ARType.TASK,
+            nesting_level=CALL_STACK.get_base_level() + len(CALL_STACK._records),
         )
-        
+
         formal_params_agent_list = task_symbol.formal_params_agent_list
         actual_params_agent_list = node.actual_params_agent_list
 
@@ -183,18 +192,20 @@ class Interpreter(NodeVisitor):
         for param_symbol, argument_node in zip(formal_params, actual_params):
             ar[param_symbol.name] = self.visit(argument_node)
 
-        self.call_stack.push(ar)
+        CALL_STACK.push(ar)
 
         self.log(f'ENTER: Task {task_name}')
-        self.log(str(self.call_stack))
+        self.log(str(CALL_STACK))
 
         # evaluate task body
         self.visit(task_symbol.ast)
 
-        self.log(str(self.call_stack))
-        self.call_stack.pop()
+        self.log(str(CALL_STACK))
+        CALL_STACK = CALL_STACK.pop()
+        LogLock.acquire()
         self.log(f'LEAVE: Task {task_name}')
-        self.log(str(self.call_stack))
+        self.log(str(CALL_STACK))
+        LogLock.release()
 
     def visit_TaskOrder(self, node, **kwargs):
         agent_s_e, start, end = self.visit(node.agent_range)
@@ -204,14 +215,22 @@ class Interpreter(NodeVisitor):
             now += 1
 
     def visit_TaskEach(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+
         agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
-        def agent_work(agent_id):
-            self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=self.call_stack.deepcopy())
+        def agent_work(agent_id, cs: CallStack):
+            self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs)
 
+        parent_call_stack = CALL_STACK
+        if "call_stack" in kwargs:  # for sub-each_statement
+            parent_call_stack = kwargs['call_stack']
         threads = []
         for now in range(start, end):
-            thread = threading.Thread(target=agent_work, args=(now,))
+            child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
+            thread = threading.Thread(target=agent_work, args=(now, child_call_stack,))
             threads.append(thread)
 
         # start all threads
@@ -229,25 +248,31 @@ class Interpreter(NodeVisitor):
         return (agent_s_e, start, end)
 
     def visit_Main(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+
         ar = ActivationRecord(
-            name = "Main",
-            category = ARType.MAIN,
-            nesting_level = len(self.call_stack._records),
+            name="Main",
+            category=ARType.MAIN,
+            nesting_level=CALL_STACK.get_base_level() + len(CALL_STACK._records),
         )
-        
-        self.call_stack.push(ar)
+
+        CALL_STACK.push(ar)
 
         self.log(f'ENTER: Main')
 
         for agent_call_node in node.agent_call_list.children:
             self.visit(agent_call_node)
-        self.log(str(self.call_stack))
+        self.log(str(CALL_STACK))
         self.visit(node.task_call)
-        
-        self.log(str(self.call_stack))
-        self.call_stack.pop()
+
+        self.log(str(CALL_STACK))
+        CALL_STACK = CALL_STACK.pop()
+        LogLock.acquire()
         self.log(f'LEAVE: Main')
-        self.log(str(self.call_stack))
+        self.log(str(CALL_STACK))
+        LogLock.release()
 
     def visit_InitBlock(self, node, **kwargs):
         self.visit(node.compound_statement, **kwargs)
@@ -258,7 +283,7 @@ class Interpreter(NodeVisitor):
         if result == None:
             return True
         return result
-    
+
     def visit_RoutineBlock(self, node, **kwargs):
         # each child is a parallel block as compound
         for child in node.children:
@@ -278,19 +303,23 @@ class Interpreter(NodeVisitor):
 
     def visit_Return(self, node, **kwargs):
         self.return_value = self.visit(node.variable, **kwargs)
-        
+
     def visit_Expression(self, node, **kwargs):
         return self.visit(node.expr, **kwargs)
 
     def visit_Var(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+
         var_name = node.value
-        ar = self.call_stack.peek()
+        ar = CALL_STACK.peek()
         var_value = ar.get(var_name)
         if var_value is None:
             raise NameError(repr(var_name))
         else:
             return var_value
-        
+
     def visit_Num(self, node, **kwargs):
         return node.value
 
@@ -298,6 +327,10 @@ class Interpreter(NodeVisitor):
         return node.value
 
     def visit_BinOp(self, node, **kwargs):
+        CALL_STACK = self.call_stack
+        if "call_stack" in kwargs:
+            CALL_STACK = kwargs["call_stack"]
+            
         if node.op.category == TokenType.PLUS:
             return self.visit(node.left, **kwargs) + self.visit(node.right, **kwargs)
         elif node.op.category == TokenType.MINUS:
@@ -315,24 +348,24 @@ class Interpreter(NodeVisitor):
             else:
                 self.visit(node.right, **kwargs)
                 var_value = self.return_value
-            ar = self.call_stack.peek()
+            ar = CALL_STACK.peek()
             ar[var_name] = var_value
         elif node.op.category == TokenType.RPC_CALL:
             var_name = node.left.value
             var_value = self.visit(node.right, **kwargs)
-            ar = self.call_stack.peek()
+            ar = CALL_STACK.peek()
             ar[var_name] = var_value
         elif node.op.category == TokenType.PUT:
             stigmergy_name = node.right.value
             expr_value = self.visit(node.left, **kwargs)
-            ar = self.call_stack.bottom()
+            ar = CALL_STACK.bottom()
             ar[stigmergy_name] = expr_value
         elif node.op.category == TokenType.GET:
             var_name = node.left.value
             stigmergy_name = node.right.value
-            ar = self.call_stack.bottom()
+            ar = CALL_STACK.bottom()
             var_value = ar[stigmergy_name]
-            cur_ar = self.call_stack.peek()
+            cur_ar = CALL_STACK.peek()
             cur_ar[var_name] = var_value
         elif node.op.category == TokenType.LESS:
             return self.visit(node.left, **kwargs) < self.visit(node.right, **kwargs)
@@ -364,4 +397,3 @@ class Interpreter(NodeVisitor):
         if tree is None:
             return ''
         return self.visit(tree)
-

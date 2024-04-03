@@ -64,7 +64,10 @@ class CallStack:
                 raise Exception("CallStack has no parent.")
             else:
                 self.parent.pop()
-        self._records.pop()
+                return self.parent
+        else:
+            self._records.pop()
+            return self
 
     def peek(self):
         if len(self._records) == 0:
@@ -75,7 +78,10 @@ class CallStack:
         return self._records[-1]
     
     def bottom(self):
-        return self._records[0]
+        p = self
+        while p.parent is not None:
+            p = p.parent        
+        return p._records[0]
 
     def create_child(self, nm):
         child = CallStack()
@@ -92,6 +98,14 @@ class CallStack:
             parent.children.remove(self)
             return parent
 
+    def get_base_level(self):
+        p = self.parent
+        cnt = 0
+        while p is not None:
+            cnt += len(p._records)
+            p = p.parent
+        return cnt
+
     def __str__(self):
         minus = '-' * 60
         equal = '=' * 60
@@ -104,7 +118,7 @@ class CallStack:
         if self.name is None:
             s = f'{equal}\nCALL STACK\n{minus}\n{s}\n{equal}\n\n'
         else:
-            s = f'{equal}\nCALL STACK\t\t\t\tAgent:{self.name}\n{minus}\n{s}\n{equal}\n\n'
+            s = f'{equal}\nCALL STACK\t\t\t\tAgent< {self.name} >\n{minus}\n{s}\n{equal}\n\n'
         return s
 
     def __repr__(self):
@@ -115,11 +129,11 @@ if __name__ == '__main__':
     
     call_stack = CallStack()
 
-    ar1 = ActivationRecord("AR1", ARType.MAIN, 1)
+    ar1 = ActivationRecord("AR1", ARType.MAIN, call_stack.get_base_level()+len(call_stack._records))
     ar1['a'] = 0
     ar1['b'] = 1
     call_stack.push(ar1)
-    ar2 = ActivationRecord("AR2", ARType.TASK, 2)
+    ar2 = ActivationRecord("AR2", ARType.TASK, call_stack.get_base_level()+len(call_stack._records))
     ar2['c'] = 2
     call_stack.push(ar2)
     print(call_stack)
@@ -128,7 +142,7 @@ if __name__ == '__main__':
 
     def agent_work(agent_id, cs:CallStack):
         # if agent_id==1:
-        ar3 = ActivationRecord("AR2", ARType.BEHAVIOR, 3)
+        ar3 = ActivationRecord("AR2", ARType.BEHAVIOR, call_stack.get_base_level()+len(call_stack._records))
         ar3['d'] = cs.peek()['c'] + agent_id
         cs.push(ar3)
         print(cs)
