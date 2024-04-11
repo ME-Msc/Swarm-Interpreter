@@ -1,2 +1,2 @@
 class AST(object):
-    pass
+	pass
