@@ -1,11 +1,14 @@
-Port : 14457
+Port : 41451
 
 Action trees_go_action(){
-    val := treesGo();
-    return val;
+    := takeoff();
 }
 
-Agent test_uav {
+Agent order_uav {
+    trees_go_action;
+}
+
+Agent each_uav {
     trees_go_action;
 }
 
@@ -13,22 +16,25 @@ Behavior trees_go_behavior(){
     @init{ }
     @goal{ }
     @routine{
-        bhv_val = trees_go_action();
+        trees_go_action();
     }
 }
 
-Task test_task({agtA[stA~edA]}){
+Task test_task({agtA[stA~edA], agtB[stB~edB]}){
     @init{}
     @goal{}
     @routine{
-        a = "abc\\123" ;
-        each agtA[stA~edA] {
+        order agtA[stA~edA] {
+            trees_go_behavior();
+        }
+        each agtB[stB~edB-1] {
             trees_go_behavior();
         }
     }
 }
 
 Main {
-    Agent test_uav 3;
-    test_task({test_uav[0~3]});
+    Agent order_uav 3;
+    Agent each_uav 6;
+    test_task({order_uav[0~3], each_uav[0~5]});
 }

@@ -1,4 +1,5 @@
 import threading
+# import concurrent.futures
 
 from base.nodeVisitor import NodeVisitor
 from base.error import InterpreterError, ErrorCode
@@ -6,7 +7,7 @@ from lexer.token import TokenType
 from parser.element import FunctionCall
 from semanticAnalyzer.symbol import SymbolCategroy
 from interpreter.memory import ARType, ActivationRecord, CallStack
-from interpreter.rpc import client
+from interpreter.rpc.airsim_wrapper import AirsimWrapper
 
 LogLock = threading.Lock()
 
@@ -16,8 +17,8 @@ class Interpreter(NodeVisitor):
         self.tree = tree
         self.log_or_not = log_or_not
         self.call_stack = CallStack()
-        self.ID_MAP = {}
         self.return_value = None
+        self.wrapper = AirsimWrapper()
 
     def log(self, msg):
         if self.log_or_not:
@@ -68,11 +69,8 @@ class Interpreter(NodeVisitor):
         ar = CALL_STACK.peek()
 
         ar[agt_name] = (agt_name, 0, cnt)
-        for i in range(cnt):
-            key = (agt_name, i)
-            value = len(self.ID_MAP)
-            self.ID_MAP[key] = value
-        getattr(client, "createUavs")(cnt)
+        agents_list = [f"{agt_name}_{i}" for i in range(cnt)]
+        self.wrapper.set_home(agents_list=agents_list)
 
     def visit_Behavior(self, node, **kwargs):
         self.visit(node.init_block, **kwargs)
@@ -117,7 +115,7 @@ class Interpreter(NodeVisitor):
             SymbolCategroy.RPC: "Rpc"
         }
         LogLock.acquire()
-        self.log(f'{CALL_STACK.name} ENTER: {log_switch_case[function_symbol.category]} {function_name}')
+        self.log(f'{kwargs["agent"]}_{kwargs["id"]} ENTER: {log_switch_case[function_symbol.category]} {function_name}')
         self.log(str(CALL_STACK))
         LogLock.release()
 
@@ -126,13 +124,12 @@ class Interpreter(NodeVisitor):
         if function_symbol.category != SymbolCategroy.RPC:
             self.visit(function_symbol.ast, **kwargs)
         else:  # call RPC server
-            # add ID as first arg
-            rpc_args = [self.ID_MAP[(kwargs['agent'], kwargs['id'])], ]
+            rpc_args = []
             # add rpc_call args
             for actual_param in node.actual_params:
                 actual_value = self.visit(actual_param)
                 rpc_args.append(actual_value)
-            RPC_return_value = getattr(client, node.name)(*rpc_args)
+            RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args, vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
 
         self.log(str(CALL_STACK))
         CALL_STACK = CALL_STACK.pop()
@@ -156,7 +153,6 @@ class Interpreter(NodeVisitor):
         if "call_stack" in kwargs:
             CALL_STACK = kwargs["call_stack"]
 
-        getattr(client, "resetWorld")()
         for actual_agent_node in node.actual_params_agent_list:
             agent_range = self.visit(actual_agent_node.agent)
             if agent_range is None:
@@ -240,6 +236,21 @@ class Interpreter(NodeVisitor):
         # wait for all threads finish
         for thread in threads:
             thread.join()
+
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     futures = []
+        #     # submit agent_work to thread pool
+        #     for now in range(start, end):
+        #         child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
+        #         future = executor.submit(agent_work, now, child_call_stack)
+        #         futures.append(future)
+        #     # wait for all futures done
+        #     for future in concurrent.futures.as_completed(futures):
+        #         # check if the future is completed
+        #         if future.exception() is not None:
+        #             print(f'Task failed: {future.exception()}')
+        #         else:
+        #             print(f'Task result: {future.result()}')
 
     def visit_AgentRange(self, node, **kwargs):
         agent_s_e = self.visit(node.agent, **kwargs)

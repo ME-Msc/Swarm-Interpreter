@@ -345,7 +345,7 @@ class SemanticAnalyzer(NodeVisitor):
             return var_symbol
 
     def visit_Num(self, node):
-        if node.value.is_integer():
+        if isinstance(node.value, int):
             return BuiltinTypeSymbol('INTEGER')
         else:
             return BuiltinTypeSymbol('FLOAT')
