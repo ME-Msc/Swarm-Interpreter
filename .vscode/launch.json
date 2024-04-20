@@ -28,10 +28,10 @@
       ]
     },
     {
-      "name": "memory.py",
+      "name": "test_airsim.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/interpreter/memory.py",
+      "program": "${workspaceFolder}/test/test_airsim.py",
       "console": "integratedTerminal",
       "justMyCode": true
     }

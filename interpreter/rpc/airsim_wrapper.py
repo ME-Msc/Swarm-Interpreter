@@ -17,7 +17,7 @@ class AirsimWrapper:
 			global_camera = "GlobalCamera"
 			self.client.enableApiControl(True, global_camera)
 			self.client.takeoffAsync(vehicle_name=global_camera).join()
-			self.client.moveToPositionAsync(0, 0, -20, 10).join()
+			self.client.moveToPositionAsync(0, 0, -20, 10, vehicle_name=global_camera).join()
 			self.client.hoverAsync(global_camera).join()
 
 		set_global_camera()
@@ -40,9 +40,14 @@ class AirsimWrapper:
 		# self.client.armDisarm(True, agents_list[i])
 		time.sleep(2)
 
-	def takeoff(self, *rpc_args, vehicle_name):
+	def takeOff_API(self, *rpc_args, vehicle_name):
 		res = self.client.takeoffAsync(vehicle_name=vehicle_name)
 		self.lock.acquire()
 		res.join()
 		self.lock.release()
-		return
+
+	def flyToHeight_API(self, *rpc_args, vehicle_name):
+		h = rpc_args[0]
+		pose = self.client.simGetVehiclePose(vehicle_name=vehicle_name)
+		self.client.moveToPositionAsync(pose.position.x_val, pose.position.y_val, -h, 10, vehicle_name=vehicle_name).join()
+

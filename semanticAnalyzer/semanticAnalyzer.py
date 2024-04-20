@@ -432,13 +432,14 @@ class SemanticAnalyzer(NodeVisitor):
 		elif node.op.category == TokenType.GET:
 			var_node = node.left
 			var_symbol = self.current_scope.lookup(var_node.value)
-			if var_symbol is not None:
-				self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.left.token)
+			# if var_symbol is not None:
+			# 	self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.left.token)
 			stigmergy_name = node.right.value
 			stigmergy_symbol = self.global_scope.lookup(stigmergy_name)
-			if stigmergy_symbol is None:
-				self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.right.token)
-			var_symbol = VarSymbol(var_node.value, stigmergy_symbol.category)
+			# if stigmergy_symbol is None:
+			# 	self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.right.token)
+			# var_symbol = VarSymbol(var_node.value, stigmergy_symbol.category)
+			var_symbol = VarSymbol(var_node.value, None)
 			self.current_scope.insert(var_symbol)
 		else:
 			# do not need to check symbol category

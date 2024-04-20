@@ -128,7 +128,7 @@ class Interpreter(NodeVisitor):
 			rpc_args = []
 			# add rpc_call args
 			for actual_param in node.actual_params:
-				actual_value = self.visit(actual_param)
+				actual_value = self.visit(actual_param, **kwargs)
 				rpc_args.append(actual_value)
 			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args,
 			                                                    vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
@@ -239,20 +239,22 @@ class Interpreter(NodeVisitor):
 		for thread in threads:
 			thread.join()
 
-	# with concurrent.futures.ThreadPoolExecutor() as executor:
-	#     futures = []
-	#     # submit agent_work to thread pool
-	#     for now in range(start, end):
-	#         child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
-	#         future = executor.submit(agent_work, now, child_call_stack)
-	#         futures.append(future)
-	#     # wait for all futures done
-	#     for future in concurrent.futures.as_completed(futures):
-	#         # check if the future is completed
-	#         if future.exception() is not None:
-	#             print(f'Task failed: {future.exception()}')
-	#         else:
-	#             print(f'Task result: {future.result()}')
+	"""
+	with concurrent.futures.ThreadPoolExecutor() as executor:
+	    futures = []
+	    # submit agent_work to thread pool
+	    for now in range(start, end):
+	        child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
+	        future = executor.submit(agent_work, now, child_call_stack)
+	        futures.append(future)
+	    # wait for all futures done
+	    for future in concurrent.futures.as_completed(futures):
+	        # check if the future is completed
+	        if future.exception() is not None:
+	            print(f'Task failed: {future.exception()}')
+	        else:
+	            print(f'Task result: {future.result()}')
+	"""
 
 	def visit_AgentRange(self, node, **kwargs):
 		agent_s_e = self.visit(node.agent, **kwargs)
@@ -309,10 +311,10 @@ class Interpreter(NodeVisitor):
 	def visit_IfElse(self, node, **kwargs):
 		expr_result = self.visit(node.expression, **kwargs)
 		if expr_result:
-			self.visit(node.true_compound)
+			self.visit(node.true_compound, **kwargs)
 		else:
 			if node.false_compound is not None:
-				self.visit(node.false_compound)
+				self.visit(node.false_compound, **kwargs)
 
 	def visit_Return(self, node, **kwargs):
 		self.return_value = self.visit(node.variable, **kwargs)

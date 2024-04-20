@@ -217,7 +217,6 @@ class Parser(BaseParser):
 				node = self.behavior_statement()
 				if not isinstance(node, NoOp):
 					statements_root.children.append(node)
-				self.eat(TokenType.SEMI)
 			self.eat(TokenType.DOLLAR)
 			goal_node = Expression(self.expression())
 		else:
@@ -350,7 +349,6 @@ class Parser(BaseParser):
 				node = self.task_statement()
 				if not isinstance(node, NoOp):
 					statements_root.children.append(node)
-				self.eat(TokenType.SEMI)
 			self.eat(TokenType.DOLLAR)
 			goal_node = Expression(self.expression())
 		else:

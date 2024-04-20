@@ -1,40 +1,33 @@
 Port : 41451
 
-Action trees_go_action(){
-    := takeoff();
+Action takeOff_Action(){
+	:= takeOff_API();
 }
 
-Agent order_uav {
-    trees_go_action;
+Agent testUav{
+    takeOff_Action;
 }
 
-Agent each_uav {
-    trees_go_action;
-}
-
-Behavior trees_go_behavior(){
+Behavior reach(){
     @init{ }
     @goal{ }
     @routine{
-        trees_go_action();
+        takeOff_Action();
     }
 }
 
-Task test_task({agtA[stA~edA], agtB[stB~edB]}){
-    @init{}
-    @goal{}
+Task reach_in_order({agtA[stA~edA]}) {
+    @init{ }
+    @goal{
+    }
     @routine{
-        order agtA[stA~edA] {
-            trees_go_behavior();
-        }
-        each agtB[stB~edB-1] {
-            trees_go_behavior();
+        each agtA[stA~edA]{
+            reach();
         }
     }
 }
 
 Main {
-    Agent order_uav 3;
-    Agent each_uav 6;
-    test_task({order_uav[0~3], each_uav[0~5]});
+    Agent testUav 5;
+    reach_in_order({testUav[0~5]});
 }
