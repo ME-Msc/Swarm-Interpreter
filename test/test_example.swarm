@@ -2,6 +2,7 @@ Port : 41451
 
 Action takeOff_Action(){
 	:= takeOff_API();
+	:= flyToHeight_API(20);
 }
 
 Agent testUav{

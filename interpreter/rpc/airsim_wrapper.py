@@ -49,5 +49,10 @@ class AirsimWrapper:
 	def flyToHeight_API(self, *rpc_args, vehicle_name):
 		h = rpc_args[0]
 		pose = self.client.simGetVehiclePose(vehicle_name=vehicle_name)
-		self.client.moveToPositionAsync(pose.position.x_val, pose.position.y_val, -h, 10, vehicle_name=vehicle_name).join()
+		self.lock.acquire()
+		res = self.client.moveToPositionAsync(pose.position.x_val, pose.position.y_val, -h, 10, vehicle_name=vehicle_name)
+		self.lock.release()
+		self.lock.acquire()
+		res.join()
+		self.lock.release()
 
