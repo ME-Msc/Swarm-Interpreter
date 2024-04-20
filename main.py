@@ -1,6 +1,8 @@
 """ Swarm Interpreter """
 import argparse
+from queue import Queue
 import sys
+import threading
 
 from base.error import LexerError, ParserError, SemanticError, InterpreterError
 from interpreter.interpreter import Interpreter
@@ -9,7 +11,7 @@ from parser.parser import Parser
 from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
 
 
-def main():
+def swarm_producer(q:Queue):
 	parser = argparse.ArgumentParser(
 		description='Swarm Interpreter'
 	)
@@ -48,13 +50,27 @@ def main():
 		print(e.message)
 		sys.exit(1)
 
-	interpreter = Interpreter(tree, log_or_not=SHOULD_LOG_STACK)
+	interpreter = Interpreter(tree, rpc_queue=q, log_or_not=SHOULD_LOG_STACK)
 	try:
 		interpreter.interpret()
 	except InterpreterError as e:
 		print(e.message)
 		sys.exit(1)
 
+def rpc_consumer(q:Queue):
+	while True:
+		rpc_call = rpc_queue.get()
+		rpc_call()
+		rpc_queue.task_done()
 
 if __name__ == '__main__':
-	main()
+	rpc_queue = Queue()
+	
+	rpc_thread = threading.Thread(target=rpc_consumer, args=(rpc_queue, ))
+	rpc_thread.start()
+	
+	main_thread = threading.Thread(target=swarm_producer, args=(rpc_queue, ))
+	main_thread.start()
+
+	rpc_thread.join()
+	main_thread.join()

@@ -1,3 +1,4 @@
+from queue import Queue
 import threading
 import time
 
@@ -5,13 +6,14 @@ import airsim
 
 
 class AirsimWrapper:
-	def __init__(self):
+	def __init__(self, rpc_queue:Queue):
 		# connect to the AirSim simulator
 		self.client = airsim.MultirotorClient()
 		self.client.confirmConnection()
 		self.client.enableApiControl(True)
 		self.home = {}
 		self.lock = threading.Lock()
+		self.rpc_queue = rpc_queue
 
 		def set_global_camera():
 			global_camera = "GlobalCamera"
@@ -41,13 +43,20 @@ class AirsimWrapper:
 		time.sleep(2)
 
 	def takeOff_API(self, *rpc_args, vehicle_name):
-		res = self.client.takeoffAsync(vehicle_name=vehicle_name)
-		self.lock.acquire()
-		res.join()
-		self.lock.release()
+		def rpc_call():
+			res = self.client.takeoffAsync(vehicle_name=vehicle_name)
+			self.lock.acquire()
+			res.join()
+			self.lock.release()
+		self.rpc_queue.put(rpc_call)
 
 	def flyToHeight_API(self, *rpc_args, vehicle_name):
 		h = rpc_args[0]
-		pose = self.client.simGetVehiclePose(vehicle_name=vehicle_name)
-		self.client.moveToPositionAsync(pose.position.x_val, pose.position.y_val, -h, 10, vehicle_name=vehicle_name).join()
+		def rpc_call():
+			pose = self.client.simGetVehiclePose(vehicle_name=vehicle_name)
+			res = self.client.moveToPositionAsync(pose.position.x_val, pose.position.y_val, -h, 10, vehicle_name=vehicle_name)
+			self.lock.acquire()
+			res.join()
+			self.lock.release()
+		self.rpc_queue.put(rpc_call)
 

@@ -1,4 +1,5 @@
 import threading
+from queue import Queue
 
 from base.error import InterpreterError, ErrorCode
 from base.nodeVisitor import NodeVisitor
@@ -14,12 +15,13 @@ LogLock = threading.Lock()
 
 
 class Interpreter(NodeVisitor):
-	def __init__(self, tree, log_or_not=False):
+	def __init__(self, tree, rpc_queue:Queue, log_or_not=False):
 		self.tree = tree
 		self.log_or_not = log_or_not
 		self.call_stack = CallStack()
 		self.return_value = None
-		self.wrapper = AirsimWrapper()
+		self.wrapper = AirsimWrapper(rpc_queue=rpc_queue)
+		self.rpc_queue = rpc_queue
 
 	def log(self, msg):
 		if self.log_or_not:
@@ -130,8 +132,8 @@ class Interpreter(NodeVisitor):
 			for actual_param in node.actual_params:
 				actual_value = self.visit(actual_param, **kwargs)
 				rpc_args.append(actual_value)
-			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args,
-			                                                    vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
+			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args, vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
+			self.rpc_queue.join() # wait一个条件变量，队列里的rpc执行结束后notify这个条件变量（信号量）
 
 		self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
