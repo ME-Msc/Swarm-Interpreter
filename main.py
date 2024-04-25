@@ -11,7 +11,7 @@ from parser.parser import Parser
 from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
 
 
-def swarm_producer(q:Queue):
+def swarm_producer(q:Queue, sem_dic:dict):
 	parser = argparse.ArgumentParser(
 		description='Swarm Interpreter'
 	)
@@ -50,26 +50,33 @@ def swarm_producer(q:Queue):
 		print(e.message)
 		sys.exit(1)
 
-	interpreter = Interpreter(tree, rpc_queue=q, log_or_not=SHOULD_LOG_STACK)
+	interpreter = Interpreter(tree, rpc_queue=q, sem_dic=sem_dic,  log_or_not=SHOULD_LOG_STACK)
 	try:
 		interpreter.interpret()
 	except InterpreterError as e:
 		print(e.message)
 		sys.exit(1)
 
-def rpc_consumer(q:Queue):
+
+def rpc_consumer(q:Queue, sem_dic:dict):
 	while True:
-		rpc_call = rpc_queue.get()
-		rpc_call()
-		rpc_queue.task_done()
+		rpc_call, vehicle_name = q.get()
+		try:
+			rpc_call()
+		except Exception as e:
+			print(e)
+		finally:
+			sem_dic[vehicle_name].release()
+		q.task_done()
 
 if __name__ == '__main__':
 	rpc_queue = Queue()
+	semaphore_dict = {}
 	
-	rpc_thread = threading.Thread(target=rpc_consumer, args=(rpc_queue, ))
+	rpc_thread = threading.Thread(target=rpc_consumer, args=(rpc_queue, semaphore_dict))
 	rpc_thread.start()
 	
-	main_thread = threading.Thread(target=swarm_producer, args=(rpc_queue, ))
+	main_thread = threading.Thread(target=swarm_producer, args=(rpc_queue, semaphore_dict))
 	main_thread.start()
 
 	rpc_thread.join()

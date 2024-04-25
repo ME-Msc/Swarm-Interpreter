@@ -15,13 +15,14 @@ LogLock = threading.Lock()
 
 
 class Interpreter(NodeVisitor):
-	def __init__(self, tree, rpc_queue:Queue, log_or_not=False):
+	def __init__(self, tree, rpc_queue:Queue, sem_dic:dict, log_or_not=False):
 		self.tree = tree
 		self.log_or_not = log_or_not
 		self.call_stack = CallStack()
 		self.return_value = None
 		self.wrapper = AirsimWrapper(rpc_queue=rpc_queue)
 		self.rpc_queue = rpc_queue
+		self.semaphore_dictionary = sem_dic
 
 	def log(self, msg):
 		if self.log_or_not:
@@ -133,7 +134,7 @@ class Interpreter(NodeVisitor):
 				actual_value = self.visit(actual_param, **kwargs)
 				rpc_args.append(actual_value)
 			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args, vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
-			self.rpc_queue.join() # wait一个条件变量，队列里的rpc执行结束后notify这个条件变量（信号量）
+			self.semaphore_dictionary[f'{kwargs["agent"]}_{kwargs["id"]}'].acquire()
 
 		self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
@@ -211,7 +212,9 @@ class Interpreter(NodeVisitor):
 		agent_s_e, start, end = self.visit(node.agent_range)
 		now = start
 		while now < end:
+			self.semaphore_dictionary[f'{agent_s_e[0]}_{now}'] = threading.Semaphore(0)
 			self.visit(node.function_call_statements, agent=agent_s_e[0], id=now)
+			del self.semaphore_dictionary[f'{agent_s_e[0]}_{now}']
 			now += 1
 
 	def visit_TaskEach(self, node, **kwargs):
@@ -222,7 +225,9 @@ class Interpreter(NodeVisitor):
 		agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
 		def agent_work(agent_id, cs: CallStack):
+			self.semaphore_dictionary[f'{agent_s_e[0]}_{agent_id}'] = threading.Semaphore(0)
 			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs)
+			del self.semaphore_dictionary[f'{agent_s_e[0]}_{now}']
 
 		parent_call_stack = CALL_STACK
 		if "call_stack" in kwargs:  # for sub-each_statement
