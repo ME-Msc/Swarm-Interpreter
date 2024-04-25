@@ -2,7 +2,10 @@ Port : 41451
 
 Action takeOff_Action(){
 	:= takeOff_API();
-	:= flyToHeight_API(20);
+}
+
+Action flyToHeight_Action(h){
+	:= flyToHeight_API(h);
 }
 
 Agent testUav{
@@ -14,6 +17,7 @@ Behavior reach(){
     @goal{ }
     @routine{
         takeOff_Action();
+        flyToHeight_Action(15);
     }
 }
 
@@ -22,7 +26,7 @@ Task reach_in_order({agtA[stA~edA]}) {
     @goal{
     }
     @routine{
-        each agtA[stA~edA]{
+        order agtA[stA~edA]{
             reach();
         }
     }
