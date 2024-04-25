@@ -49,7 +49,7 @@ class Interpreter(NodeVisitor):
 		CALL_STACK.push(ar)
 		self.visit(node.main, **kwargs)
 
-		self.log(str(CALL_STACK))
+		# self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
 		LogLock.acquire()
 		self.log(f'LEAVE: Program')
@@ -133,10 +133,10 @@ class Interpreter(NodeVisitor):
 			for actual_param in node.actual_params:
 				actual_value = self.visit(actual_param, **kwargs)
 				rpc_args.append(actual_value)
-			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args, vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
+			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args, vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}', each_order=kwargs["each_order"])
 			self.semaphore_dictionary[f'{kwargs["agent"]}_{kwargs["id"]}'].acquire()
 
-		self.log(str(CALL_STACK))
+		# self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
 		LogLock.acquire()
 		self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
@@ -201,7 +201,7 @@ class Interpreter(NodeVisitor):
 		# evaluate task body
 		self.visit(task_symbol.ast)
 
-		self.log(str(CALL_STACK))
+		# self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
 		LogLock.acquire()
 		self.log(f'LEAVE: Task {task_name}')
@@ -226,8 +226,8 @@ class Interpreter(NodeVisitor):
 
 		def agent_work(agent_id, cs: CallStack):
 			self.semaphore_dictionary[f'{agent_s_e[0]}_{agent_id}'] = threading.Semaphore(0)
-			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs)
-			del self.semaphore_dictionary[f'{agent_s_e[0]}_{now}']
+			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs, each_order=True)
+			del self.semaphore_dictionary[f'{agent_s_e[0]}_{agent_id}']
 
 		parent_call_stack = CALL_STACK
 		if "call_stack" in kwargs:  # for sub-each_statement
@@ -246,22 +246,22 @@ class Interpreter(NodeVisitor):
 		for thread in threads:
 			thread.join()
 
-	"""
-	with concurrent.futures.ThreadPoolExecutor() as executor:
-	    futures = []
-	    # submit agent_work to thread pool
-	    for now in range(start, end):
-	        child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
-	        future = executor.submit(agent_work, now, child_call_stack)
-	        futures.append(future)
-	    # wait for all futures done
-	    for future in concurrent.futures.as_completed(futures):
-	        # check if the future is completed
-	        if future.exception() is not None:
-	            print(f'Task failed: {future.exception()}')
-	        else:
-	            print(f'Task result: {future.result()}')
-	"""
+		"""
+		with concurrent.futures.ThreadPoolExecutor() as executor:
+			futures = []
+			# submit agent_work to thread pool
+			for now in range(start, end):
+				child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
+				future = executor.submit(agent_work, now, child_call_stack)
+				futures.append(future)
+			# wait for all futures done
+			for future in concurrent.futures.as_completed(futures):
+				# check if the future is completed
+				if future.exception() is not None:
+					print(f'Task failed: {future.exception()}')
+				else:
+					print(f'Task result: {future.result()}')
+		"""
 
 	def visit_AgentRange(self, node, **kwargs):
 		agent_s_e = self.visit(node.agent, **kwargs)
@@ -289,7 +289,7 @@ class Interpreter(NodeVisitor):
 		self.log(str(CALL_STACK))
 		self.visit(node.task_call)
 
-		self.log(str(CALL_STACK))
+		# self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
 		LogLock.acquire()
 		self.log(f'LEAVE: Main')

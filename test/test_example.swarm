@@ -4,8 +4,12 @@ Action takeOff_Action(){
 	:= takeOff_API();
 }
 
+Action flyToHeight(h){
+	:= flyToHeight_API(h);
+}
+
 Agent testUav{
-    takeOff_Action;
+    takeOff_Action, flyToHeight;
 }
 
 Behavior reach(){
@@ -13,6 +17,7 @@ Behavior reach(){
     @goal{ }
     @routine{
         takeOff_Action();
+        flyToHeight(15);
     }
 }
 
@@ -29,5 +34,5 @@ Task reach_in_order({agtA[stA~edA]}) {
 
 Main {
     Agent testUav 5;
-    reach_in_order({testUav[0~5]});
+    reach_in_order({testUav[0~3]});
 }

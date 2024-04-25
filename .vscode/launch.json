@@ -34,6 +34,14 @@
       "program": "${workspaceFolder}/test/test_airsim.py",
       "console": "integratedTerminal",
       "justMyCode": true
+    },
+    {
+      "name": "airsim_wrapper.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/interpreter/rpc/airsim_wrapper.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
     }
   ]
 }
