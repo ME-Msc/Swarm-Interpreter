@@ -12,8 +12,7 @@
       "console": "integratedTerminal",
       "justMyCode": true,
       "args": [
-        "test/test_example.swarm",
-        "--stack"
+        "test/test_example.swarm"
       ]
     },
     {

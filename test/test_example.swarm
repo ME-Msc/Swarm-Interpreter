@@ -8,31 +8,60 @@ Action flyToHeight_Action(h){
 	:= flyToHeight_API(h);
 }
 
-Agent testUav{
-    takeOff_Action;
+Action getPosition_Action(){
+    pos := getPositon_API();
+    return pos;
 }
 
-Behavior reach(){
-    @init{ }
-    @goal{ }
-    @routine{
-        takeOff_Action();
-        flyToHeight_Action(15);
-    }
+Action getNextDestination_Action(pos){
+    dest := getNextDestination_API(pos);
+    return dest;
 }
 
-Task reach_in_order({agtA[stA~edA]}) {
-    @init{ }
-    @goal{
+Action flyTo_Action(dest){
+    := flyTo_API(dest);
+}
+
+Agent search_uav {
+	takeOff_Action, flyToHeight_Action, getPosition_Action, getNextDestination_Action, flyTo_Action;
+}
+
+Behavior takeOff_Behavior() {
+	@init{}
+	@goal{}
+	@routine{
+		takeOff_Action();
+	}
+}
+
+Behavior search_Behavior(){
+	@init{
+        step = 0;
+		flyToHeight_Action(50);
     }
-    @routine{
-        order agtA[stA~edA]{
-            reach();
-        }
+	@goal{
+        $ step > 10
     }
+	@routine{
+        position = getPosition_Action();
+        destination = getNextDestination_Action(position);
+        flyTo_Action(destination);
+        step = step + 1;
+	}
+}
+
+Task search({agtC[stC~edC]}){
+	@init{}
+	@goal{}
+	@routine{
+		each agtC[stC~edC] {
+            takeOff_Behavior();
+			search_Behavior();
+		}
+	}
 }
 
 Main {
-    Agent testUav 5;
-    reach_in_order({testUav[0~5]});
+	Agent search_uav 3;
+	search({search_uav[0~3]});
 }

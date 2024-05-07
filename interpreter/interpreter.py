@@ -1,4 +1,5 @@
 import threading
+import copy
 
 from base.error import InterpreterError, ErrorCode
 from base.nodeVisitor import NodeVisitor
@@ -130,10 +131,16 @@ class Interpreter(NodeVisitor):
 			for actual_param in node.actual_params:
 				actual_value = self.visit(actual_param, **kwargs)
 				rpc_args.append(actual_value)
-			RPC_return_value = getattr(self.wrapper, node.name)(*rpc_args,
+			if "wrapper" in kwargs:
+				wrapper = kwargs["wrapper"]
+			# if node.name == "getNextDestination_API" or node.name == "flyTo_API":
+			# 	LogLock.acquire()
+			# 	print(f'>>>> {node.name} : {kwargs["agent"]}_{kwargs["id"]} \n>>>> target = {rpc_args}\n')
+			# 	LogLock.release()
+			RPC_return_value = getattr(wrapper, node.name)(*rpc_args,
 			                                                    vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
 
-		self.log(str(CALL_STACK))
+		# self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
 		LogLock.acquire()
 		self.log(f'LEAVE: {log_switch_case[function_symbol.category]} {function_name}')
@@ -182,10 +189,13 @@ class Interpreter(NodeVisitor):
 		formal_params = task_symbol.formal_params
 		actual_params = node.actual_params
 
+		vehicle_name_list = [] # for setting task environment
 		for param_agent_symbol, argument_agent_node in zip(formal_params_agent_list, actual_params_agent_list):
 			ar[param_agent_symbol.agent] = self.visit(argument_agent_node.agent)
 			ar[param_agent_symbol.start] = self.visit(argument_agent_node.start)
 			ar[param_agent_symbol.end] = self.visit(argument_agent_node.end)
+			for now in range(ar[param_agent_symbol.start], ar[param_agent_symbol.end]):
+				vehicle_name_list.append(f'{ar[param_agent_symbol.agent][0]}_{now}')
 
 		for param_symbol, argument_node in zip(formal_params, actual_params):
 			ar[param_symbol.name] = self.visit(argument_node)
@@ -195,6 +205,7 @@ class Interpreter(NodeVisitor):
 		self.log(f'ENTER: Task {task_name}')
 		self.log(str(CALL_STACK))
 
+		getattr(self.wrapper, node.name)(vehicle_name_list = vehicle_name_list)
 		# evaluate task body
 		self.visit(task_symbol.ast)
 
@@ -219,8 +230,8 @@ class Interpreter(NodeVisitor):
 
 		agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
-		def agent_work(agent_id, cs: CallStack):
-			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs)
+		def agent_work(agent_id, cs: CallStack, wpr:AirsimWrapper):
+			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs, wrapper=wpr)
 
 		parent_call_stack = CALL_STACK
 		if "call_stack" in kwargs:  # for sub-each_statement
@@ -228,7 +239,8 @@ class Interpreter(NodeVisitor):
 		threads = []
 		for now in range(start, end):
 			child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
-			thread = threading.Thread(target=agent_work, args=(now, child_call_stack,))
+			child_wrapper = self.wrapper.copy()
+			thread = threading.Thread(target=agent_work, args=(now, child_call_stack, child_wrapper))
 			threads.append(thread)
 
 		# start all threads
@@ -385,7 +397,7 @@ class Interpreter(NodeVisitor):
 		elif node.op.category == TokenType.LESS:
 			return self.visit(node.left, **kwargs) < self.visit(node.right, **kwargs)
 		elif node.op.category == TokenType.GREATER:
-			return self.visit(node.left, **kwargs) < self.visit(node.right, **kwargs)
+			return self.visit(node.left, **kwargs) > self.visit(node.right, **kwargs)
 		elif node.op.category == TokenType.LESS_EQUAL:
 			return self.visit(node.left, **kwargs) <= self.visit(node.right, **kwargs)
 		elif node.op.category == TokenType.GREATER_EQUAL:
