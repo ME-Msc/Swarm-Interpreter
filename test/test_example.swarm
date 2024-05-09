@@ -22,8 +22,12 @@ Action flyTo_Action(dest){
     := flyTo_API(dest);
 }
 
+Action flyCircle_Action(radius){
+	:= flyCircle_API(radius);
+}
+
 Agent search_uav {
-	takeOff_Action, flyToHeight_Action, getPosition_Action, getNextDestination_Action, flyTo_Action;
+	takeOff_Action, flyToHeight_Action, getPosition_Action, getNextDestination_Action, flyTo_Action, flyCircle_Action;
 }
 
 Behavior takeOff_Behavior() {
@@ -40,13 +44,21 @@ Behavior search_Behavior(){
 		flyToHeight_Action(50);
     }
 	@goal{
-        $ step > 10
+        $ step > 5
     }
 	@routine{
         position = getPosition_Action();
         destination = getNextDestination_Action(position);
         flyTo_Action(destination);
         step = step + 1;
+	}
+}
+
+Behavior flyCircle_Behavior(){
+	@init{}
+	@goal{}
+	@routine{
+		flyCircle_Action(5);
 	}
 }
 
@@ -57,6 +69,7 @@ Task search({agtC[stC~edC]}){
 		each agtC[stC~edC] {
             takeOff_Behavior();
 			search_Behavior();
+			flyCircle_Behavior();
 		}
 	}
 }
