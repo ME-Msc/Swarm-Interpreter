@@ -2,6 +2,7 @@ import threading
 import time
 import copy
 import airsim
+import os
 from interpreter.rpc.searchTspSolver import searchTspSolver
 
 LogLock = threading.Lock()
@@ -22,7 +23,7 @@ class AirsimWrapper:
 			self.clients["GlobalCamera"].confirmConnection()
 			self.clients["GlobalCamera"].enableApiControl(True)
 			self.clients["GlobalCamera"].takeoffAsync().join()
-			self.clients["GlobalCamera"].moveToPositionAsync(0, 0, -80, 10).join()
+			self.clients["GlobalCamera"].moveToPositionAsync(0, 0, -120, 10).join()
 			self.clients["GlobalCamera"].hoverAsync().join()
 
 			message = (
@@ -57,7 +58,7 @@ class AirsimWrapper:
 			client.simAddVehicle(vhcl_nm, "simpleflight", pose)
 			client.enableApiControl(True, vhcl_nm)
 			client.armDisarm(True, vhcl_nm)
-			client.simSetTraceLine(color_rgba=[1.0, 0, 0, 0], thickness=30.0, vehicle_name=vhcl_nm)
+			client.simSetTraceLine(color_rgba=[1.0, 0, 0, 0], thickness=20.0, vehicle_name=vhcl_nm)
 		time.sleep(2)
 
 
@@ -123,6 +124,44 @@ class AirsimWrapper:
 		self.lock.acquire()
 		res.join()
 		self.lock.release()
+
+
+	def flyCircle_API(self, *rpc_args, vehicle_name):
+		client:airsim.MultirotorClient = self.clients[vehicle_name]
+		radius = rpc_args[0]
+		vhcl_nm = vehicle_name
+		
+		from interpreter.rpc.RL.td3 import TD3Agent
+		import numpy as np
+		import math
+		agent = TD3Agent(3, 1)
+		current_file_path = os.path.abspath(__file__)
+		current_directory = os.path.dirname(current_file_path)
+		agent.load(current_directory+"/RL/fly_circle.pkl")
+
+		start_pos = client.simGetVehiclePose(vehicle_name=vhcl_nm)
+		circle_center = (round(start_pos.position.x_val), round(start_pos.position.y_val)+radius)
+		state = np.array([(start_pos.position.x_val-circle_center[0])/radius, (start_pos.position.y_val-circle_center[1])/radius, 0], dtype=np.float32)
+		done = False
+
+		client.moveByVelocityAsync(vx=1*radius, vy=0, vz=0, duration=1, vehicle_name=vhcl_nm)
+		while not done:
+			time.sleep(0.2)
+			action = agent.choose_action(state)
+			# print(f'state = {state} , action = {action}')
+
+			airsim_state = client.getMultirotorState(vehicle_name=vhcl_nm)
+			vx = airsim_state.kinematics_estimated.linear_velocity.x_val / radius
+			vy = airsim_state.kinematics_estimated.linear_velocity.y_val / radius
+			theta = math.atan2(vy, vx)
+			# print(f'vx = {vx}, vy = {vy} , {theta}')
+			new_vx = math.cos(theta + action[0])*radius/2
+			new_vy = math.sin(theta + action[0])*radius/2
+			hover_z = airsim_state.kinematics_estimated.position.z_val
+			client.moveByVelocityZAsync(vx=new_vx, vy=new_vy, z=hover_z, duration=1, vehicle_name=vhcl_nm)
+
+			pos = client.simGetVehiclePose(vehicle_name=vhcl_nm)
+			state = np.array([pos.position.x_val-circle_center[0], pos.position.y_val-circle_center[1], theta+action[0]], dtype=np.float32)
 
 
 	def search(self, vehicle_name_list):
