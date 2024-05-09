@@ -9,12 +9,14 @@ LogLock = threading.Lock()
 
 
 class AirsimWrapper:
+	# Basic
 	def __init__(self, wait_or_not=True):
 		# connect to the AirSim simulator
 		self.clients = {}
 		self.home = {}
 		self.lock = threading.Lock()
 		self.task = {}
+		self.behavior = {}
 
 		if wait_or_not:
 			# set_global_camera
@@ -61,7 +63,7 @@ class AirsimWrapper:
 			client.simSetTraceLine(color_rgba=[1.0, 0, 0, 0], thickness=20.0, vehicle_name=vhcl_nm)
 		time.sleep(2)
 
-
+	# RPC
 	def takeOff_API(self, *rpc_args, vehicle_name):
 		client:airsim.MultirotorClient = self.clients[vehicle_name]
 
@@ -82,45 +84,46 @@ class AirsimWrapper:
 		self.lock.release()
 
 
-	def getPositon_API(self, *rpc_args, vehicle_name):
+	def getState_API(self, *rpc_args, vehicle_name):
 		client:airsim.MultirotorClient = self.clients[vehicle_name]
-		pos = client.simGetVehiclePose(vehicle_name=vehicle_name)
-		pos.position.x_val += self.home[vehicle_name].position.x_val
-		pos.position.y_val += self.home[vehicle_name].position.y_val
-		pos.position.z_val += self.home[vehicle_name].position.z_val 
-		return pos
+		state:airsim.MultirotorState = client.getMultirotorState(vehicle_name=vehicle_name)
 
-	
-	def getNextDestination_API(self, *rpc_args, vehicle_name):
-		now_location = rpc_args[0]
+		state.kinematics_estimated.position.x_val += self.home[vehicle_name].position.x_val
+		state.kinematics_estimated.position.y_val += self.home[vehicle_name].position.y_val
+		state.kinematics_estimated.position.z_val += self.home[vehicle_name].position.z_val 
+		return state
+
+
+	def getTspDestination_API(self, *rpc_args, vehicle_name):
+		client:airsim.MultirotorClient = self.clients[vehicle_name]
+		state:airsim.MultirotorState = rpc_args[0]
+
+		position = state.kinematics_estimated.position
 		task = self.task["search"]
 		vehicle_id = task.id[vehicle_name]
-		search_task_next_step = task.get_i_vehicle_next_step_location(vehicle_id, now_location.position.x_val, now_location.position.y_val)
-		next_destination = copy.deepcopy(now_location)
-		next_destination.position.x_val = search_task_next_step[0]
-		next_destination.position.y_val = search_task_next_step[1]
-		next_destination.position.z_val = round(next_destination.position.z_val)
+		search_task_next_step = task.get_i_vehicle_next_step_location(vehicle_id, position.x_val, position.y_val)
+		destination = copy.deepcopy(position)
+		destination.x_val = search_task_next_step[0]
+		destination.y_val = search_task_next_step[1]
+		destination.z_val = round(destination.z_val)
 		
-		LogLock.acquire()
-		print(f'##### {vehicle_name} \n##### now_location=({now_location.position.x_val}, {now_location.position.y_val}, {now_location.position.z_val}) \n##### next_destination=({next_destination.position.x_val}, {next_destination.position.y_val}, {next_destination.position.z_val})\n')
-		LogLock.release()
-		
-		return next_destination
-		
+		return destination
+
 
 	def flyTo_API(self, *rpc_args, vehicle_name):
 		client:airsim.MultirotorClient = self.clients[vehicle_name]
-		target = rpc_args[0].position
+		destination = rpc_args[0]	# World coordinate system
 		
-		LogLock.acquire()
-		print(f'!!!!! {vehicle_name}, id={id(vehicle_name)}\n!!!!! target = {target}\n')
-		LogLock.release()
+		# LogLock.acquire()
+		# print(f'!!!!! {vehicle_name}, id={id(vehicle_name)}\n!!!!! destination = {destination}\n')
+		# LogLock.release()
 
-		absolute_target_x = target.x_val - self.home[vehicle_name].position.x_val
-		absolute_target_y = target.y_val - self.home[vehicle_name].position.y_val
-		absolute_target_z = target.z_val - self.home[vehicle_name].position.z_val
+		# Relative coordinate system
+		relative_destination_x = destination.x_val - self.home[vehicle_name].position.x_val
+		relative_destination_y = destination.y_val - self.home[vehicle_name].position.y_val
+		relative_destination_z = destination.z_val - self.home[vehicle_name].position.z_val
 
-		res = client.moveToPositionAsync(absolute_target_x, absolute_target_y,absolute_target_z, 2, vehicle_name=vehicle_name)
+		res = client.moveToPositionAsync(relative_destination_x, relative_destination_y, relative_destination_z, 2, vehicle_name=vehicle_name)
 		self.lock.acquire()
 		res.join()
 		self.lock.release()
@@ -128,42 +131,57 @@ class AirsimWrapper:
 
 	def flyCircle_API(self, *rpc_args, vehicle_name):
 		client:airsim.MultirotorClient = self.clients[vehicle_name]
-		radius = rpc_args[0]
-		vhcl_nm = vehicle_name
-		
-		from interpreter.rpc.RL.td3 import TD3Agent
-		import numpy as np
+		state = rpc_args[0]
+		radius = rpc_args[1]
+
 		import math
+		start_position = self.behavior["flyCircle"]["start_position_on_circle"][vehicle_name]
+		circle_center = (round(start_position.position.x_val), round(start_position.position.y_val) + radius)
+		vx = state.kinematics_estimated.linear_velocity.x_val / radius
+		vy = state.kinematics_estimated.linear_velocity.y_val / radius
+		theta = math.atan2(vy, vx)
+		
+		import numpy as np
+		flyCircle_state = np.array([(start_position.position.x_val - circle_center[0]) / radius, 
+							  		(start_position.position.y_val - circle_center[1]) / radius, 0], dtype=np.float32)
+		agent = self.behavior["flyCircle"]["agent"]
+		action = agent.choose_action(flyCircle_state)
+		new_vx = math.cos(theta + action[0]) * radius / 2
+		new_vy = math.sin(theta + action[0]) * radius / 2
+		hover_z = state.kinematics_estimated.position.z_val
+		client.moveByVelocityZAsync(vx=new_vx, vy=new_vy, z=hover_z, duration=1, vehicle_name=vehicle_name)
+
+
+	# Behaviors
+	def search_Behavior(self, *rpc_args, vehicle_name):
+		pass
+
+	def takeOff_Behavior(self, *rpc_args, vehicle_name):
+		pass
+
+	def flyCircle_Behavior(self, *rpc_args, vehicle_name):
+		client:airsim.MultirotorClient = self.clients[vehicle_name]
+		if "flyCircle" not in self.behavior:
+			self.behavior["flyCircle"] = {}
+
+		from interpreter.rpc.RL.td3 import TD3Agent
 		agent = TD3Agent(3, 1)
 		current_file_path = os.path.abspath(__file__)
 		current_directory = os.path.dirname(current_file_path)
 		agent.load(current_directory+"/RL/fly_circle.pkl")
+		self.behavior["flyCircle"]["agent"] = agent
 
-		start_pos = client.simGetVehiclePose(vehicle_name=vhcl_nm)
-		circle_center = (round(start_pos.position.x_val), round(start_pos.position.y_val)+radius)
-		state = np.array([(start_pos.position.x_val-circle_center[0])/radius, (start_pos.position.y_val-circle_center[1])/radius, 0], dtype=np.float32)
-		done = False
-
-		client.moveByVelocityAsync(vx=1*radius, vy=0, vz=0, duration=1, vehicle_name=vhcl_nm)
-		while not done:
-			time.sleep(0.2)
-			action = agent.choose_action(state)
-			# print(f'state = {state} , action = {action}')
-
-			airsim_state = client.getMultirotorState(vehicle_name=vhcl_nm)
-			vx = airsim_state.kinematics_estimated.linear_velocity.x_val / radius
-			vy = airsim_state.kinematics_estimated.linear_velocity.y_val / radius
-			theta = math.atan2(vy, vx)
-			# print(f'vx = {vx}, vy = {vy} , {theta}')
-			new_vx = math.cos(theta + action[0])*radius/2
-			new_vy = math.sin(theta + action[0])*radius/2
-			hover_z = airsim_state.kinematics_estimated.position.z_val
-			client.moveByVelocityZAsync(vx=new_vx, vy=new_vy, z=hover_z, duration=1, vehicle_name=vhcl_nm)
-
-			pos = client.simGetVehiclePose(vehicle_name=vhcl_nm)
-			state = np.array([pos.position.x_val-circle_center[0], pos.position.y_val-circle_center[1], theta+action[0]], dtype=np.float32)
+		
+		if "start_position_on_circle" not in self.behavior["flyCircle"]:
+			# A dictionary of start position on circle of different vehicles
+			# the key is vehicle name, the value is a relative position of the home of this vehicle
+			# Only keep the start_position_on_circle rather than circle_center
+			# because circle_center is depend on radius which can not be known while setting the environment of flyCircle_Behavior
+			self.behavior["flyCircle"]["start_position_on_circle"] = {}
+		self.behavior["flyCircle"]["start_position_on_circle"][vehicle_name] = client.simGetVehiclePose(vehicle_name=vehicle_name)	# relative position of the home of vehicle
 
 
+	# Tasks
 	def search(self, vehicle_name_list):
 		search_home = {}
 		for vhcl_nm in vehicle_name_list:

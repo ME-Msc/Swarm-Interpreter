@@ -8,13 +8,13 @@ Action flyToHeight_Action(h){
 	:= flyToHeight_API(h);
 }
 
-Action getPosition_Action(){
-    pos := getPositon_API();
-    return pos;
+Action getState_Action(){
+    stt := getState_API();
+    return stt;
 }
 
-Action getNextDestination_Action(pos){
-    dest := getNextDestination_API(pos);
+Action getTspDestination_Action(stt){
+    dest := getTspDestination_API(stt);
     return dest;
 }
 
@@ -22,12 +22,12 @@ Action flyTo_Action(dest){
     := flyTo_API(dest);
 }
 
-Action flyCircle_Action(radius){
-	:= flyCircle_API(radius);
+Action flyCircle_Action(stt, radius){
+	:= flyCircle_API(stt, radius);
 }
 
 Agent search_uav {
-	takeOff_Action, flyToHeight_Action, getPosition_Action, getNextDestination_Action, flyTo_Action, flyCircle_Action;
+	takeOff_Action, flyToHeight_Action, getState_Action, getTspDestination_Action, flyTo_Action, flyCircle_Action;
 }
 
 Behavior takeOff_Behavior() {
@@ -47,18 +47,24 @@ Behavior search_Behavior(){
         $ step > 5
     }
 	@routine{
-        position = getPosition_Action();
-        destination = getNextDestination_Action(position);
+        state = getState_Action();
+        destination = getTspDestination_Action(state);
         flyTo_Action(destination);
         step = step + 1;
 	}
 }
 
 Behavior flyCircle_Behavior(){
-	@init{}
-	@goal{}
+	@init{
+        step = 0;
+	}
+	@goal{
+		$ step > 1000
+	}
 	@routine{
-		flyCircle_Action(5);
+		state = getState_Action();
+		flyCircle_Action(state, 3);
+		step = step + 1;
 	}
 }
 

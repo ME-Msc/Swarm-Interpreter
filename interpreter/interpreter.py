@@ -121,6 +121,12 @@ class Interpreter(NodeVisitor):
 		self.log(str(CALL_STACK))
 		LogLock.release()
 
+		# set Behavior environment
+		if function_symbol.category == SymbolCategroy.BEHAVIOR:
+			if "wrapper" in kwargs:
+				wrapper = kwargs["wrapper"]
+			getattr(wrapper, node.name)(vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
+
 		# evaluate function body
 		RPC_return_value = None
 		if function_symbol.category != SymbolCategroy.RPC:
@@ -133,10 +139,6 @@ class Interpreter(NodeVisitor):
 				rpc_args.append(actual_value)
 			if "wrapper" in kwargs:
 				wrapper = kwargs["wrapper"]
-			# if node.name == "getNextDestination_API" or node.name == "flyTo_API":
-			# 	LogLock.acquire()
-			# 	print(f'>>>> {node.name} : {kwargs["agent"]}_{kwargs["id"]} \n>>>> target = {rpc_args}\n')
-			# 	LogLock.release()
 			RPC_return_value = getattr(wrapper, node.name)(*rpc_args,
 			                                                    vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
 
