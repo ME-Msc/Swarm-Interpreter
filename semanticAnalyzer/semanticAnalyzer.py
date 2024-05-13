@@ -235,7 +235,7 @@ class SemanticAnalyzer(NodeVisitor):
 
 		# Insert parameters into the procedure scope
 		for agent_range in node.formal_params_agent_list.children:
-			agt_smbl = VarSymbol(agent_range.agent.value, SymbolCategroy.AGENT_RANGE)
+			agt_smbl = VarSymbol(agent_range.agent.value, SymbolCategory.AGENT_RANGE)
 			self.current_scope.insert(agt_smbl)
 			st_smbl = VarSymbol(agent_range.start.value, None)
 			self.current_scope.insert(st_smbl)
@@ -291,7 +291,7 @@ class SemanticAnalyzer(NodeVisitor):
 
 	def visit_AgentRange(self, node):
 		agent_symbol = self.visit(node.agent)
-		if (agent_symbol.category != SymbolCategroy.AGENT_RANGE) and (agent_symbol.category != SymbolCategroy.AGENT):
+		if (agent_symbol.category != SymbolCategory.AGENT_RANGE) and (agent_symbol.category != SymbolCategory.AGENT):
 			self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.agent.token)
 		self.visit(node.start)
 		self.visit(node.end)

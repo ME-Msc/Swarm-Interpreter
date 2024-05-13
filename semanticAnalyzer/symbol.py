@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class SymbolCategroy(Enum):  # Symbol Category for Procedure
+class SymbolCategory(Enum):  # Symbol Category for Procedure
 	PROGRAM = 'PROGRAM'
 	MAIN = 'MAIN'
 	TASK = 'TASK'
@@ -68,17 +68,17 @@ class ProcedureSymbol(Symbol):
 
 class ActionSymbol(ProcedureSymbol):
 	def __init__(self, name, formal_params=None):
-		super().__init__(name=name, category=SymbolCategroy.ACTION)
+		super().__init__(name=name, category=SymbolCategory.ACTION)
 
 
 class RpcCallSymbol(ProcedureSymbol):
 	def __init__(self, name, formal_params=None):
-		super().__init__(name=name, category=SymbolCategroy.RPC)
+		super().__init__(name=name, category=SymbolCategory.RPC)
 
 
 class AgentSymbol(Symbol):
 	def __init__(self, name):
-		super().__init__(name, category=SymbolCategroy.AGENT)
+		super().__init__(name, category=SymbolCategory.AGENT)
 		self.abilities = []
 		self.ast = None
 
@@ -106,12 +106,12 @@ class AgentRangeSymbol(Symbol):
 
 class BehaviorSymbol(ProcedureSymbol):
 	def __init__(self, name, formal_params=None):
-		super().__init__(name=name, category=SymbolCategroy.BEHAVIOR)
+		super().__init__(name=name, category=SymbolCategory.BEHAVIOR)
 
 
 class TaskSymbol(Symbol):
 	def __init__(self, name, formal_params_agent_list=None, formal_params=None):
-		super().__init__(name=name, category=SymbolCategroy.TASK)
+		super().__init__(name=name, category=SymbolCategory.TASK)
 		self.formal_params_agent_list = [] if formal_params_agent_list is None else formal_params_agent_list
 		self.formal_params = [] if formal_params is None else formal_params
 		# a reference to procedure's body (AST sub-tree)

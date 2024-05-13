@@ -7,7 +7,7 @@ from interpreter.memory import ARType, ActivationRecord, CallStack
 from interpreter.rpc.airsim_wrapper import AirsimWrapper
 from lexer.token import TokenType
 from parser.element import FunctionCall
-from semanticAnalyzer.symbol import SymbolCategroy
+from semanticAnalyzer.symbol import SymbolCategory
 
 # import concurrent.futures
 
@@ -89,9 +89,9 @@ class Interpreter(NodeVisitor):
 		function_name = node.name
 		function_symbol = node.symbol
 		ar_category_switch_case = {
-			SymbolCategroy.BEHAVIOR: ARType.BEHAVIOR,
-			SymbolCategroy.ACTION: ARType.ACTION,
-			SymbolCategroy.RPC: ARType.RPC
+			SymbolCategory.BEHAVIOR: ARType.BEHAVIOR,
+			SymbolCategory.ACTION: ARType.ACTION,
+			SymbolCategory.RPC: ARType.RPC
 		}
 		ar = ActivationRecord(
 			name=function_name,
@@ -99,7 +99,7 @@ class Interpreter(NodeVisitor):
 			nesting_level=CALL_STACK.get_base_level() + len(CALL_STACK._records),
 		)
 
-		if function_symbol.category != SymbolCategroy.RPC:  # BehaviorCall or ActionCall
+		if function_symbol.category != SymbolCategory.RPC:  # BehaviorCall or ActionCall
 			formal_params = function_symbol.formal_params
 			actual_params = node.actual_params
 			for param_symbol, argument_node in zip(formal_params, actual_params):
@@ -112,9 +112,9 @@ class Interpreter(NodeVisitor):
 		CALL_STACK.push(ar)
 
 		log_switch_case = {
-			SymbolCategroy.BEHAVIOR: "Behavior",
-			SymbolCategroy.ACTION: "Action",
-			SymbolCategroy.RPC: "Rpc"
+			SymbolCategory.BEHAVIOR: "Behavior",
+			SymbolCategory.ACTION: "Action",
+			SymbolCategory.RPC: "Rpc"
 		}
 		LogLock.acquire()
 		self.log(f'{kwargs["agent"]}_{kwargs["id"]} ENTER: {log_switch_case[function_symbol.category]} {function_name}')
@@ -122,14 +122,14 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 		# set Behavior environment
-		if function_symbol.category == SymbolCategroy.BEHAVIOR:
+		if function_symbol.category == SymbolCategory.BEHAVIOR:
 			if "wrapper" in kwargs:
 				wrapper = kwargs["wrapper"]
 			getattr(wrapper, node.name)(vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
 
 		# evaluate function body
 		RPC_return_value = None
-		if function_symbol.category != SymbolCategroy.RPC:
+		if function_symbol.category != SymbolCategory.RPC:
 			self.visit(function_symbol.ast, **kwargs)
 		else:  # call RPC server
 			rpc_args = []
@@ -150,7 +150,7 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 		# return RPC result for action
-		if function_symbol.category == SymbolCategroy.RPC:
+		if function_symbol.category == SymbolCategory.RPC:
 			return RPC_return_value
 
 	def visit_Task(self, node, **kwargs):
