@@ -1,60 +1,14 @@
 Port : 41451
 
-Action takeOff_Action(){
-	:= takeOff_API();
+Action add_Action(s){
+    return s+1;
 }
 
-Action flyToHeight_Action(h){
-	:= flyToHeight_API(h);
+Agent search_uav { 
+	add_Action;
 }
 
-Action getState_Action(){
-    stt := getState_API();
-    return stt;
-}
-
-Action getTspDestination_Action(stt){
-    dest := getTspDestination_API(stt);
-    return dest;
-}
-
-Action flyTo_Action(dest){
-    := flyTo_API(dest);
-}
-
-Action flyCircle_Action(stt, radius){
-	:= flyCircle_API(stt, radius);
-}
-
-Agent search_uav {
-	takeOff_Action, getState_Action, getTspDestination_Action, flyTo_Action, flyCircle_Action;
-}
-
-Behavior takeOff_Behavior(h) {
-	@init{}
-	@goal{}
-	@routine{
-		takeOff_Action();
-		flyToHeight_Action(h);
-	}
-}
-
-Behavior search_Behavior(){
-	@init{
-        step = 0;
-    }
-	@goal{
-        $ step > 5
-    }
-	@routine{
-        state = getState_Action();
-        destination = getTspDestination_Action(state);
-        flyTo_Action(destination);
-        step = step + 1;
-	}
-}
-
-Behavior flyCircle_Behavior(r){
+Behavior flyCircle_Behavior(){
 	@init{
         step = 0;
 	}
@@ -63,9 +17,7 @@ Behavior flyCircle_Behavior(r){
 		$ d == 3
 	}
 	@routine{
-		state = getState_Action();
-		flyCircle_Action(state, r);
-		step = step + 1;
+		step = add_Action(step);
 		if(step == 200) {
 			get d from #done#;
 			put d+1 to #done#;
@@ -79,10 +31,8 @@ Task search({agtC[stC~edC]}){
 	}
 	@goal{}
 	@routine{
-		order agtC[stC~edC] {
-            takeOff_Behavior(50);
-			search_Behavior();
-			flyCircle_Behavior(5);
+		each agtC[stC~edC] {
+			flyCircle_Behavior();
 		}
 	}
 }
