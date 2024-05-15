@@ -24,6 +24,9 @@ class ActivationRecord:
 
 	def __getitem__(self, key):
 		return self.members[key]
+	
+	def __contains__(self, key):
+		return key in self.members
 
 	def get(self, key):
 		return self.members.get(key)

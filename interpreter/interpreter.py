@@ -5,6 +5,7 @@ from base.error import InterpreterError, ErrorCode
 from base.nodeVisitor import NodeVisitor
 from interpreter.memory import ARType, ActivationRecord, CallStack
 from interpreter.rpc.airsim_wrapper import AirsimWrapper
+from interpreter.rpc.test_wrapper import TestWrapper
 from lexer.token import TokenType
 from parser.element import FunctionCall
 from semanticAnalyzer.symbol import SymbolCategory
@@ -17,10 +18,11 @@ LogLock = threading.Lock()
 class Interpreter(NodeVisitor):
 	def __init__(self, tree, log_or_not=False):
 		self.tree = tree
+		self.agent_abilities = {}
 		self.log_or_not = log_or_not
 		self.call_stack = CallStack()
 		self.return_value = None
-		self.wrapper = AirsimWrapper()
+		self.wrapper = TestWrapper()
 
 	def log(self, msg):
 		if self.log_or_not:
@@ -58,7 +60,10 @@ class Interpreter(NodeVisitor):
 		self.visit(node.compound_statement, **kwargs)
 
 	def visit_Agent(self, node, **kwargs):
-		return self.visit(node.compound_statement, **kwargs)
+		abilities = []
+		for child in node.abilities.children:
+			abilities.append(child.value)
+		return abilities
 
 	def visit_AgentCall(self, node, **kwargs):
 		CALL_STACK = self.call_stack
@@ -67,10 +72,14 @@ class Interpreter(NodeVisitor):
 
 		agt_smbl = node.symbol
 		agt_name = agt_smbl.name
+		self.agent_abilities[agt_name] = self.visit(agt_smbl.ast)
 		cnt = self.visit(node.count, **kwargs)
 		ar = CALL_STACK.peek()
 
-		ar[agt_name] = (agt_name, 0, cnt)
+		if agt_name not in ar:
+			ar[agt_name] = (agt_name, 0, cnt)
+		else:
+			self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.agent.token)
 		agents_list = [f"{agt_name}_{i}" for i in range(cnt)]
 		self.wrapper.set_home(agents_list=agents_list)
 
@@ -125,7 +134,15 @@ class Interpreter(NodeVisitor):
 		if function_symbol.category == SymbolCategory.BEHAVIOR:
 			if "wrapper" in kwargs:
 				wrapper = kwargs["wrapper"]
+			else:
+				wrapper = self.wrapper
 			getattr(wrapper, node.name)(vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
+
+		# check the abilities of agent
+		if function_symbol.category == SymbolCategory.ACTION:
+			if function_name not in self.agent_abilities[kwargs["agent"]]:
+				LogLock.acquire()
+				self.error(error_code=ErrorCode.ABILITIY_NOT_DEFINE_IN_AGENT, token=node.token)
 
 		# evaluate function body
 		RPC_return_value = None
@@ -139,6 +156,8 @@ class Interpreter(NodeVisitor):
 				rpc_args.append(actual_value)
 			if "wrapper" in kwargs:
 				wrapper = kwargs["wrapper"]
+			else:
+				wrapper = self.wrapper
 			RPC_return_value = getattr(wrapper, node.name)(*rpc_args,
 			                                                    vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
 

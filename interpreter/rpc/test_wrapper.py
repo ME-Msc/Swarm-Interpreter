@@ -40,9 +40,11 @@ class TestWrapper:
 		
 	def getState_API(self, *rpc_args, vehicle_name):
 		print("getState_API : ", vehicle_name)
+		return "State_value"
 
 	def getTspDestination_API(self, *rpc_args, vehicle_name):
 		print("getTspDestination_API : ", vehicle_name)
+		return "TspDestination_value"
 		
 	def flyTo_API(self, *rpc_args, vehicle_name):
 		print("flyTo_API : ", vehicle_name)

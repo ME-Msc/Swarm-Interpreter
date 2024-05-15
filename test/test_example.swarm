@@ -27,21 +27,21 @@ Action flyCircle_Action(stt, radius){
 }
 
 Agent search_uav {
-	takeOff_Action, flyToHeight_Action, getState_Action, getTspDestination_Action, flyTo_Action, flyCircle_Action;
+	takeOff_Action, getState_Action, getTspDestination_Action, flyTo_Action, flyCircle_Action;
 }
 
-Behavior takeOff_Behavior() {
+Behavior takeOff_Behavior(h) {
 	@init{}
 	@goal{}
 	@routine{
 		takeOff_Action();
+		flyToHeight_Action(h);
 	}
 }
 
 Behavior search_Behavior(){
 	@init{
         step = 0;
-		flyToHeight_Action(50);
     }
 	@goal{
         $ step > 5
@@ -54,28 +54,35 @@ Behavior search_Behavior(){
 	}
 }
 
-Behavior flyCircle_Behavior(){
+Behavior flyCircle_Behavior(r){
 	@init{
         step = 0;
 	}
 	@goal{
-		$ step > 1000
+		get d from #done#;
+		$ d == 3
 	}
 	@routine{
 		state = getState_Action();
-		flyCircle_Action(state, 3);
+		flyCircle_Action(state, r);
 		step = step + 1;
+		if(step == 200) {
+			get d from #done#;
+			put d+1 to #done#;
+		}
 	}
 }
 
 Task search({agtC[stC~edC]}){
-	@init{}
+	@init{
+		put 0 to #done#;
+	}
 	@goal{}
 	@routine{
-		each agtC[stC~edC] {
-            takeOff_Behavior();
+		order agtC[stC~edC] {
+            takeOff_Behavior(50);
 			search_Behavior();
-			flyCircle_Behavior();
+			flyCircle_Behavior(5);
 		}
 	}
 }

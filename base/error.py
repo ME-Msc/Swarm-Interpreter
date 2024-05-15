@@ -7,6 +7,7 @@ class ErrorCode(Enum):
 	DUPLICATE_ID = 'Duplicate id found'
 	WRONG_PARAMS_NUM = 'Wrong number of arguments'
 	OUT_OF_RANGE = 'Out of range'
+	ABILITIY_NOT_DEFINE_IN_AGENT = 'Ability not define in agent'
 
 
 class Error(Exception):
