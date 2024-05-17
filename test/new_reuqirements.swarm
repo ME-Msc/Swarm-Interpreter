@@ -1,13 +1,15 @@
-import map				/* 1. map文件是用什么语言实现？ */
+import map				/* 1. map文件是用什么语言实现？ python的数据结构 */
 /* 有点奇怪，在swarm语言里配置了已经定义好的map的大小，那原本的map在定义什么？ */
 /* 如果直接定义 map_start, map_end, map_grid 变量，传给 search 任务去生成路径，是否可行？ */
+/* 只能调用map，不能赋值修改，json */
 map.start = [0, 0];
 map.end = [20, 20];
 map.grid = 10;
 /* map.obstacles = ......; */
+/* pipline, blackboard */
 
-import AirsimWrapper
-import standard			/* 获取无人机状态信息的标准库函数 */
+import EnvWrapper		/* EnvWrapper, UavWrapper 基类 */
+import UavWrapper		/* 获取无人机状态信息的标准库函数 */
 /* 2. swarm语言没有自己的数据结构，standard.getState()当前也是和 Airsim 强绑定的，使用 Airsim 的数据结构，无法作为对很多平台通用的标准库 */
 /* getPosition、getGPS 等也是读取 无人机数据，这是和仿真器强相关的，不同仿真器要用不同的函数调用，无法统一用standard实现 */
 /* 因此我认为应该 规定 Wrapper 的基本函数，让不同平台的 Wrapper 继承并 重写对应函数即可，不需要 standard */
@@ -22,14 +24,14 @@ import standard			/* 获取无人机状态信息的标准库函数 */
 /*     ready = False												*/
 /*     ready_message = ""											*/
 /*     can_arm = False												*/
-import Algorithm
 
+import Network
 
 /* 3. getState等组件还应该是Action，和强化学习的 Action 不是同一个概念， Behavior 是 Action 的序列，语言结构是完整的  */
 /* getPosition、getGPS 等也是读取无人机传感器数据，应该是 Action */
-/* 原本设计的语言成分为：Main -> Task -> Behavior -> Action -> RPC，所有执行的最小步骤都是RPC */
+/* 原本设计的语言成分为：Main -> Task -> Behavior -> Action -> call{network/method}，所有执行的最小步骤都是RPC */
 
-/* 原本设计的语言成分为：Main -> Task -> Behavior -> Action -> RPC */
+/* 原本设计的语言成分为：Main -> Task -> Behavior -> Action -> call */
 /* 添加了外部包就变成了：  |       |        |                   ^  */
 /*                       |       |        |                   |  */
 /*                       +-------+--------+-------------------+  */
@@ -37,6 +39,8 @@ import Algorithm
 
 
 /* 实际上 getState 也是无人机执行的“动作”之一，包含各种传感器的观测数据 */
+/* 业务动作才是Action，包括 飞行、拍照、投弹、通信、照明、识别 */
+/* 数据准备的不是Action，包括 路径规划、算法配置、获取位置等 */
 Action takeOff_Action(){
 	:= takeOff_API();
 }
@@ -78,8 +82,8 @@ Behavior cover_Behavior(trace_for_cover){
         $ step > 5
     }
 	@routine{
-        position = getPosition();
-        destination = getDestination(trace_for_cover, position);
+        position = UavWrapper.getPosition();
+        destination = UavWrapper.getDestination(trace_for_cover, position);
         flyTo_Action(destination);
         step = step + 1;
 	}
@@ -97,40 +101,25 @@ Behavior flyCircle_Behavior(network, r){
 	}
 }
 
-Task search({agtC[stC~edC]}){
+Task search({agtC[stC~edC]}, city_map){
 	@init{
 		/* @init 用于配置所有 sub-task, behavior 所需的必要组件 */
 		height = 50;
-		trace_for_cover = Algorithm.coverTspSolver(map); 			/* 生成路径，默认加入所有参与任务的无人机 */
-		trace_for_cover = Algorithm.coverTspSolver(0, 20, 10);		/* 如何解释 (0, 20, 10) 交给 coverTspSolver 去处理 */
-		network = "XXXXX.*"; 										/* 包含算法、模型文件、其他参数的完整神经网络*/
-		/* 4. 自己再定义一个文件格式不太现实，不是主流方法，应该向现有的主流方法靠拢，才能激励别人使用 */
+		trace_for_cover = Algorithm.coverTspSolver(city_map); 			/* 生成路径，默认加入所有参与任务的无人机 */
 		radius = 5;
-
-		/* python */
-		from interpreter.rpc.RL.td3 import TD3Agent
-		agent = TD3Agent(3, 1)
-		agent.load("/RL/fly_circle.pkl")
-		import numpy as np
-		flyCircle_state = np.array([(start_position.position.x_val - circle_center[0]) / radius, 
-							  		(start_position.position.y_val - circle_center[1]) / radius, 0], dtype=np.float32)
-		action = agent.choose_action(flyCircle_state)
 	}
 	@goal{}
 	@routine{
 		each agtC[stC~edC] {
             takeOff_Behavior(height);
 			cover_Behavior(trace_for_cover);
-			flyCircle_Behavior(network, radius);
+			/* Network.TD3_fly_circle 包含算法、模型文件、其他参数的完整神经网络*/
+			flyCircle_Behavior(Network.TD3_fly_circle, radius);
 		}
 	}
 }
 
 Main {
 	Agent search_uav 3 {(0, 0), (1, 1), (2, 2)};
-	map.start = [0, 0];
-	map.end = [20, 20];
-	map.grid = 10;
-	/* map.obstacles = ......; */
-	search({search_uav[0~3]});
+	search({search_uav[0~3]}, map.NanJing);
 }
