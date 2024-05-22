@@ -76,6 +76,12 @@ class Lexer(object):
 		while self.current_char is not None and self.current_char.isspace():
 			self.advance()
 
+	def skip_comment(self):
+		while not (self.current_char == '*' and self.peek() == '/'):
+			self.advance()
+		self.advance()  # the closing R_COMMENT *
+		self.advance()	# the closing R_COMMENT /
+
 	def _id(self):
 		"""Handle identifiers and reserved keywords"""
 		# Create a new token with current line and column number
@@ -194,6 +200,9 @@ class Lexer(object):
 				# get enum member by value, e.g.
 				# TokenType('<<') --> TokenType.DOUBLE_LESS
 				token_type = TokenType(multi_char)
+				if token_type == TokenType.L_COMMENT:
+					self.skip_comment()
+					continue
 			except ValueError:
 				# no enum member with value equal to multi_char
 				# check for single-character token

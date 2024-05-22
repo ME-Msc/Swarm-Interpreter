@@ -36,6 +36,8 @@ class TokenType(Enum):
 	NOT_EQUAL 		= '!='
 	RPC_CALL 		= ':='
 	PARALLEL 		= '||'
+	L_COMMENT		= '/*'
+	R_COMMENT		= '*/'	
 	# block of reserved words
 	PORT 		= 'PORT'
 	AGENT 		= 'AGENT'

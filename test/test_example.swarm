@@ -1,7 +1,8 @@
 Port : 41451
-
+/* test comments*/
 Action add_Action(s){
-    return s+1;
+	s = s+1;
+    return s;
 }
 
 Agent search_uav { 
@@ -13,25 +14,18 @@ Behavior flyCircle_Behavior(){
         step = 0;
 	}
 	@goal{
-		get d from #done#;
-		$ d == 3
+		$ step == 5
 	}
 	@routine{
 		step = add_Action(step);
-		if(step == 200) {
-			get d from #done#;
-			put d+1 to #done#;
-		}
 	}
 }
 
 Task search({agtC[stC~edC]}){
-	@init{
-		put 0 to #done#;
-	}
+	@init{}
 	@goal{}
 	@routine{
-		each agtC[stC~edC] {
+		order agtC[stC~edC] {
 			flyCircle_Behavior();
 		}
 	}
