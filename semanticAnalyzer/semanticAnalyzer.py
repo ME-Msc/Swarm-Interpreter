@@ -417,6 +417,8 @@ class SemanticAnalyzer(NodeVisitor):
 				else:
 					var_symbol = VarSymbol(left_var_name, right_symbol.category)
 				self.current_scope.insert(var_symbol)
+			else:
+				self.visit(node.right)	# node.right is a action_call, should visit it to set node.symbol.ast
 		elif node.op.category == TokenType.RPC_CALL:
 			left_var_name = node.left.value
 			var_symbol = VarSymbol(left_var_name, self.visit(node.right))
