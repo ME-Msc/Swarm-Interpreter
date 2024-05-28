@@ -8,7 +8,7 @@ class ErrorCode(Enum):
 	WRONG_PARAMS_NUM = 'Wrong number of arguments'
 	OUT_OF_RANGE = 'Out of range'
 	ABILITIY_NOT_DEFINE_IN_AGENT = 'Ability not define in agent'
-
+	LIBRARY_CANNOT_BE_ASSIGNED = 'Library cannot be assigned'
 
 class Error(Exception):
 	def __init__(self, error_code=None, token=None, message=None):

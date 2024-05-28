@@ -4,66 +4,67 @@ digraph astgraph {
   edge [arrowsize=2]
 
   node1 [label="Program"]
-  node2 [label="Port:14457"]
+  node2 [label="LibraryList"]
+  node3 [label="Library:map"]
+  node2 -> node3
   node1 -> node2
-  node3 [label="ActionList"]
-  node4 [label="Action:trees_go_action"]
-  node5 [label="FormalParams"]
+  node4 [label="ActionList"]
+  node5 [label="Action:takeOff_Action"]
+  node6 [label="FormalParams"]
+  node5 -> node6
+  node7 [label="Compound"]
+  node8 [label="FunctionCall:
+takeOff_API"]
+  node7 -> node8
+  node5 -> node7
   node4 -> node5
-  node6 [label="Compound"]
-  node7 [label="FunctionCall:
-treesGo"]
-  node6 -> node7
-  node4 -> node6
-  node3 -> node4
-  node1 -> node3
-  node8 [label="AgentList"]
-  node9 [label="Agent:test_uav"]
-  node10 [label="trees_go_action"]
+  node9 [label="Action:flyToHeight_Action"]
+  node10 [label="FormalParams"]
+  node11 [label="h"]
+  node10 -> node11
   node9 -> node10
-  node8 -> node9
-  node1 -> node8
-  node11 [label="BehaviorList"]
-  node12 [label="Behavior:trees_go_behavior"]
-  node13 [label="FormalParams"]
+  node12 [label="Compound"]
+  node13 [label="FunctionCall:
+flyToHeight_API"]
+  node14 [label="h"]
+  node13 -> node14
   node12 -> node13
-  node14 [label="InitBlock"]
-  node15 [label="Compound"]
-  node14 -> node15
-  node12 -> node14
-  node16 [label="GoalBlock"]
-  node17 [label="Compound"]
+  node9 -> node12
+  node4 -> node9
+  node15 [label="Action:flyTo_Action"]
+  node16 [label="FormalParams"]
+  node17 [label="dest"]
   node16 -> node17
-  node18 [label="Expression"]
-  node19 [label="NoOp"]
+  node15 -> node16
+  node18 [label="Compound"]
+  node19 [label="FunctionCall:
+flyTo_API"]
+  node20 [label="dest"]
+  node19 -> node20
   node18 -> node19
-  node16 -> node18
-  node12 -> node16
-  node20 [label="RoutineBlock"]
-  node21 [label="Compound"]
-  node22 [label="FunctionCall:
-trees_go_action"]
+  node15 -> node18
+  node4 -> node15
+  node1 -> node4
+  node21 [label="AgentList"]
+  node22 [label="Agent:search_uav"]
+  node23 [label="takeOff_Action"]
+  node22 -> node23
+  node24 [label="flyToHeight_Action"]
+  node22 -> node24
+  node25 [label="flyTo_Action"]
+  node22 -> node25
   node21 -> node22
-  node20 -> node21
-  node12 -> node20
-  node11 -> node12
-  node1 -> node11
-  node23 [label="TaskList"]
-  node24 [label="Task:test_task"]
-  node25 [label="AgentRange"]
-  node26 [label="agtA"]
-  node25 -> node26
-  node27 [label="stA"]
-  node25 -> node27
-  node28 [label="edA"]
-  node25 -> node28
-  node24 -> node25
-  node29 [label="FormalParams"]
-  node24 -> node29
+  node1 -> node21
+  node26 [label="BehaviorList"]
+  node27 [label="Behavior:takeOff_Behavior"]
+  node28 [label="FormalParams"]
+  node29 [label="h"]
+  node28 -> node29
+  node27 -> node28
   node30 [label="InitBlock"]
   node31 [label="Compound"]
   node30 -> node31
-  node24 -> node30
+  node27 -> node30
   node32 [label="GoalBlock"]
   node33 [label="Compound"]
   node32 -> node33
@@ -71,53 +72,99 @@ trees_go_action"]
   node35 [label="NoOp"]
   node34 -> node35
   node32 -> node34
-  node24 -> node32
+  node27 -> node32
   node36 [label="RoutineBlock"]
   node37 [label="Compound"]
-  node38 [label="="]
-  node39 [label="a"]
-  node40 [label=""abc\123""]
-  node38 -> node39
-  node38 -> node40
+  node38 [label="FunctionCall:
+takeOff_Action"]
   node37 -> node38
-  node41 [label="TaskEach"]
-  node42 [label="AgentRange"]
-  node43 [label="agtA"]
-  node42 -> node43
-  node44 [label="stA"]
-  node42 -> node44
-  node45 [label="edA"]
-  node42 -> node45
-  node41 -> node42
-  node46 [label="Compound"]
-  node47 [label="FunctionCall:
-trees_go_behavior"]
-  node46 -> node47
-  node41 -> node46
-  node37 -> node41
+  node39 [label="FunctionCall:
+flyToHeight_Action"]
+  node40 [label="h"]
+  node39 -> node40
+  node37 -> node39
   node36 -> node37
-  node24 -> node36
-  node23 -> node24
-  node1 -> node23
-  node48 [label="Main"]
-  node49 [label="AgentCallList"]
-  node50 [label="AgentCall"]
-  node51 [label="test_uav"]
+  node27 -> node36
+  node26 -> node27
+  node1 -> node26
+  node41 [label="TaskList"]
+  node42 [label="Task:search"]
+  node43 [label="AgentRange"]
+  node44 [label="agtC"]
+  node43 -> node44
+  node45 [label="stC"]
+  node43 -> node45
+  node46 [label="edC"]
+  node43 -> node46
+  node42 -> node43
+  node47 [label="FormalParams"]
+  node48 [label="city_map"]
+  node47 -> node48
+  node42 -> node47
+  node49 [label="InitBlock"]
+  node50 [label="Compound"]
+  node51 [label="="]
+  node52 [label="height"]
+  node53 [label="50"]
+  node51 -> node52
+  node51 -> node53
   node50 -> node51
-  node52 [label="3"]
-  node50 -> node52
   node49 -> node50
-  node48 -> node49
-  node53 [label="TaskCall:
-test_task"]
-  node54 [label="AgentRange"]
-  node55 [label="test_uav"]
+  node42 -> node49
+  node54 [label="GoalBlock"]
+  node55 [label="Compound"]
   node54 -> node55
-  node56 [label="0"]
+  node56 [label="Expression"]
+  node57 [label="NoOp"]
+  node56 -> node57
   node54 -> node56
-  node57 [label="3"]
-  node54 -> node57
-  node53 -> node54
-  node48 -> node53
-  node1 -> node48
+  node42 -> node54
+  node58 [label="RoutineBlock"]
+  node59 [label="Compound"]
+  node60 [label="TaskEach"]
+  node61 [label="AgentRange"]
+  node62 [label="agtC"]
+  node61 -> node62
+  node63 [label="stC"]
+  node61 -> node63
+  node64 [label="edC"]
+  node61 -> node64
+  node60 -> node61
+  node65 [label="Compound"]
+  node66 [label="FunctionCall:
+takeOff_Behavior"]
+  node67 [label="height"]
+  node66 -> node67
+  node65 -> node66
+  node60 -> node65
+  node59 -> node60
+  node58 -> node59
+  node42 -> node58
+  node41 -> node42
+  node1 -> node41
+  node68 [label="Main"]
+  node69 [label="AgentCallList"]
+  node70 [label="AgentCall"]
+  node71 [label="search_uav"]
+  node70 -> node71
+  node72 [label="3"]
+  node70 -> node72
+  node69 -> node70
+  node68 -> node69
+  node73 [label="TaskCall:
+search"]
+  node74 [label="AgentRange"]
+  node75 [label="search_uav"]
+  node74 -> node75
+  node76 [label="0"]
+  node74 -> node76
+  node77 [label="3"]
+  node74 -> node77
+  node73 -> node74
+  node78 [label="LibraryCall:map"]
+  node79 [label="AirsimNH"]
+  node78 -> node79
+  node73 -> node78
+  node68 -> node73
+  node1 -> node68
 }

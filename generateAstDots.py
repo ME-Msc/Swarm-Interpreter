@@ -37,8 +37,8 @@ class ASTVisualizer(NodeVisitor):
 		node._num = self.ncount
 		self.ncount += 1
 
-		self.visit(node.port)
-		s = '  node{} -> node{}\n'.format(node._num, node.port._num)
+		self.visit(node.library_list)
+		s = '  node{} -> node{}\n'.format(node._num, node.library_list._num)
 		self.dot_body.append(s)
 
 		self.visit(node.action_list)
@@ -61,11 +61,31 @@ class ASTVisualizer(NodeVisitor):
 		s = '  node{} -> node{}\n'.format(node._num, node.main._num)
 		self.dot_body.append(s)
 
-	def visit_Port(self, node):
-		s = '  node{} [label="Port:{}"]\n'.format(self.ncount, node.port.value)
+	def visit_LibraryList(self, node):
+		s = '  node{} [label="LibraryList"]\n'.format(self.ncount)
 		self.dot_body.append(s)
 		node._num = self.ncount
 		self.ncount += 1
+		for child in node.children:
+			self.visit(child)
+			s = '  node{} -> node{}\n'.format(node._num, child._num)
+			self.dot_body.append(s)
+
+	def visit_Library(self, node):
+		s = '  node{} [label="Library:{}"]\n'.format(self.ncount, node.name.value)
+		self.dot_body.append(s)
+		node._num = self.ncount
+		self.ncount += 1
+
+	def visit_LibraryCall(self, node):
+		s = '  node{} [label="LibraryCall:{}"]\n'.format(self.ncount, node.library.value)
+		self.dot_body.append(s)
+		node._num = self.ncount
+		self.ncount += 1
+		for postfix in node.postfixes:
+			self.visit(postfix)
+			s = '  node{} -> node{}\n'.format(node._num, postfix._num)
+			self.dot_body.append(s)
 
 	def visit_ActionList(self, node):
 		s = '  node{} [label="ActionList"]\n'.format(self.ncount)
@@ -467,7 +487,8 @@ def main():
 	args = argparser.parse_args()
 	fname = args.fname
 	file_name = re.split(r'[./]', fname)[1]  # Extract file name without extension
-	text = open(fname, 'r').read()
+	text = open(fname, 'r', encoding='utf-8').read()
+
 
 	lexer = Lexer(text)
 	parser = Parser(lexer)

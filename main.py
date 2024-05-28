@@ -27,7 +27,7 @@ def main():
 	args = parser.parse_args()
 
 	SHOULD_LOG_SCOPE, SHOULD_LOG_STACK = args.scope, args.stack
-	text = open(args.inputfile, 'r').read()
+	text = open(args.inputfile, 'r', encoding='utf-8').read()
 
 	if not text:
 		print("Text is None.")

@@ -17,6 +17,7 @@ class TokenType(Enum):
 	SEMI 		= ';'
 	COLON 		= ':'
 	COMMA 		= ','
+	DOT			= '.'
 	TILDE 		= '~'
 	L_PAREN 	= '('
 	R_PAREN 	= ')'
@@ -39,7 +40,7 @@ class TokenType(Enum):
 	L_COMMENT		= '/*'
 	R_COMMENT		= '*/'	
 	# block of reserved words
-	PORT 		= 'PORT'
+	IMPORT		= 'IMPORT'
 	AGENT 		= 'AGENT'
 	ACTION 		= 'ACTION'
 	BEHAVIOR 	= 'BEHAVIOR'

@@ -21,7 +21,7 @@ def _build_reserved_keywords():
 	"""
 	# enumerations support iteration, in definition order
 	tt_list = list(TokenType)
-	start_index = tt_list.index(TokenType.PORT)
+	start_index = tt_list.index(TokenType.IMPORT)
 	end_index = tt_list.index(TokenType.EOF)  # NOT include EOF
 	reserved_keywords = {
 		token_type.value: token_type

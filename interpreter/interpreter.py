@@ -1,5 +1,5 @@
 import threading
-import copy
+import importlib
 
 from base.error import InterpreterError, ErrorCode
 from base.nodeVisitor import NodeVisitor
@@ -55,6 +55,17 @@ class Interpreter(NodeVisitor):
 		self.log(f'LEAVE: Program')
 		self.log(str(CALL_STACK))
 		LogLock.release()
+
+	def visit_Library(self, node):
+		print("visit_Library", node.name.value)
+		return node.name.value
+
+	def visit_LibraryCall(self, node):
+		library = importlib.import_module(f'libs.{node.library.value}')
+		attr = getattr(library, node.postfixes[0].value)
+		for postfix_item in node.postfixes[1:]:
+			attr = getattr(attr, postfix_item.value)
+		return attr
 
 	def visit_Action(self, node, **kwargs):
 		self.visit(node.compound_statement, **kwargs)
@@ -364,6 +375,11 @@ class Interpreter(NodeVisitor):
 		ar = CALL_STACK.peek()
 		var_value = ar.get(var_name)
 		if var_value is None:
+			# check if the var is a library call
+			var_smbl = node.symbol
+			if var_smbl.category == SymbolCategory.LIBRARY:
+				var_value = self.visit(var_smbl.ast)
+				return var_value
 			raise NameError(repr(var_name))
 		else:
 			return var_value

@@ -9,6 +9,7 @@ class SymbolCategory(Enum):  # Symbol Category for Procedure
 	ACTION = 'ACTION'
 	AGENT = 'AGENT'
 	RPC = 'RPC'
+	LIBRARY = 'LIBRARY'
 	AGENT_RANGE = 'AGENT_RANGE'
 
 
@@ -32,6 +33,11 @@ class VarSymbol(Symbol):
 			name=self.name,
 			category=self.category,
 		)
+
+
+class LibrarySymbol(VarSymbol):
+	def __init__(self, name):
+		super().__init__(name, SymbolCategory.LIBRARY)
 
 
 class BuiltinTypeSymbol(object):

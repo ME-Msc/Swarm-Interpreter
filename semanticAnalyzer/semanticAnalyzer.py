@@ -23,6 +23,7 @@ class SemanticAnalyzer(NodeVisitor):
 		self.current_scope = self.global_scope
 
 		# visit subtree
+		self.visit(node.library_list)
 		self.visit(node.action_list)
 		self.visit(node.agent_list)
 		self.visit(node.behavior_list)
@@ -33,12 +34,28 @@ class SemanticAnalyzer(NodeVisitor):
 		self.current_scope = self.current_scope.enclosing_scope
 		self.log('Leave scope: global')
 
-	def visit_Port(self, node):
-		pass
+	def visit_LibraryList(self, node):
+		for library in node.children:
+			self.visit(library)
+
+	def visit_Library(self, node):
+		library_name = node.name.value	# library is a Var node
+		if self.global_scope.lookup(library_name) is not None:
+			self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.token)
+		library_symbol = LibrarySymbol(library_name)
+		self.global_scope.insert(library_symbol)
+		library_symbol.ast = node
+
+	def visit_LibraryCall(self, node):
+		library_name = node.library.value	# library is a Var node
+		library_symbol = self.global_scope.lookup(library_name)
+		if library_symbol is None:
+			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.library.token)
+		node.symbol = library_symbol
 
 	def visit_ActionList(self, node):
-		for child in node.children:
-			self.visit(child)
+		for action in node.children:
+			self.visit(action)
 
 	def visit_Action(self, node):
 		action_name = node.name
@@ -77,8 +94,8 @@ class SemanticAnalyzer(NodeVisitor):
 		action_symbol.ast = node
 
 	def visit_AgentList(self, node):
-		for child in node.children:
-			self.visit(child)
+		for agent in node.children:
+			self.visit(agent)
 
 	def visit_Agent(self, node):
 		agent_name = node.name
@@ -127,12 +144,12 @@ class SemanticAnalyzer(NodeVisitor):
 		node.symbol = agent_symbol
 
 	def visit_AgentCallList(self, node):
-		for child in node.children:
-			self.visit(child)
+		for agentCall in node.children:
+			self.visit(agentCall)
 
 	def visit_BehaviorList(self, node):
-		for child in node.children:
-			self.visit(child)
+		for behavior in node.children:
+			self.visit(behavior)
 
 	def visit_Behavior(self, node):
 		behavior_name = node.name
@@ -204,8 +221,8 @@ class SemanticAnalyzer(NodeVisitor):
 			return function_symbol
 
 	def visit_TaskList(self, node):
-		for child in node.children:
-			self.visit(child)
+		for task in node.children:
+			self.visit(task)
 
 	def visit_Task(self, node):
 		task_name = node.name
@@ -342,6 +359,8 @@ class SemanticAnalyzer(NodeVisitor):
 		var_symbol = self.current_scope.lookup(var_name)
 		if var_symbol is None:
 			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
+		elif isinstance(var_symbol, LibrarySymbol):
+			self.visit_LibraryCall(node)
 		else:
 			return var_symbol
 
@@ -417,6 +436,9 @@ class SemanticAnalyzer(NodeVisitor):
 				else:
 					var_symbol = VarSymbol(left_var_name, right_symbol.category)
 				self.current_scope.insert(var_symbol)
+			elif isinstance(category_symbol, LibrarySymbol):
+				self.error(error_code=ErrorCode.LIBRARY_CANNOT_BE_ASSIGNED, token=node.left.token)
+				# library can only be accessed, can't be assigned.
 			else:
 				self.visit(node.right)	# node.right is a action_call, should visit it to set node.symbol.ast
 		elif node.op.category == TokenType.RPC_CALL:

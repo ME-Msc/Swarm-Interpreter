@@ -42,22 +42,37 @@ class Parser(BaseParser):
 		super().__init__(lexer)
 
 	def program(self):
-		port_node = self.port()
+		library_list = self.library_list()
 		action_list = self.action_list()
 		agent_list = self.agent_list()
 		behavior_list = self.behavior_list()
 		task_list = self.task_list()
 		main_node = self.main()
-		program_node = Program(port=port_node, action_list=action_list, agent_list=agent_list,
+		program_node = Program(library_list=library_list, action_list=action_list, agent_list=agent_list,
 		                       behavior_list=behavior_list, task_list=task_list, main=main_node)
 		return program_node
 
-	def port(self):
-		""" port_setting ::= 'Port' ':' integer """
-		self.eat(TokenType.PORT)
-		self.eat(TokenType.COLON)
-		node = self.integer()
-		node = Port(node)
+	def library_list(self):
+		root = LibraryList()
+		while self.current_token.category == TokenType.IMPORT:
+			root.children.append(self.library())
+		return root
+
+	def library(self):
+		""" library ::= 'Import' variable """
+		self.eat(TokenType.IMPORT)
+		node = self.variable()
+		node = Library(node)
+		return node
+	
+	def library_call(self):
+		library = self.variable()
+		postfixes = []
+		while self.current_token.category == TokenType.DOT:
+			self.eat(TokenType.DOT)
+			postfix = self.variable()
+			postfixes.append(postfix)
+		node = LibraryCall(library=library, postfixes=postfixes)
 		return node
 
 	def action_list(self):
@@ -730,6 +745,7 @@ class Parser(BaseParser):
 						| variable
 		"""
 		token = self.current_token
+		next_token = self.peek_next_token()
 		if token.category == TokenType.PLUS:
 			self.eat(TokenType.PLUS)
 			node = UnaryOp(token, self.primary_expression())
@@ -748,6 +764,9 @@ class Parser(BaseParser):
 			self.eat(TokenType.LPAREN)
 			node = self.expression()
 			self.eat(TokenType.RPAREN)
+			return node
+		elif token.category == TokenType.ID and next_token.category == TokenType.DOT:
+			node = self.library_call()
 			return node
 		else:
 			node = self.variable()

@@ -2,8 +2,8 @@ from base.ast import AST
 
 
 class Program(AST):
-	def __init__(self, port, action_list, agent_list, behavior_list, task_list, main):
-		self.port = port
+	def __init__(self, library_list, action_list, agent_list, behavior_list, task_list, main):
+		self.library_list = library_list
 		self.action_list = action_list
 		self.agent_list = agent_list
 		self.behavior_list = behavior_list
@@ -11,9 +11,20 @@ class Program(AST):
 		self.main = main
 
 
-class Port(AST):
-	def __init__(self, port):
-		self.port = port
+class LibraryList(AST):
+	def __init__(self):
+		self.children = []
+
+
+class Library(AST):
+	def __init__(self, name):
+		self.name = name
+
+
+class LibraryCall(AST):
+	def __init__(self, library, postfixes):
+		self.library = library
+		self.postfixes = postfixes
 
 
 class ActionList(AST):
