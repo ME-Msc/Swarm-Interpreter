@@ -1,4 +1,6 @@
-import map
+import Map
+import Algorithm
+
 /* test comments*/
 Action takeOff_Action(){
 	:= takeOff_API();
@@ -12,8 +14,18 @@ Action flyTo_Action(dest){
     := flyTo_API(dest);
 }
 
+Action getPosition(){
+	pos := getPosition_API();
+	return pos;
+}
+
+Action getDestination(trace, pos){
+	dest := getDestination_API(trace, pos);
+	return dest;
+}
+
 Agent search_uav { 
-	takeOff_Action, flyToHeight_Action, flyTo_Action;
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination;
 }
 
 Behavior takeOff_Behavior(h) {
@@ -25,20 +37,40 @@ Behavior takeOff_Behavior(h) {
 	}
 }
 
+Behavior cover_Behavior(traces){
+	@init{
+        step = 0;
+    }
+	@goal{
+        $ step > 5
+    }
+	@routine{
+        /* FIXME: position = UavWrapper.getPosition(); */
+        /* FIXME: destination = UavWrapper.getDestination(trace_for_cover, position); */
+        position = getPosition();
+        destination = getDestination(traces, position);
+        flyTo_Action(destination);
+        step = step + 1;
+	}
+}
+
 Task search({agtC[stC~edC]}, city_map){
 	@init{
 		/* @init 用于配置所有 sub-task, behavior 所需的必要组件 */
 		height = 50;
+		traces_for_cover = Algorithm.coverTspSolver(city_map);
+		/* FIXME: Algorithm.coverTspSolver需要无人机起始位置， 当前默认map中的第一个点 */
 	}
 	@goal{}
 	@routine{
 		each agtC[stC~edC] {
             takeOff_Behavior(height);
+			cover_Behavior(traces_for_cover);
 		}
 	}
 }
 
 Main {
 	Agent search_uav 3;
-	search({search_uav[0~3]}, map.AirsimNH);
+	search({search_uav[0~3]}, Map.AirsimNH);
 }

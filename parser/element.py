@@ -22,9 +22,10 @@ class Library(AST):
 
 
 class LibraryCall(AST):
-	def __init__(self, library, postfixes):
+	def __init__(self, library, postfixes, arguments):
 		self.library = library
 		self.postfixes = postfixes
+		self.arguments = arguments
 
 
 class ActionList(AST):

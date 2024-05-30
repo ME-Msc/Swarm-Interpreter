@@ -1,3 +1,4 @@
+import math
 import threading
 import time
 import copy
@@ -84,6 +85,15 @@ class AirsimWrapper:
 		self.lock.release()
 
 
+	def getPosition_API(self, *rpc_args, vehicle_name):
+		client:airsim.MultirotorClient = self.clients[vehicle_name]
+		pos = client.simGetVehiclePose(vehicle_name=vehicle_name)
+		pos.position.x_val += self.home[vehicle_name].position.x_val
+		pos.position.y_val += self.home[vehicle_name].position.y_val
+		pos.position.z_val += self.home[vehicle_name].position.z_val 
+		return (pos.position.x_val, pos.position.y_val, pos.position.z_val)
+
+
 	def getState_API(self, *rpc_args, vehicle_name):
 		client:airsim.MultirotorClient = self.clients[vehicle_name]
 		state:airsim.MultirotorState = client.getMultirotorState(vehicle_name=vehicle_name)
@@ -94,34 +104,44 @@ class AirsimWrapper:
 		return state
 
 
-	def getTspDestination_API(self, *rpc_args, vehicle_name):
-		client:airsim.MultirotorClient = self.clients[vehicle_name]
-		state:airsim.MultirotorState = rpc_args[0]
-
-		position = state.kinematics_estimated.position
-		task = self.task["search"]
-		vehicle_id = task.id[vehicle_name]
-		search_task_next_step = task.get_i_vehicle_next_step_location(vehicle_id, position.x_val, position.y_val)
-		destination = copy.deepcopy(position)
-		destination.x_val = search_task_next_step[0]
-		destination.y_val = search_task_next_step[1]
-		destination.z_val = round(destination.z_val)
+	def getDestination_API(self, *rpc_args, vehicle_name):
+		mapper = {
+			"search_uav_0": 0,
+			"search_uav_1": 1,
+			"search_uav_2": 2
+		}
+		index = mapper[vehicle_name]
+		traces = rpc_args[0][index]
+		pos = rpc_args[1]
 		
-		return destination
+		min_distance = float('inf')
+		closest_index = -1
+		dest = traces[closest_index]
+		
+		# Calculate the distance from pos to each point in traces
+		for i, (x, y) in enumerate(traces):
+			distance = math.sqrt((x - pos[0])**2 + (y - pos[1])**2)
+			if distance < min_distance:
+				min_distance = distance
+				closest_index = i
+		
+		# If the closest point is the last point in traces, return it
+		if closest_index == len(traces) - 1:
+			dest = traces[closest_index]
+		else:
+			# Otherwise, return the next point in traces
+			dest = traces[closest_index + 1]
+		return (dest[0], dest[1], pos[2]) 
 
 
 	def flyTo_API(self, *rpc_args, vehicle_name):
 		client:airsim.MultirotorClient = self.clients[vehicle_name]
 		destination = rpc_args[0]	# World coordinate system
-		
-		# LogLock.acquire()
-		# print(f'!!!!! {vehicle_name}, id={id(vehicle_name)}\n!!!!! destination = {destination}\n')
-		# LogLock.release()
 
 		# Relative coordinate system
-		relative_destination_x = destination.x_val - self.home[vehicle_name].position.x_val
-		relative_destination_y = destination.y_val - self.home[vehicle_name].position.y_val
-		relative_destination_z = destination.z_val - self.home[vehicle_name].position.z_val
+		relative_destination_x = destination[0] - self.home[vehicle_name].position.x_val
+		relative_destination_y = destination[1] - self.home[vehicle_name].position.y_val
+		relative_destination_z = destination[2] - self.home[vehicle_name].position.z_val
 
 		res = client.moveToPositionAsync(relative_destination_x, relative_destination_y, relative_destination_z, 2, vehicle_name=vehicle_name)
 		self.lock.acquire()
@@ -153,7 +173,7 @@ class AirsimWrapper:
 
 
 	# Behaviors
-	def search_Behavior(self, *rpc_args, vehicle_name):
+	def cover_Behavior(self, *rpc_args, vehicle_name):
 		pass
 
 	def takeOff_Behavior(self, *rpc_args, vehicle_name):
@@ -183,13 +203,5 @@ class AirsimWrapper:
 
 	# Tasks
 	def search(self, vehicle_name_list):
-		search_home = {}
-		for vhcl_nm in vehicle_name_list:
-			if vhcl_nm in self.home:
-				position = self.home[vhcl_nm].position
-				x = position.x_val
-				y = position.y_val
-				search_home[vhcl_nm] = (x, y)
-		self.task["search"] = searchTspSolver(0, 20, 10, search_home)
-		self.task["search"].print_solution()
+		pass
 

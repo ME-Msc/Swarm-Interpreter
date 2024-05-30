@@ -10,6 +10,7 @@ class SymbolCategory(Enum):  # Symbol Category for Procedure
 	AGENT = 'AGENT'
 	RPC = 'RPC'
 	LIBRARY = 'LIBRARY'
+	LIBRARY_CALL = 'LIBRARY_CALL'
 	AGENT_RANGE = 'AGENT_RANGE'
 
 
@@ -38,6 +39,23 @@ class VarSymbol(Symbol):
 class LibrarySymbol(VarSymbol):
 	def __init__(self, name):
 		super().__init__(name, SymbolCategory.LIBRARY)
+
+
+class LibraryCallSymbol(Symbol):
+	def __init__(self, library, postfixes, arguments):
+		super().__init__(library.value, SymbolCategory.LIBRARY_CALL)
+		self.postfixes = [postfix.value for postfix in postfixes]
+		self.arguments = [argument.value for argument in arguments]
+
+	def __repr__(self):
+		postfixes_string = '.'.join(self.postfixes)
+		arguments_string = '(' + ','.join(self.arguments) +')'
+		return '<{class_name} {library}{postfixes}{arguments}>'.format(
+			class_name=self.__class__.__name__,
+			library = self.name,
+			postfixes = postfixes_string,
+			arguments = arguments_string
+		)
 
 
 class BuiltinTypeSymbol(object):

@@ -150,7 +150,7 @@ primary_expression ::= integer
                         | variable
                         | library_call
 
-library_call ::= variable ( "." variable )*
+library_call ::= variable ( "." variable )* ( '(' actual_parameters ')' )?
 
 variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 

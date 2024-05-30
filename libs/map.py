@@ -4,7 +4,7 @@ import geopandas as gpd
 
 def load_geojson(filename):
 	current_dir = os.path.dirname(os.path.abspath(__file__))
-	file_path = os.path.join(current_dir, 'data/', filename)
+	file_path = os.path.join(current_dir, 'data\\', filename)
 	gdf = gpd.read_file(file_path)
 	print(gdf)
 	return gdf

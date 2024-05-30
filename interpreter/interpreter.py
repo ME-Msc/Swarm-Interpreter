@@ -22,7 +22,7 @@ class Interpreter(NodeVisitor):
 		self.log_or_not = log_or_not
 		self.call_stack = CallStack()
 		self.return_value = None
-		self.wrapper = TestWrapper()
+		self.wrapper = AirsimWrapper()
 
 	def log(self, msg):
 		if self.log_or_not:
@@ -65,6 +65,12 @@ class Interpreter(NodeVisitor):
 		attr = getattr(library, node.postfixes[0].value)
 		for postfix_item in node.postfixes[1:]:
 			attr = getattr(attr, postfix_item.value)
+		if len(node.arguments):
+			args = []
+			for arg in node.arguments:
+				actual_arg = self.visit(arg)
+				args.append(actual_arg)
+			attr = attr(*args,)
 		return attr
 
 	def visit_Action(self, node, **kwargs):
@@ -375,11 +381,6 @@ class Interpreter(NodeVisitor):
 		ar = CALL_STACK.peek()
 		var_value = ar.get(var_name)
 		if var_value is None:
-			# check if the var is a library call
-			var_smbl = node.symbol
-			if var_smbl.category == SymbolCategory.LIBRARY:
-				var_value = self.visit(var_smbl.ast)
-				return var_value
 			raise NameError(repr(var_name))
 		else:
 			return var_value

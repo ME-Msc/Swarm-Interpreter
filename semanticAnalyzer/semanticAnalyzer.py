@@ -51,7 +51,11 @@ class SemanticAnalyzer(NodeVisitor):
 		library_symbol = self.global_scope.lookup(library_name)
 		if library_symbol is None:
 			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.library.token)
-		node.symbol = library_symbol
+		library_call_symbol = LibraryCallSymbol(library=node.library, postfixes=node.postfixes, arguments=node.arguments)
+
+		library_call_symbol.ast = None
+		node.symbol = library_call_symbol
+		return library_call_symbol
 
 	def visit_ActionList(self, node):
 		for action in node.children:

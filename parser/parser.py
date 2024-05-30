@@ -72,7 +72,13 @@ class Parser(BaseParser):
 			self.eat(TokenType.DOT)
 			postfix = self.variable()
 			postfixes.append(postfix)
-		node = LibraryCall(library=library, postfixes=postfixes)
+		actual_params = []
+		if self.current_token.category == TokenType.L_PAREN:
+			self.eat(TokenType.L_PAREN)
+			if self.current_token.category != TokenType.R_PAREN:
+				actual_params = self.actual_parameters()
+			self.eat(TokenType.R_PAREN)
+		node = LibraryCall(library=library, postfixes=postfixes, arguments=actual_params)
 		return node
 
 	def action_list(self):
