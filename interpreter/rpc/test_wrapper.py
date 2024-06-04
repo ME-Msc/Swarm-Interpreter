@@ -63,6 +63,11 @@ class TestWrapper:
 		print(f"flyTo_API : {vehicle_name}, ({x}, {y}, {z})->({tar_x}, {tar_y}, {z})")
 		LogLock.release()
 
+	def flyCircle_API(self, *rpc_args, vehicle_name):
+		LogLock.acquire()
+		print(f"flyCircle_API : {vehicle_name}, radius = {rpc_args[1]})")
+		LogLock.release()
+
 	def getPosition_API(self, *rpc_args, vehicle_name):
 		x, y, z = self.locations[vehicle_name]
 		LogLock.acquire()

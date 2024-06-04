@@ -56,11 +56,11 @@ class Interpreter(NodeVisitor):
 		self.log(str(CALL_STACK))
 		LogLock.release()
 
-	def visit_Library(self, node):
+	def visit_Library(self, node, **kwargs):
 		print("visit_Library", node.name.value)
 		return node.name.value
 
-	def visit_LibraryCall(self, node):
+	def visit_LibraryCall(self, node, **kwargs):
 		library = importlib.import_module(f'libs.{node.library.value}')
 		attr = getattr(library, node.postfixes[0].value)
 		for postfix_item in node.postfixes[1:]:
