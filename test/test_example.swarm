@@ -1,5 +1,6 @@
 import Map
 import Algorithm
+import Network
 
 /* test comments*/
 Action takeOff_Action(){
@@ -24,8 +25,12 @@ Action getDestination(trace, pos){
 	return dest;
 }
 
+Action flyCircle_Action(network, radius){
+	:= flyCircle_API(network, radius);
+}
+
 Agent search_uav { 
-	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination;
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination, flyCircle_Action;
 }
 
 Behavior takeOff_Behavior(h) {
@@ -54,18 +59,33 @@ Behavior cover_Behavior(traces){
 	}
 }
 
+Behavior flyCircle_Behavior(net, r){
+	@init{
+        circle_count = 0;
+	}
+	@goal{
+		$ circle_count == 1
+	}
+	@routine{
+		flyCircle_Action(net, r);
+		circle_count = circle_count + 1;
+	}
+}
+
 Task search({agtC[stC~edC]}, city_map){
 	@init{
 		/* @init 用于配置所有 sub-task, behavior 所需的必要组件 */
 		height = 50;
 		traces_for_cover = Algorithm.coverTspSolver(city_map);
 		/* FIXME: Algorithm.coverTspSolver需要无人机起始位置， 当前默认map中的第一个点 */
+		radius = 2;
 	}
 	@goal{}
 	@routine{
 		each agtC[stC~edC] {
             takeOff_Behavior(height);
 			cover_Behavior(traces_for_cover);
+			flyCircle_Behavior(Network.TD3_fly_circle, radius);
 		}
 	}
 }
