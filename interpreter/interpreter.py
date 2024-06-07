@@ -4,8 +4,7 @@ import importlib
 from base.error import InterpreterError, ErrorCode
 from base.nodeVisitor import NodeVisitor
 from interpreter.memory import ARType, ActivationRecord, CallStack
-from interpreter.rpc.airsim_wrapper import AirsimWrapper
-from interpreter.rpc.test_wrapper import TestWrapper
+from interpreter.wrapper import Wrapper, AirsimWrapper
 from lexer.token import TokenType
 from parser.element import FunctionCall
 from semanticAnalyzer.symbol import SymbolCategory
@@ -35,10 +34,8 @@ class Interpreter(NodeVisitor):
 			message=f'{error_code.value} -> {token}',
 		)
 
-	def visit_Program(self, node, **kwargs):
+	def visit_Program(self, node):
 		CALL_STACK = self.call_stack
-		if "call_stack" in kwargs:
-			CALL_STACK = kwargs["call_stack"]
 
 		self.log(f'ENTER: Program')
 		ar = ActivationRecord(
@@ -47,7 +44,7 @@ class Interpreter(NodeVisitor):
 			nesting_level=0,
 		)
 		CALL_STACK.push(ar)
-		self.visit(node.main, **kwargs)
+		self.visit(node.main, wrapper=self.wrapper)
 
 		self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
@@ -56,21 +53,19 @@ class Interpreter(NodeVisitor):
 		self.log(str(CALL_STACK))
 		LogLock.release()
 
-	def visit_Library(self, node, **kwargs):
-		print("visit_Library", node.name.value)
-		return node.name.value
-
 	def visit_LibraryCall(self, node, **kwargs):
+		wrapper = kwargs["wrapper"]
+
 		library = importlib.import_module(f'libs.{node.library.value}')
-		attr = getattr(library, node.postfixes[0].value)
+		attr = getattr(library, node.postfixes[0].value, wrapper)
 		for postfix_item in node.postfixes[1:]:
-			attr = getattr(attr, postfix_item.value)
-		if len(node.arguments):
+			attr = getattr(attr, postfix_item.value, wrapper)
+		if node.arguments is not None:
 			args = []
 			for arg in node.arguments:
-				actual_arg = self.visit(arg)
+				actual_arg = self.visit(arg, **kwargs)
 				args.append(actual_arg)
-			attr = attr(*args,)
+			attr = attr(*args, wrapper, **kwargs)
 		return attr
 
 	def visit_Action(self, node, **kwargs):
@@ -89,7 +84,7 @@ class Interpreter(NodeVisitor):
 
 		agt_smbl = node.symbol
 		agt_name = agt_smbl.name
-		self.agent_abilities[agt_name] = self.visit(agt_smbl.ast)
+		self.agent_abilities[agt_name] = self.visit(agt_smbl.ast, **kwargs)
 		cnt = self.visit(node.count, **kwargs)
 		ar = CALL_STACK.peek()
 
@@ -98,7 +93,7 @@ class Interpreter(NodeVisitor):
 		else:
 			self.error(error_code=ErrorCode.DUPLICATE_ID, token=node.agent.token)
 		agents_list = [f"{agt_name}_{i}" for i in range(cnt)]
-		self.wrapper.set_home(agents_list=agents_list)
+		kwargs["wrapper"].set_home(agents_list=agents_list)
 
 	def visit_Behavior(self, node, **kwargs):
 		self.visit(node.init_block, **kwargs)
@@ -148,12 +143,12 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 		# set Behavior environment
-		if function_symbol.category == SymbolCategory.BEHAVIOR:
-			if "wrapper" in kwargs:
-				wrapper = kwargs["wrapper"]
-			else:
-				wrapper = self.wrapper
-			getattr(wrapper, node.name)(vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
+		# if function_symbol.category == SymbolCategory.BEHAVIOR:
+		# 	if "wrapper" in kwargs:
+		# 		wrapper = kwargs["wrapper"]
+		# 	else:
+		# 		wrapper = self.wrapper
+		# 	getattr(wrapper, node.name)(vehicle_name=f'{kwargs["agent"]}_{kwargs["id"]}')
 
 		# check the abilities of agent
 		if function_symbol.category == SymbolCategory.ACTION:
@@ -190,10 +185,10 @@ class Interpreter(NodeVisitor):
 			return RPC_return_value
 
 	def visit_Task(self, node, **kwargs):
-		self.visit(node.init_block)
-		self.visit(node.routine_block)
-		while not self.visit(node.goal_block):
-			self.visit(node.routine_block)
+		self.visit(node.init_block, **kwargs)
+		self.visit(node.routine_block, **kwargs)
+		while not self.visit(node.goal_block, **kwargs):
+			self.visit(node.routine_block, **kwargs)
 
 	def visit_TaskCall(self, node, **kwargs):
 		CALL_STACK = self.call_stack
@@ -229,23 +224,23 @@ class Interpreter(NodeVisitor):
 
 		vehicle_name_list = [] # for setting task environment
 		for param_agent_symbol, argument_agent_node in zip(formal_params_agent_list, actual_params_agent_list):
-			ar[param_agent_symbol.agent] = self.visit(argument_agent_node.agent)
-			ar[param_agent_symbol.start] = self.visit(argument_agent_node.start)
-			ar[param_agent_symbol.end] = self.visit(argument_agent_node.end)
+			ar[param_agent_symbol.agent] = self.visit(argument_agent_node.agent, **kwargs)
+			ar[param_agent_symbol.start] = self.visit(argument_agent_node.start, **kwargs)
+			ar[param_agent_symbol.end] = self.visit(argument_agent_node.end, **kwargs)
 			for now in range(ar[param_agent_symbol.start], ar[param_agent_symbol.end]):
 				vehicle_name_list.append(f'{ar[param_agent_symbol.agent][0]}_{now}')
 
 		for param_symbol, argument_node in zip(formal_params, actual_params):
-			ar[param_symbol.name] = self.visit(argument_node)
+			ar[param_symbol.name] = self.visit(argument_node, **kwargs)
 
 		CALL_STACK.push(ar)
 
 		self.log(f'ENTER: Task {task_name}')
 		self.log(str(CALL_STACK))
 
-		getattr(self.wrapper, node.name)(vehicle_name_list = vehicle_name_list)
+		# getattr(self.wrapper, node.name)(vehicle_name_list = vehicle_name_list)
 		# evaluate task body
-		self.visit(task_symbol.ast)
+		self.visit(task_symbol.ast, **kwargs)
 
 		self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
@@ -255,10 +250,10 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 	def visit_TaskOrder(self, node, **kwargs):
-		agent_s_e, start, end = self.visit(node.agent_range)
+		agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 		now = start
 		while now < end:
-			self.visit(node.function_call_statements, agent=agent_s_e[0], id=now)
+			self.visit(node.function_call_statements, agent=agent_s_e[0], id=now, **kwargs)
 			now += 1
 
 	def visit_TaskEach(self, node, **kwargs):
@@ -268,7 +263,7 @@ class Interpreter(NodeVisitor):
 
 		agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
-		def agent_work(agent_id, cs: CallStack, wpr:AirsimWrapper):
+		def agent_work(agent_id, cs: CallStack, wpr:Wrapper):
 			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs, wrapper=wpr)
 
 		parent_call_stack = CALL_STACK
@@ -277,7 +272,7 @@ class Interpreter(NodeVisitor):
 		threads = []
 		for now in range(start, end):
 			child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
-			child_wrapper = self.wrapper.copy()
+			child_wrapper = kwargs["wrapper"].copy()
 			thread = threading.Thread(target=agent_work, args=(now, child_call_stack, child_wrapper))
 			threads.append(thread)
 
@@ -328,9 +323,9 @@ class Interpreter(NodeVisitor):
 		self.log(f'ENTER: Main')
 
 		for agent_call_node in node.agent_call_list.children:
-			self.visit(agent_call_node)
+			self.visit(agent_call_node, **kwargs)
 		self.log(str(CALL_STACK))
-		self.visit(node.task_call)
+		self.visit(node.task_call, **kwargs)
 
 		self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()

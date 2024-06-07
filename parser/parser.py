@@ -72,8 +72,9 @@ class Parser(BaseParser):
 			self.eat(TokenType.DOT)
 			postfix = self.variable()
 			postfixes.append(postfix)
-		actual_params = []
+		actual_params = None	# variable in library
 		if self.current_token.category == TokenType.L_PAREN:
+			actual_params = []	# function in library
 			self.eat(TokenType.L_PAREN)
 			if self.current_token.category != TokenType.R_PAREN:
 				actual_params = self.actual_parameters()
@@ -117,6 +118,9 @@ class Parser(BaseParser):
 	def action_statement(self):
 		if self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
 			node = self.assignment_statement()
+		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.DOT:
+			node = self.library_call()
+			self.eat(TokenType.SEMI)
 		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.RPC_CALL:
 			node = self.action_RPC_call_assignment_statement()
 		elif self.current_token.category == TokenType.RPC_CALL:
@@ -413,8 +417,11 @@ class Parser(BaseParser):
 			node = self.task_order()
 		elif self.current_token.category == TokenType.EACH:
 			node = self.task_each()
-		elif self.current_token.category == TokenType.ID:
+		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
 			node = self.assignment_statement()
+		# elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.DOT:
+		# 	node = self.library_call()
+		# 	self.eat(TokenType.SEMI)
 		elif self.current_token.category == TokenType.PUT:
 			node = self.put_statement()
 		elif self.current_token.category == TokenType.GET:

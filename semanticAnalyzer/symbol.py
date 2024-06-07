@@ -45,7 +45,11 @@ class LibraryCallSymbol(Symbol):
 	def __init__(self, library, postfixes, arguments):
 		super().__init__(library.value, SymbolCategory.LIBRARY_CALL)
 		self.postfixes = [postfix.value for postfix in postfixes]
-		self.arguments = [argument.value for argument in arguments]
+		if arguments is not None:
+			self.arguments = [argument.value for argument in arguments if argument is not None]
+		else:
+			self.arguments = []
+
 
 	def __repr__(self):
 		postfixes_string = '.'.join(self.postfixes)

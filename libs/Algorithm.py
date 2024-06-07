@@ -105,7 +105,8 @@ class TspSolver():
 		return routes_locations
 	
 
-def coverTspSolver(geojson_map):
+def coverTspSolver(*args, **kwargs):
+	geojson_map = args[0]
 	locations = [point.coords[0] for point in geojson_map.geometry]
 	solver = TspSolver(locations, 3)
 	return solver.routes_locations

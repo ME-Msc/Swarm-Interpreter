@@ -4,7 +4,7 @@ import time
 import copy
 import airsim
 import os
-from interpreter.rpc.searchTspSolver import searchTspSolver
+from interpreter.rpc.searchTspSolver import searchTspSolver # type: ignore
 
 LogLock = threading.Lock()
 
