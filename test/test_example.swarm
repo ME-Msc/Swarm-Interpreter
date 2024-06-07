@@ -26,8 +26,12 @@ Action getDestination(trace, pos){
 	return dest;
 }
 
+Action flyCircle_Action(network, radius, position){
+	Uav.flyCircle_API(network, radius, position);
+}
+
 Agent search_uav {
-	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination;
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination, flyCircle_Action;
 }
 
 Behavior takeOff_Behavior(h) {
@@ -44,7 +48,7 @@ Behavior cover_Behavior(traces){
         step = 0;
     }
 	@goal{
-        $ step > 5
+        $ step > 2
     }
 	@routine{
 		/* TODO: fly_a_trace(my_trace); */
@@ -55,16 +59,32 @@ Behavior cover_Behavior(traces){
 	}
 }
 
+Behavior flyCircle_Behavior(net, r){
+	@init{
+        circle_count = 0;
+	}
+	@goal{
+		$ circle_count == 1
+	}
+	@routine{
+		pos = getPosition();
+		flyCircle_Action(net, r, pos);
+		circle_count = circle_count + 1;
+	}
+}
+
 Task search({agtC[stC~edC]}, city_map){
 	@init{
 		height = 50;
 		traces_for_cover = Algorithm.coverTspSolver(city_map);
+		radius = 5;
 	}
 	@goal{}
 	@routine{
 		each agtC[stC~edC] {
             takeOff_Behavior(height);
 			cover_Behavior(traces_for_cover);
+			flyCircle_Behavior(Network.TD3_fly_circle, radius);
 		}
 	}
 }

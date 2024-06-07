@@ -31,9 +31,6 @@ class AirsimWrapper(Wrapper):
 		# connect to the AirSim simulator
 		self.clients = {}
 		self.home = {}
-		self.lock = threading.Lock()
-		self.task = {}
-		self.behavior = {}
 
 		if wait_or_not:
 			# set_global_camera
@@ -60,8 +57,6 @@ class AirsimWrapper(Wrapper):
 			if k != "GlobalCamera":
 				new_wrapper.clients[k] = self.clients[k]
 		new_wrapper.home = copy.deepcopy(self.home)
-		new_wrapper.lock = threading.Lock()
-		new_wrapper.task = copy.deepcopy(self.task)
 		return new_wrapper
 
 	def set_home(self, agents_list: list):
