@@ -25,7 +25,7 @@ import UavWrapper		/* 获取无人机状态信息的标准库函数 */
 /*     ready_message = ""											*/
 /*     can_arm = False												*/
 
-import Network
+import Network 
 
 /* 3. getState等组件还应该是Action，和强化学习的 Action 不是同一个概念， Behavior 是 Action 的序列，语言结构是完整的  */
 /* getPosition、getGPS 等也是读取无人机传感器数据，应该是 Action */
@@ -53,8 +53,8 @@ Action flyTo_Action(dest){
     := flyTo_API(dest);
 }
 
-Action flyCircle_Action(stt, radius){
-	:= flyCircle_API(stt, radius);
+Action flyCircle_Action(network, radius){
+	:= flyCircle_API(network, radius);
 }
 
 Agent search_uav {
@@ -89,15 +89,16 @@ Behavior cover_Behavior(trace_for_cover){
 	}
 }
 
-Behavior flyCircle_Behavior(network, r){
+Behavior flyCircle_Behavior(net, r){
 	@init{
-        circle_number = 0;
+        circle_count = 0;
 	}
 	@goal{
-		$ circle_number == 10
+		$ circle_count == 3
 	}
 	@routine{
-		flyCircle_Action(network, r);
+		flyCircle_Action(net, r);
+		circle_count = circle_count + 1;
 	}
 }
 
@@ -117,7 +118,7 @@ Task search({agtC[stC~edC]}, city_map){
 			flyCircle_Behavior(Network.TD3_fly_circle, radius);
 		}
 	}
-}
+} 
 
 Main {
 	Agent search_uav 3 {(0, 0), (1, 1), (2, 2)};

@@ -1,33 +1,40 @@
-Port : 41451
+import Map
+import Algorithm
+import Network
+import Uav
 
+/* test comments*/
 Action takeOff_Action(){
-	:= takeOff_API();
+	Uav.takeOff_API();
 }
 
 Action flyToHeight_Action(h){
-	:= flyToHeight_API(h);
-}
-
-Action getState_Action(){
-    stt := getState_API();
-    return stt;
-}
-
-Action getTspDestination_Action(stt){
-    dest := getTspDestination_API(stt);
-    return dest;
+	Uav.flyToHeight_API(h);
 }
 
 Action flyTo_Action(dest){
-    := flyTo_API(dest);
+    Uav.flyTo_API(dest);
 }
 
-Action flyCircle_Action(stt, radius){
-	:= flyCircle_API(stt, radius);
+Action flyCircle_Action(network, radius){
+	pos = Uav.getPosition_API();
+	Uav.flyCircle_API(network, radius, pos);
+}
+
+Action getPosition(){
+	pos = Uav.getPosition_API();
+	return pos;
+}
+
+Action getDestination(trace, pos){
+	/* dest = ??.getDestination_API(trace, pos); */
+	dest = Uav.getDestination_API(trace, pos); 
+	return dest;
 }
 
 Agent search_uav {
-	takeOff_Action, getState_Action, getTspDestination_Action, flyTo_Action, flyCircle_Action;
+	/* default Agent construction function */
+	takeOff_Action, flyToHeight_Action, flyTo_Action, flyCircle_Action, getPosition, getDestination;
 }
 
 Behavior takeOff_Behavior(h) {
@@ -35,11 +42,11 @@ Behavior takeOff_Behavior(h) {
 	@goal{}
 	@routine{
 		takeOff_Action();
-		flyToHeight_Action(h);
+		/* flyToHeight_Action(h); */
 	}
 }
 
-Behavior search_Behavior(){
+Behavior cover_Behavior(traces){
 	@init{
         step = 0;
     }
@@ -47,47 +54,50 @@ Behavior search_Behavior(){
         $ step > 5
     }
 	@routine{
-        state = getState_Action();
-        destination = getTspDestination_Action(state);
+		/* TODO: fly_a_trace(my_trace); */
+        position = getPosition();
+        destination = getDestination(traces, position);
         flyTo_Action(destination);
         step = step + 1;
 	}
 }
 
-Behavior flyCircle_Behavior(r){
+Behavior flyCircle_Behavior(net, r){
 	@init{
-        step = 0;
+        circle_count = 0;
 	}
 	@goal{
-		get d from #done#;
-		$ d == 3
+		$ circle_count == 1
 	}
 	@routine{
-		state = getState_Action();
-		flyCircle_Action(state, r);
-		step = step + 1;
-		if(step == 200) {
-			get d from #done#;
-			put d+1 to #done#;
-		}
+		flyCircle_Action(net, r);
+		circle_count = circle_count + 1;
 	}
 }
 
-Task search({agtC[stC~edC]}){
+Task search({agtC[stC~edC]}, city_map){
 	@init{
-		put 0 to #done#;
+		/* @init 用于配置所有 sub-task, behavior 所需的必要组件 */
+		height = 50;
+		traces_for_cover = Algorithm.coverTspSolver(city_map);
+		/* FIXME: Algorithm.coverTspSolver需要无人机起始位置， 当前默认map中的第一个点 */
+		radius = 2;
 	}
 	@goal{}
 	@routine{
 		order agtC[stC~edC] {
-            takeOff_Behavior(50);
-			search_Behavior();
-			flyCircle_Behavior(5);
+            takeOff_Behavior(height);
+			/* cover_Behavior(traces_for_cover); */ 
+			/* flyCircle_Behavior(Network.TD3_fly_circle, radius); */
 		}
 	}
 }
 
 Main {
 	Agent search_uav 3;
-	search({search_uav[0~3]});
+	search({search_uav[0~3]}, Map.AirsimNH);
 }
+
+/* Agent创建、Task和behavior基本配置时应该调用谁 */
+
+/* 简单版本（worldSim），并发（一边拍照一边飞行），通信 */
