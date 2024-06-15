@@ -42,6 +42,7 @@ class Parser(BaseParser):
 		super().__init__(lexer)
 
 	def program(self):
+		# program ::= library_list action_list agent_list behavior_list task_list main
 		library_list = self.library_list()
 		action_list = self.action_list()
 		agent_list = self.agent_list()
@@ -49,23 +50,25 @@ class Parser(BaseParser):
 		task_list = self.task_list()
 		main_node = self.main()
 		program_node = Program(library_list=library_list, action_list=action_list, agent_list=agent_list,
-		                       behavior_list=behavior_list, task_list=task_list, main=main_node)
+							   behavior_list=behavior_list, task_list=task_list, main=main_node)
 		return program_node
 
 	def library_list(self):
+		# library_list ::= library+
 		root = LibraryList()
 		while self.current_token.category == TokenType.IMPORT:
 			root.children.append(self.library())
 		return root
 
 	def library(self):
-		""" library ::= 'Import' variable """
+		# library ::= "Import" variable
 		self.eat(TokenType.IMPORT)
 		node = self.variable()
 		node = Library(node)
 		return node
 	
 	def library_call(self):
+		# library_call ::= variable ( "." variable )* ( '(' actual_parameters ')' )?
 		library = self.variable()
 		postfixes = []
 		while self.current_token.category == TokenType.DOT:
@@ -83,16 +86,14 @@ class Parser(BaseParser):
 		return node
 
 	def action_list(self):
+		# action_list ::= action+
 		root = ActionList()
 		while self.current_token.category == TokenType.ACTION:
 			root.children.append(self.action())
 		return root
 
 	def action(self):
-		"""
-		action_defination ::= "Action" action_name "(" ")" ":" compound_statement
-		action_name ::= variable
-		"""
+		# action ::= "Action" variable "(" formal_parameters? ")" action_compound
 		self.eat(TokenType.ACTION)
 		var_node = self.variable()
 		action_name = var_node.value
@@ -106,6 +107,7 @@ class Parser(BaseParser):
 		return node
 
 	def action_compound(self):
+		# action_compound ::= "{" action_statement* "}"
 		self.eat(TokenType.L_BRACE)
 		root = Compound()
 		while self.current_token.category != TokenType.R_BRACE:
@@ -116,49 +118,32 @@ class Parser(BaseParser):
 		return root
 
 	def action_statement(self):
-		if self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
-			node = self.assignment_statement()
+		# action_statement ::= action_if_else
+		# 					| action_return_statement
+		# 					| library_call ";"
+		# 					| assignment_statement
+		# 					| put_statement
+		# 					| get_statement
+		# 					| empty_statement 
+		if self.current_token.category == TokenType.IF:
+			node = self.action_if_else()
+		elif self.current_token.category == TokenType.RETURN:
+			node = self.action_return_statement()
 		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.DOT:
 			node = self.library_call()
 			self.eat(TokenType.SEMI)
-		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.RPC_CALL:
-			node = self.action_RPC_call_assignment_statement()
-		elif self.current_token.category == TokenType.RPC_CALL:
-			node = self.action_RPC_call_statement()
+		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
+			node = self.assignment_statement()
 		elif self.current_token.category == TokenType.PUT:
 			node = self.put_statement()
 		elif self.current_token.category == TokenType.GET:
 			node = self.get_statement()
-		elif self.current_token.category == TokenType.IF:
-			node = self.action_if_else()
-		elif self.current_token.category == TokenType.RETURN:
-			node = self.action_return_statement()
 		else:
 			node = self.empty_statement()
 		return node
 
-	def action_RPC_call_statement(self):
-		self.eat(TokenType.RPC_CALL)
-		node = self.function_call_statement()
-		return node
-
-	def action_RPC_call_assignment_statement(self):
-		var = self.variable()
-		token = self.current_token
-		# := is in self.function_call_statement()
-		# self.eat(TokenType.RPC_CALL)
-		call_node = self.action_RPC_call_statement()
-		node = BinOp(var, token, call_node)
-		return node
-
-	def action_return_statement(self):
-		self.eat(TokenType.RETURN)
-		var_node = self.variable()
-		self.eat(TokenType.SEMI)
-		node = Return(var=var_node)
-		return node
-
 	def action_if_else(self):
+		# action_if_else ::= "if" "(" expression ")" action_compound ( "else" action_compound )?
 		self.eat(TokenType.IF)
 		self.eat(TokenType.L_PAREN)
 		expr_node = self.expression()
@@ -171,13 +156,23 @@ class Parser(BaseParser):
 		node = IfElse(expr=expr_node, true_cmpd=true_cmpd_node, false_cmpd=false_cmpd_node)
 		return node
 
+	def action_return_statement(self):
+		# action_return_statement ::= "return" expression ";"
+		self.eat(TokenType.RETURN)
+		expr_node = self.expression()
+		self.eat(TokenType.SEMI)
+		node = Return(expr=expr_node)
+		return node
+
 	def agent_list(self):
+		# agent_list ::= agent+
 		root = AgentList()
 		while self.current_token.category == TokenType.AGENT:
 			root.children.append(self.agent())
 		return root
 
 	def agent(self):
+		# agent ::= "Agent" variable "{" ( variable ( "," variable )* )? ";" "}"
 		self.eat(TokenType.AGENT)
 		var_node = self.variable()
 		agent_name = var_node.value
@@ -196,6 +191,7 @@ class Parser(BaseParser):
 		return agent_node
 
 	def agent_call_statement(self):
+		# agent_call_statement ::= "Agent" variable integer ";"
 		self.eat(TokenType.AGENT)
 		agt_node = self.variable()
 		cnt_node = self.integer()
@@ -204,12 +200,14 @@ class Parser(BaseParser):
 		return node
 
 	def behavior_list(self):
+		# behavior_list ::= behavior+
 		root = BehaviorList()
 		while self.current_token.category == TokenType.BEHAVIOR:
 			root.children.append(self.behavior())
 		return root
 
 	def behavior(self):
+		# behavior ::= "Behavior" variable "(" formal_parameters? ")" "{" behavior_init_block behavior_goal_block behavior_routine_block "}"
 		self.eat(TokenType.BEHAVIOR)
 		var_node = self.variable()
 		behavior_name = var_node.value
@@ -223,17 +221,19 @@ class Parser(BaseParser):
 		goal_node = self.behavior_goal_block()
 		routine_node = self.behavior_routine_block()
 		node = Behavior(name=behavior_name, formal_params=formal_params_nodes,
-		                init_block=init_node, goal_block=goal_node, routine_block=routine_node)
+						init_block=init_node, goal_block=goal_node, routine_block=routine_node)
 		self.eat(TokenType.R_BRACE)
 		return node
 
 	def behavior_init_block(self):
+		# behavior_init_block ::= "@init" behavior_compound
 		self.eat(TokenType.INIT)
 		behavior_compound_node = self.behavior_compound()
 		node = InitBlock(compound_statement=behavior_compound_node)
 		return node
 
 	def behavior_goal_block(self):
+		# behavior_goal_block ::= "@goal" "{" ( behavior_statement* "$" expression )? "}"
 		self.eat(TokenType.GOAL)
 		self.eat(TokenType.L_BRACE)
 		statements_root = Compound()
@@ -251,6 +251,7 @@ class Parser(BaseParser):
 		return node
 
 	def behavior_routine_block(self):
+		# behavior_routine_block ::= "@routine" behavior_compound ( "||" behavior_compound )*
 		self.eat(TokenType.ROUTINE)
 		root = RoutineBlock()
 		node = self.behavior_compound()
@@ -262,6 +263,7 @@ class Parser(BaseParser):
 		return root
 
 	def behavior_compound(self):
+		# behavior_compound ::= "{" behavior_statement* "}"
 		self.eat(TokenType.L_BRACE)
 		root = Compound()
 		while self.current_token.category != TokenType.R_BRACE:
@@ -271,40 +273,29 @@ class Parser(BaseParser):
 		self.eat(TokenType.R_BRACE)
 		return root
 
-	# TODO: behavior_statement not finish yet
 	def behavior_statement(self):
-		'''
-		behavior_statement ::= put_statement
-						| get_statement
-						| behavior_publish_statement
-						| behavior_subscribe_statement
-						| behavior_unsubscribe_statement
-						| behavior_assignment_statement
-						| behavior_if_else
-						| empty_statement
-		'''
-		if self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.L_PAREN:
+		# behavior_statement ::= behavior_if_else
+		# 						| function_call_statement
+		# 						| assignment_statement
+		# 						| put_statement
+		# 						| get_statement
+		# 						| empty_statement
+		if self.current_token.category == TokenType.IF:
+			node = self.behavior_if_else()
+		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.L_PAREN:
 			node = self.function_call_statement()
-		elif self.current_token.category == TokenType.ID:
+		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
 			node = self.assignment_statement()
 		elif self.current_token.category == TokenType.PUT:
 			node = self.put_statement()
 		elif self.current_token.category == TokenType.GET:
 			node = self.get_statement()
-		elif self.current_token.category == TokenType.IF:
-			node = self.behavior_if_else()
 		else:
 			node = self.empty_statement()
 		return node
 
-	"""
-	TODO: behavior_publish_statement
-	behavior_subscribe_statement
-	behavior_unsubscribe_statement
-	behavior_assignment_statement
-	"""
-
 	def behavior_if_else(self):
+		# behavior_if_else ::= "if" "(" expression ")" behavior_compound ( "else" behavior_compound )?
 		self.eat(TokenType.IF)
 		self.eat(TokenType.L_PAREN)
 		expr_node = self.expression()
@@ -318,6 +309,7 @@ class Parser(BaseParser):
 		return node
 
 	def function_call_statement(self):
+		# function_call_statement ::= variable "(" actual_parameters? ")" ";"
 		function_call = self.variable()
 		self.eat(TokenType.L_PAREN)
 		actual_params = []
@@ -333,12 +325,14 @@ class Parser(BaseParser):
 		return node
 
 	def task_list(self):
+		# task_list ::= task+
 		root = TaskList()
 		while self.current_token.category == TokenType.TASK:
 			root.children.append(self.task())
 		return root
 
 	def task(self):
+		# task ::= "Task" variable "(" formal_parameters_agent_range_list ( "," formal_parameters )? ")" "{" task_init_block task_goal_block task_routine_block "}"
 		self.eat(TokenType.TASK)
 		var_node = self.variable()
 		task_name = var_node.value
@@ -354,18 +348,20 @@ class Parser(BaseParser):
 		goal_node = self.task_goal_block()
 		routine_node = self.task_routine_block()
 		node = Task(name=task_name, formal_params_agent_list=formal_params_agent_list,
-		            formal_params=formal_params_nodes,
-		            init_block=init_node, goal_block=goal_node, routine_block=routine_node)
+					formal_params=formal_params_nodes,
+					init_block=init_node, goal_block=goal_node, routine_block=routine_node)
 		self.eat(TokenType.R_BRACE)
 		return node
 
 	def task_init_block(self):
+		# task_init_block ::= "@init" task_compound
 		self.eat(TokenType.INIT)
 		task_compound_node = self.task_compound()
 		node = InitBlock(compound_statement=task_compound_node)
 		return node
 
 	def task_goal_block(self):
+		# task_goal_block ::= "@goal" "{" ( task_statement* "$" expression )? "}"
 		self.eat(TokenType.GOAL)
 		self.eat(TokenType.L_BRACE)
 		statements_root = Compound()
@@ -383,6 +379,7 @@ class Parser(BaseParser):
 		return node
 
 	def task_routine_block(self):
+		# task_routine_block ::= "@routine" task_compound ( "||" task_compound )*
 		self.eat(TokenType.ROUTINE)
 		root = RoutineBlock()
 		node = self.task_compound()
@@ -393,13 +390,8 @@ class Parser(BaseParser):
 			root.children.append(node)
 		return root
 
-	"""
-	TODO: task_routine_parallel
-	task_routine_order
-	task_routine_each
-	"""
-
 	def task_compound(self):
+		# task_compound ::= "{" task_statement* "}"
 		self.eat(TokenType.L_BRACE)
 		root = Compound()
 		while self.current_token.category != TokenType.R_BRACE:
@@ -409,30 +401,35 @@ class Parser(BaseParser):
 		self.eat(TokenType.R_BRACE)
 		return root
 
-	# TODO: task_statement not finish yet
 	def task_statement(self):
-		if self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.L_PAREN:
-			node = self.task_call_statement()
-		elif self.current_token.category == TokenType.ORDER:
+		# task_statement ::= task_order
+		# 					| task_each
+		# 					| task_if_else
+		# 					| task_call_statement
+		# 					| assignment_statement
+		# 					| put_statement
+		# 					| get_statement
+		# 					| empty_statement
+		if self.current_token.category == TokenType.ORDER:
 			node = self.task_order()
 		elif self.current_token.category == TokenType.EACH:
 			node = self.task_each()
+		elif self.current_token.category == TokenType.IF:
+			node = self.task_if_else()
+		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.L_PAREN:
+			node = self.task_call_statement()
 		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
 			node = self.assignment_statement()
-		# elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.DOT:
-		# 	node = self.library_call()
-		# 	self.eat(TokenType.SEMI)
 		elif self.current_token.category == TokenType.PUT:
 			node = self.put_statement()
 		elif self.current_token.category == TokenType.GET:
 			node = self.get_statement()
-		elif self.current_token.category == TokenType.IF:
-			node = self.task_if_else()
 		else:
 			node = self.empty_statement()
 		return node
 
 	def task_order(self):
+		# task_order ::= "order" actual_parameters_agent_range "{" function_call_statement* "}"
 		self.eat(TokenType.ORDER)
 		agt_range = self.actual_parameters_agent_range()
 		self.eat(TokenType.L_BRACE)
@@ -448,6 +445,7 @@ class Parser(BaseParser):
 		return root
 
 	def task_each(self):
+		# task_each ::= "each" actual_parameters_agent_range "{" function_call_statement* "}"
 		self.eat(TokenType.EACH)
 		agt_range = self.actual_parameters_agent_range()
 		self.eat(TokenType.L_BRACE)
@@ -463,6 +461,7 @@ class Parser(BaseParser):
 		return root
 
 	def task_if_else(self):
+		# task_if_else ::= "if" "(" expression ")" task_compound ( "else" task_compound )?
 		self.eat(TokenType.IF)
 		self.eat(TokenType.L_PAREN)
 		expr_node = self.expression()
@@ -476,6 +475,7 @@ class Parser(BaseParser):
 		return node
 
 	def task_call_statement(self):
+		# task_call_statement ::= variable "(" actual_parameters_agent_range_list ( "," actual_parameters )? ")" ";"
 		task_call = self.variable()
 		self.eat(TokenType.L_PAREN)
 		actual_params_agent_list = self.actual_parameters_agent_range_list()
@@ -484,16 +484,17 @@ class Parser(BaseParser):
 			self.eat(TokenType.COMMA)
 			actual_params = self.actual_parameters()
 		self.eat(TokenType.R_PAREN)
+		self.eat(TokenType.SEMI)
 		node = TaskCall(
 			name=task_call.value,
 			actual_params_agent_list=actual_params_agent_list,
 			actual_params=actual_params,
 			token=task_call.token
 		)
-		self.eat(TokenType.SEMI)
 		return node
 
 	def main(self):
+		# main ::= "Main" "{" agent_call_statement+ task_call_statement "}"
 		self.eat(TokenType.MAIN)
 		self.eat(TokenType.L_BRACE)
 		agentCallRoot = AgentCallList()
@@ -505,36 +506,10 @@ class Parser(BaseParser):
 		self.eat(TokenType.R_BRACE)
 		return node
 
-	def put_statement(self):
-		token = self.current_token
-		self.eat(TokenType.PUT)
-		if self.current_token.category == TokenType.STRING:
-			message = self.string()
-		else:
-			message = self.expression()
-		self.eat(TokenType.TO)
-		stigmergy = self.stigmergy()
-		self.eat(TokenType.SEMI)
-		node = BinOp(message, token, stigmergy)
-		return node
-
-	def get_statement(self):
-		token = self.current_token
-		self.eat(TokenType.GET)
-		var = self.variable()
-		self.eat(TokenType.FROM)
-		stigmergy = self.stigmergy()
-		self.eat(TokenType.SEMI)
-		node = BinOp(var, token, stigmergy)
-		return node
-
 	def assignment_statement(self):
-		"""
-		assignment_statement ::= variable "=" ( ( string ";" )
-												| ( expression ";" )
-												| function_call_statement
-												)
-		"""
+		# assignment_statement ::= variable "=" ( ( string  ";" ) 
+		# 											| function_call_statement
+		# 											| ( expression ";" ) )
 		left = self.variable()
 		token = self.current_token
 		self.eat(TokenType.ASSIGN)
@@ -549,24 +524,38 @@ class Parser(BaseParser):
 		node = BinOp(left, token, right)
 		return node
 
+	def put_statement(self):
+		# put_statement ::= "put" ( string | expression ) "to" variable ";"
+		token = self.current_token
+		self.eat(TokenType.PUT)
+		if self.current_token.category == TokenType.STRING:
+			value = self.string()
+		else:
+			value = self.expression()
+		self.eat(TokenType.TO)
+		key = self.variable()
+		self.eat(TokenType.SEMI)
+		node = BinOp(value, token, key)
+		return node
+
+	def get_statement(self):
+		# get_statement ::= "get" variable "from" variable ";"
+		token = self.current_token
+		self.eat(TokenType.GET)
+		var = self.variable()
+		self.eat(TokenType.FROM)
+		key = self.variable()
+		self.eat(TokenType.SEMI)
+		node = BinOp(var, token, key)
+		return node
+
 	def empty_statement(self):
-		"""An empty_statement production"""
+		# empty_statement ::= ";"
 		self.eat(TokenType.SEMI)
 		return NoOp()
 
-	def stigmergy(self):
-		self.eat(TokenType.HASH)
-		node = self.variable()
-		self.eat(TokenType.HASH)
-		return node
-
-	"""
-	TODO: /* Basic Elements */
-	topic_p2p ::= "<" variable ">"
-	topic_multicast ::= "<<" variable ">>"
-	"""
-
 	def formal_parameters_agent_range_list(self):
+		# formal_parameters_agent_range_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range )* "}"
 		root = AgentRangeList()
 		self.eat(TokenType.L_BRACE)
 		agent_range_node = self.formal_parameters_agent_range()
@@ -579,6 +568,7 @@ class Parser(BaseParser):
 		return root
 
 	def actual_parameters_agent_range_list(self):
+		# actual_parameters_agent_range_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range )* "}"
 		actual_params_agent_list = []
 		self.eat(TokenType.L_BRACE)
 		agent_range_node = self.actual_parameters_agent_range()
@@ -591,6 +581,7 @@ class Parser(BaseParser):
 		return actual_params_agent_list
 
 	def formal_parameters_agent_range(self):
+		# formal_parameters_agent_range ::= variable "[" variable "~" variable "]"
 		agent = self.variable()
 		self.eat(TokenType.L_BRACKET)
 		start = self.variable()
@@ -601,6 +592,7 @@ class Parser(BaseParser):
 		return root
 
 	def actual_parameters_agent_range(self):
+		# actual_parameters_agent_range ::= variable "[" additive_expression "~" additive_expression "]"
 		agent = self.variable()
 		self.eat(TokenType.L_BRACKET)
 		start = self.additive_expression()
@@ -611,9 +603,7 @@ class Parser(BaseParser):
 		return root
 
 	def formal_parameters(self):
-		"""
-		formal_parameters ::= variable ( "," variable )*
-		"""
+		# formal_parameters ::= variable ( "," variable )*
 		root = FormalParams()
 		param_node = self.variable()
 		root.children.append(param_node)
@@ -624,6 +614,7 @@ class Parser(BaseParser):
 		return root
 
 	def actual_parameters(self):
+		# actual_parameters ::= additive_expression ( "," additive_expression )*
 		actual_params = []
 		node = self.additive_expression()
 		actual_params.append(node)
@@ -634,15 +625,11 @@ class Parser(BaseParser):
 		return actual_params
 
 	def expression(self):
-		"""
-		expression ::= logical_not_expression
-		"""
+		# expression ::= logical_not_expression
 		return self.logical_not_expression()
 
 	def logical_not_expression(self):
-		"""
-		logical_not_expression ::= "not"? logical_or_expression
-		"""
+		# logical_not_expression ::= "not"? logical_or_expression
 		if self.current_token.category == TokenType.NOT:
 			token = self.current_token
 			self.eat(TokenType.NOT)
@@ -653,10 +640,8 @@ class Parser(BaseParser):
 		return node
 
 	def logical_or_expression(self):
-		"""
-		logical_or_expression ::= logical_and_expression
-								| logical_and_expression "or" logical_or_expression
-		"""
+		# logical_or_expression ::= logical_and_expression
+		# 							| logical_and_expression "or" logical_or_expression
 		node = self.logical_and_expression()
 		if self.current_token.category == TokenType.OR:
 			token = self.current_token
@@ -665,10 +650,8 @@ class Parser(BaseParser):
 		return node
 
 	def logical_and_expression(self):
-		"""
-		logical_and_expression ::= equality_expression
-						| equality_expression "and" logical_and_expression
-		"""
+		# logical_and_expression ::= equality_expression
+		# 						| equality_expression "and" logical_and_expression
 		node = self.equality_expression()
 		if self.current_token.category == TokenType.AND:
 			token = self.current_token
@@ -677,11 +660,9 @@ class Parser(BaseParser):
 		return node
 
 	def equality_expression(self):
-		"""
-		equality_expression ::= relational_expression
-							| relational_expression "==" equality_expression
-							| relational_expression "!=" equality_expression
-		"""
+		# equality_expression ::= relational_expression
+		# 						| relational_expression "==" equality_expression
+		# 						| relational_expression "!=" equality_expression
 		node = self.relational_expression()
 		if self.current_token.category == TokenType.IS_EQUAL:
 			token = self.current_token
@@ -694,13 +675,11 @@ class Parser(BaseParser):
 		return node
 
 	def relational_expression(self):
-		"""
-		relational_expression ::= additive_expression
-						| additive_expression "<" relational_expression
-						| additive_expression "<=" relational_expression
-						| additive_expression ">" relational_expression
-						| additive_expression ">=" relational_expression
-		"""
+		# relational_expression ::= additive_expression
+		# 							| additive_expression "<" relational_expression
+		# 							| additive_expression "<=" relational_expression
+		# 							| additive_expression ">" relational_expression
+		# 							| additive_expression ">=" relational_expression
 		node = self.additive_expression()
 		if self.current_token.category == TokenType.LESS:
 			token = self.current_token
@@ -721,9 +700,7 @@ class Parser(BaseParser):
 		return node
 
 	def additive_expression(self):
-		"""
-		additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative_expression )*
-		"""
+		# additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative_expression )*
 		node = self.multiplicative_expression()
 		while self.current_token.category in (TokenType.PLUS, TokenType.MINUS):
 			token = self.current_token
@@ -735,9 +712,7 @@ class Parser(BaseParser):
 		return node
 
 	def multiplicative_expression(self):
-		"""
-		multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
-		"""
+		# multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
 		node = self.primary_expression()
 		while self.current_token.category in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
 			token = self.current_token
@@ -751,59 +726,55 @@ class Parser(BaseParser):
 		return node
 
 	def primary_expression(self):
-		"""
-		primary_expression ::= integer
-						| ( "+" | "-" ) primary_expression
-						| "(" additive_expression ")"
-						| variable
-		"""
+		# primary_expression ::= ( ( "+" | "-" ) primary_expression )
+		# 						| "(" additive_expression ")"
+		# 						| library_call
+		# 						| variable
+		# 						| integer
+		# 						| float
 		token = self.current_token
 		next_token = self.peek_next_token()
 		if token.category == TokenType.PLUS:
 			self.eat(TokenType.PLUS)
 			node = UnaryOp(token, self.primary_expression())
-			return node
 		elif token.category == TokenType.MINUS:
 			self.eat(TokenType.MINUS)
 			node = UnaryOp(token, self.primary_expression())
-			return node
-		elif token.category == TokenType.FLOAT:
-			node = self.float()
-			return node
-		elif token.category == TokenType.INTEGER:
-			node = self.integer()
-			return node
 		elif token.category == TokenType.L_PAREN:
 			self.eat(TokenType.LPAREN)
-			node = self.expression()
+			node = self.additive_expression()
 			self.eat(TokenType.RPAREN)
-			return node
 		elif token.category == TokenType.ID and next_token.category == TokenType.DOT:
 			node = self.library_call()
-			return node
-		else:
+		elif token.category == TokenType.ID:
 			node = self.variable()
-			return node
+		elif token.category == TokenType.INTEGER:
+			node = self.integer()
+		elif token.category == TokenType.FLOAT:
+			node = self.float()
+
+		return node
 
 	def variable(self):
-		"""
-		variable : ID
-		"""
+		# variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 		node = Var(self.current_token)
 		self.eat(TokenType.ID)
 		return node
 
 	def integer(self):
+		# integer ::= "0" | ( [1-9] [0-9]* )
 		node = Num(self.current_token)
 		self.eat(TokenType.INTEGER)
 		return node
 
 	def float(self):
+		# float ::= integer "." integer
 		node = Num(self.current_token)
 		self.eat(TokenType.FLOAT)
 		return node
 
 	def string(self):
+		# string ::= ( "'" | '"' ) ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  ( "'" | '"' )
 		node = String(self.current_token)
 		self.eat(TokenType.STRING)
 		return node

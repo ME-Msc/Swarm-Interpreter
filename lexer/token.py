@@ -35,7 +35,6 @@ class TokenType(Enum):
 	GREATER_EQUAL 	= '>='
 	IS_EQUAL 		= '=='
 	NOT_EQUAL 		= '!='
-	RPC_CALL 		= ':='
 	PARALLEL 		= '||'
 	L_COMMENT		= '/*'
 	R_COMMENT		= '*/'	

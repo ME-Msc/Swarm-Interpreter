@@ -5,6 +5,8 @@ library_list ::= library+
 
 library ::= "Import" variable
 
+library_call ::= variable ( "." variable )* ( '(' actual_parameters ')' )?
+
 /* Action */
 action_list ::= action+
 
@@ -12,20 +14,19 @@ action ::= "Action" variable "(" formal_parameters? ")" action_compound
 
 action_compound ::= "{" action_statement* "}"
 
-/* TODO: action_statement ::= action_RPC_call_assignment_statement
-                    | action_return_statement */
-action_statement ::= action_RPC_call_statement
-                    | action_if_else
+action_statement ::= action_if_else
+                    | action_return_statement
+                    | library_call ";"
+                    | assignment_statement
                     | put_statement
                     | get_statement
-                    | assignment_statement
                     | empty_statement 
 
-action_RPC_call_statement ::= ":=" function_call_statement
-
-action_return_statement ::= "return" variable ";"
-
 action_if_else ::= "if" "(" expression ")" action_compound ( "else" action_compound )?
+
+action_return_statement ::= "return" expression ";"
+
+/* library_call_statement ::= library_call ";" */
 
 /* Agent */
 agent_list ::= agent+
@@ -47,15 +48,11 @@ behavior_routine_block ::= "@routine" behavior_compound ( "||" behavior_compound
 
 behavior_compound ::= "{" behavior_statement* "}"
 
-/* TODO: behavior_statement ::= behavior_publish_statement
-                                | behavior_subscribe
-                                | behavior_unsubscribe_statement
-                                | behavior_assignment_statement */
 behavior_statement ::= behavior_if_else
                         | function_call_statement
+                        | assignment_statement
                         | put_statement
                         | get_statement
-                        | assignment_statement
                         | empty_statement
 
 behavior_if_else ::= "if" "(" expression ")" behavior_compound ( "else" behavior_compound )?
@@ -75,14 +72,13 @@ task_routine_block ::= "@routine" task_compound ( "||" task_compound )*
 
 task_compound ::= "{" task_statement* "}"
 
-task_statement ::= put_statement
-                | get_statement
-                | assignment_statement
+task_statement ::= task_order
+                | task_each
                 | task_if_else
                 | task_call_statement
-                | function_call_statement
-                | task_order
-                | task_each
+                | assignment_statement
+                | put_statement
+                | get_statement
                 | empty_statement
 
 task_order ::= "order" actual_parameters_agent_range "{" function_call_statement* "}"
@@ -95,18 +91,18 @@ task_call_statement ::= variable "(" actual_parameters_agent_range_list ( "," ac
 
 main ::= "Main" "{" agent_call_statement+ task_call_statement "}"
 
-put_statement ::= "put" expression "to" stigmergy ";"
+/* Basic statement */
+assignment_statement ::= variable "=" ( ( string  ";" ) 
+                                        | function_call_statement
+                                        | ( expression ";" ) )
 
-get_statement ::= "get" variable "from" stigmergy ";"
+put_statement ::= "put" ( string | expression ) "to" variable ";"
 
-assignment_statement ::= variable "=" ( string | expression ) ";"
+get_statement ::= "get" variable "from" variable ";"
 
 empty_statement ::= ";"
 
-stigmergy ::= "#" variable "#"
-
-/* TODO:topic_p2p ::= "<" variable ">"
-        topic_multicast ::= "<<" variable ">>" */
+/* Parameter */
 formal_parameters_agent_range_list ::= "{" formal_parameters_agent_range ( "," formal_parameters_agent_range )* "}"
 
 actual_parameters_agent_range_list ::= "{" actual_parameters_agent_range ( "," actual_parameters_agent_range )* "}"
@@ -144,18 +140,19 @@ additive_expression ::= multiplicative_expression ( ( "+" | "-" ) multiplicative
 
 multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
 
-primary_expression ::= integer
-                        | ( "+" | "-" ) primary_expression
+primary_expression ::= ( ( "+" | "-" ) primary_expression )
                         | "(" additive_expression ")"
-                        | variable
                         | library_call
-
-library_call ::= variable ( "." variable )* ( '(' actual_parameters ')' )?
+                        | variable
+                        | integer
+                        | float
 
 variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 
 integer ::= "0" | ( [1-9] [0-9]* )
 
+float ::= integer "." integer
+
 string ::= ( "'" | '"' ) ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  ( "'" | '"' )
 
-/* comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/" */
+comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/"

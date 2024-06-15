@@ -200,28 +200,14 @@ class SemanticAnalyzer(NodeVisitor):
 		function_name = node.name
 		function_symbol = self.global_scope.lookup(function_name)
 		if function_symbol is None:
-			# Check whether it is an RPC call
-			if_actionSymbol = self.global_scope.lookup(self.current_scope.scope_name, log_or_not=False)
-			if isinstance(if_actionSymbol, ActionSymbol):
-				self.log("%s is a RPC_call." % node.name)
-				function_symbol = RpcCallSymbol(function_name)
-				function_symbol.ast = None
-			else:
-				self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
-		actual_params = node.actual_params
-		if not isinstance(function_symbol, RpcCallSymbol):
-			formal_params = function_symbol.formal_params
-			if len(actual_params) != len(formal_params):
-				self.error(
-					error_code=ErrorCode.WRONG_PARAMS_NUM,
-					token=node.token,
-				)
-		for param_node in actual_params:
+			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
+		if len(node.actual_params) != len(function_symbol.formal_params):
+			self.error(error_code=ErrorCode.WRONG_PARAMS_NUM, token=node.token)
+		for param_node in node.actual_params:
 			self.visit(param_node)
-
 		# accessed by the interpreter when executing procedure call
 		node.symbol = function_symbol
-		if isinstance(function_symbol, RpcCallSymbol) or isinstance(function_symbol, ActionSymbol):
+		if isinstance(function_symbol, ActionSymbol): # return for the action symbol as right_symbol of assign statement
 			return function_symbol
 
 	def visit_TaskList(self, node):
@@ -353,7 +339,7 @@ class SemanticAnalyzer(NodeVisitor):
 			self.visit(node.false_compound)
 
 	def visit_Return(self, node):
-		self.visit(node.variable)
+		self.visit(node.expression)
 
 	def visit_Expression(self, node):
 		self.visit(node.expr)
@@ -445,10 +431,6 @@ class SemanticAnalyzer(NodeVisitor):
 				# library can only be accessed, can't be assigned.
 			else:
 				self.visit(node.right)	# node.right is a action_call, should visit it to set node.symbol.ast
-		elif node.op.category == TokenType.RPC_CALL:
-			left_var_name = node.left.value
-			var_symbol = VarSymbol(left_var_name, self.visit(node.right))
-			self.current_scope.insert(var_symbol)
 		elif node.op.category == TokenType.PUT:
 			expr_node = node.left
 			expr_symbol = self.visit(expr_node)
@@ -473,22 +455,6 @@ class SemanticAnalyzer(NodeVisitor):
 			# do not need to check symbol category
 			# because both side can be formal_param whose category is 'None' or anything
 			return
-		'''
-		else: 
-			  comparable symbol
-			left_category = self.visit(node.left)
-			if left_category is not None:
-				while hasattr(left_category, 'category'):
-					left_category = left_category.category
-			right_category = self.visit(node.right)
-			if right_category is not None :
-				while hasattr(right_category, 'category'):
-					right_category = right_category.category
-			if type(left_category) == type(right_category):
-				return left_category
-			else:
-				raise Exception("Different categorys on both sides of BinOp")
-		'''
 
 	def visit_UnaryOp(self, node):
 		return self.visit(node.expr)

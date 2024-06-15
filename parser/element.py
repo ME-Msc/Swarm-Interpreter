@@ -157,8 +157,8 @@ class IfElse(AST):
 
 
 class Return(AST):
-	def __init__(self, var):
-		self.variable = var
+	def __init__(self, expr):
+		self.expression = expr
 
 
 class Expression(AST):

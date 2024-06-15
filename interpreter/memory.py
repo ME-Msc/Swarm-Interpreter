@@ -9,7 +9,6 @@ class ARType(Enum):  # Activation Record Type
 	BEHAVIOR = 'BEHAVIOR'
 	ACTION = 'ACTION'
 	AGENT = 'AGENT'
-	RPC = 'RPC'
 
 
 class ActivationRecord:

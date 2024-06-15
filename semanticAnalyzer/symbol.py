@@ -8,7 +8,6 @@ class SymbolCategory(Enum):  # Symbol Category for Procedure
 	BEHAVIOR = 'BEHAVIOR'
 	ACTION = 'ACTION'
 	AGENT = 'AGENT'
-	RPC = 'RPC'
 	LIBRARY = 'LIBRARY'
 	LIBRARY_CALL = 'LIBRARY_CALL'
 	AGENT_RANGE = 'AGENT_RANGE'
@@ -97,11 +96,6 @@ class ProcedureSymbol(Symbol):
 class ActionSymbol(ProcedureSymbol):
 	def __init__(self, name, formal_params=None):
 		super().__init__(name=name, category=SymbolCategory.ACTION)
-
-
-class RpcCallSymbol(ProcedureSymbol):
-	def __init__(self, name, formal_params=None):
-		super().__init__(name=name, category=SymbolCategory.RPC)
 
 
 class AgentSymbol(Symbol):
