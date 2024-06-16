@@ -99,7 +99,12 @@ class Lexer(object):
 		else:
 			# reserved keyword
 			token.category = token_type
-			token.value = value.upper()
+			if token.category == TokenType.FALSE:
+				token.value = False
+			elif token.category == TokenType.TRUE:
+				token.value = True
+			else:
+				token.value = value.upper()
 
 		return token
 

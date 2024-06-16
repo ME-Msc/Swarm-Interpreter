@@ -730,6 +730,7 @@ class Parser(BaseParser):
 		# 						| "(" additive_expression ")"
 		# 						| library_call
 		# 						| variable
+		#						| boolean
 		# 						| integer
 		# 						| float
 		token = self.current_token
@@ -748,6 +749,8 @@ class Parser(BaseParser):
 			node = self.library_call()
 		elif token.category == TokenType.ID:
 			node = self.variable()
+		elif token.category == TokenType.FALSE or token.category == TokenType.TRUE:
+			node = self.boolean()
 		elif token.category == TokenType.INTEGER:
 			node = self.integer()
 		elif token.category == TokenType.FLOAT:
@@ -759,6 +762,12 @@ class Parser(BaseParser):
 		# variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 		node = Var(self.current_token)
 		self.eat(TokenType.ID)
+		return node
+	
+	def boolean(self):
+		# boolean ::= "False" | "True"
+		node = Boolean(self.current_token)
+		self.eat(self.current_token.category)	# FALSE | TRUE
 		return node
 
 	def integer(self):

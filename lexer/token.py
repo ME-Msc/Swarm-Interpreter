@@ -60,6 +60,8 @@ class TokenType(Enum):
 	NOT 		= 'NOT'
 	AND 		= 'AND'
 	OR 			= 'OR'
+	FALSE		= 'FALSE'
+	TRUE		= 'TRUE'
 	# others
 	EOF 		= 'EOF'
 	INTEGER 	= 'INTEGER'

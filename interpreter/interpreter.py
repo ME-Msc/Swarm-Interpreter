@@ -348,6 +348,9 @@ class Interpreter(NodeVisitor):
 		else:
 			return var_value
 
+	def visit_Boolean(self, node, **kwargs):
+		return node.value
+
 	def visit_Num(self, node, **kwargs):
 		return node.value
 

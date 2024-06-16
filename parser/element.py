@@ -191,6 +191,12 @@ class Var(AST):
 		self.value = token.value
 
 
+class Boolean(AST):
+	def __init__(self, token):
+		self.token = token
+		self.value = token.value
+
+
 class Num(AST):
 	def __init__(self, token):
 		self.token = token

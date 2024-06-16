@@ -10,21 +10,21 @@ from semanticAnalyzer.semanticAnalyzer import SemanticAnalyzer
 
 
 def main():
-	parser = argparse.ArgumentParser(
+	argParser = argparse.ArgumentParser(
 		description='Swarm Interpreter'
 	)
-	parser.add_argument('inputfile', help='Pascal source file')
-	parser.add_argument(
+	argParser.add_argument('inputfile', help='Pascal source file')
+	argParser.add_argument(
 		'--scope',
 		help='Print scope information',
 		action='store_true',
 	)
-	parser.add_argument(
+	argParser.add_argument(
 		'--stack',
 		help='Print call stack',
 		action='store_true',
 	)
-	args = parser.parse_args()
+	args = argParser.parse_args()
 
 	SHOULD_LOG_SCOPE, SHOULD_LOG_STACK = args.scope, args.stack
 	text = open(args.inputfile, 'r', encoding='utf-8').read()

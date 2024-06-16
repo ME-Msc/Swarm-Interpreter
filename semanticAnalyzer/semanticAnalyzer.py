@@ -354,6 +354,12 @@ class SemanticAnalyzer(NodeVisitor):
 		else:
 			return var_symbol
 
+	def visit_Boolean(self, node):
+		if node.value == False:
+			return BuiltinTypeSymbol('FALSE')
+		else:	# node.value == True:
+			return BuiltinTypeSymbol('TRUE')
+
 	def visit_Num(self, node):
 		if isinstance(node.value, int):
 			return BuiltinTypeSymbol('INTEGER')
