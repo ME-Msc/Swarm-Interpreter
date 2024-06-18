@@ -1,6 +1,5 @@
 import threading
 import airsim
-import math
 
 LogLock = threading.Lock()
 
@@ -63,6 +62,7 @@ def getDestination_API(*swarm_args, **kwargs):
 	closest_index = -1
 	dest = traces[closest_index]
 	
+	import math
 	# Calculate the distance from pos to each point in traces
 	for i, (x, y) in enumerate(traces):
 		distance = math.sqrt((x - pos[0])**2 + (y - pos[1])**2)
@@ -107,4 +107,25 @@ def flyCircle_API(*swarm_args, **kwargs):
 	# print(f"vehicle_name = {vehicle_name}, start = {start_position}, center = {circle_center}")
 	# LogLock.release()
 
-	TD3agent.one_round(getState_API, circle_agent = TD3agent, radius = radius, start_position = start_position, circle_center = circle_center, **kwargs)
+	TD3agent.one_round(getState_func = getState_API, circle_agent = TD3agent, radius = radius, start_position = start_position, circle_center = circle_center, **kwargs)
+
+
+def takePicture_API(*swarm_args, **kwargs):
+	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
+	
+	response = client.simGetImage("bottom_center", airsim.ImageType.Scene, vehicle_name=vehicle_name)
+
+	# import os
+	# current_file_path = os.path.abspath(__file__)
+	# current_directory = os.path.dirname(current_file_path)
+	# import datetime
+	# time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+	# vehicle_directory = os.path.join(current_directory, "data", vehicle_name)
+	# filename = os.path.join(vehicle_directory, f"{time_str}.png")
+	# if not os.path.exists(vehicle_directory):
+	# 	os.makedirs(vehicle_directory)
+	# with open(filename, "wb") as f:
+	# 	f.write(response)
+
+	return response

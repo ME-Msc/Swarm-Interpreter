@@ -26,12 +26,13 @@ Action getDestination(trace, pos){
 	return dest;
 }
 
-Action flyCircle_Action(network, radius, position){
-	Uav.flyCircle_API(network, radius, position);
+Action takePicture(){
+	pic = Uav.takePicture_API();
+	return pic;
 }
 
 Agent search_uav {
-	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination, flyCircle_Action;
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination, takePicture;
 }
 
 Behavior takeOff_Behavior(h) {
@@ -43,33 +44,22 @@ Behavior takeOff_Behavior(h) {
 	}
 }
 
-Behavior cover_Behavior(traces){
+Behavior cover_Behavior(traces, pattern){
 	@init{
-        step = 0;
+        find_target = False;
     }
 	@goal{
-        $ step > 2
+        $ find_target == True
     }
 	@routine{
-		/* TODO: fly_a_trace(my_trace); */
-        position = getPosition();
-        destination = getDestination(traces, position);
-        flyTo_Action(destination);
-        step = step + 1;
-	}
-}
-
-Behavior flyCircle_Behavior(net, r){
-	@init{
-        circle_count = 0;
-	}
-	@goal{
-		$ circle_count == 1
-	}
-	@routine{
-		pos = getPosition();
-		flyCircle_Action(net, r, pos);
-		circle_count = circle_count + 1;
+		/*        position = getPosition();	*/
+		/*        destination = getDestination(traces, position);	*/
+		/*        flyTo_Action(destination);	*/
+		/*	}	*/
+		/*	||	*/
+		/*	{	*/
+		picture = takePicture();
+		find_target = Network.cnnRecognize(picture, pattern);
 	}
 }
 
@@ -81,10 +71,9 @@ Task search({agtC[stC~edC]}, city_map){
 	}
 	@goal{}
 	@routine{
-		each agtC[stC~edC] {
+		order agtC[stC~edC] {
             takeOff_Behavior(height);
-			cover_Behavior(traces_for_cover);
-			flyCircle_Behavior(Network.TD3_fly_circle, radius);
+			cover_Behavior(traces_for_cover, Network.carPattern);
 		}
 	}
 }

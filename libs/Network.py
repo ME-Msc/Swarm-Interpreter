@@ -2,14 +2,12 @@ import os
 
 from libs.RL.td3 import TD3Agent
 
-agent = TD3Agent(3, 1)
 current_file_path = os.path.abspath(__file__)
 current_directory = os.path.dirname(current_file_path)
-agent.load(current_directory+"/RL/fly_circle.pkl")
 
-
-def one_round(getState_func, **kwargs):
+def one_round(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	getState_func = kwargs["getState_func"]
 	circle_center = kwargs["circle_center"]
 	radius = kwargs["radius"]
 	start_position = kwargs["start_position"]
@@ -48,8 +46,14 @@ def one_round(getState_func, **kwargs):
 		step_count += 1
 
 
-
-
-TD3_fly_circle = agent
-
+TD3_fly_circle = TD3Agent(3, 1)
+TD3_fly_circle.load(current_directory+"/RL/fly_circle.pkl")
 TD3_fly_circle.one_round = one_round
+
+
+def cnnRecognize(*swarm_args, **kwargs):
+	import random
+	res = random.choice([True, False])
+	import datetime
+	print(str(datetime.datetime.now()) + " " + str(res))
+	return res
