@@ -73,8 +73,8 @@ def list_cars():
 	# vehicles = client.listVehicles()
 	# pprint.pprint(f"vehicles = {vehicles}")
 
-if __name__ == "__main__":
-	set_global_camera()
+
+def save_images():
 	vehicle_name = "GlobalCamera"
 	response = client.simGetImage("bottom_center", airsim.ImageType.Scene, vehicle_name=vehicle_name)
 
@@ -90,3 +90,47 @@ if __name__ == "__main__":
 	with open(filename, "wb") as f:
 		f.write(response)
 
+
+def fly_photo_multithread():
+	set_global_camera()
+	
+	def fly():
+		client1 = airsim.MultirotorClient()
+		res = client1.moveToPositionAsync(40, 40, -50, 2,vehicle_name="GlobalCamera")
+		res.join()
+
+	def photo():
+		client2 = airsim.MultirotorClient()
+		import os
+		current_file_path = os.path.abspath(__file__)
+		current_directory = os.path.dirname(current_file_path)
+		vehicle_directory = os.path.join(current_directory, "data", "GlobalCamera")
+		if not os.path.exists(vehicle_directory):
+			os.makedirs(vehicle_directory)
+
+		for _ in range(10):
+			import datetime
+			time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+			filename = os.path.join(vehicle_directory, f"{time_str}.png")
+				
+			response = client2.simGetImage("bottom_center", airsim.ImageType.Scene, vehicle_name="GlobalCamera")	
+
+			with open(filename, "wb") as f:
+				f.write(response)
+			time.sleep(2)
+
+	threads = []
+	threads.append(threading.Thread(target=fly, ))
+	threads.append(threading.Thread(target=photo, ))
+
+	# start all threads
+	for thread in threads:
+		thread.start()
+
+	# wait for all threads finish
+	for thread in threads:
+		thread.join()
+
+
+if __name__ == "__main__":
+	fly_photo_multithread()
