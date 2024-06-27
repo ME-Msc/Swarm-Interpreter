@@ -30,6 +30,7 @@ class AirsimWrapper(Wrapper):
 	def __init__(self, wait_or_not=True):
 		# connect to the AirSim simulator
 		self.clients = {}
+		self.locks = {}
 		self.home = {}
 
 		if wait_or_not:
@@ -56,6 +57,7 @@ class AirsimWrapper(Wrapper):
 		for k, v in self.clients.items():
 			if k != "GlobalCamera":
 				new_wrapper.clients[k] = self.clients[k]
+				new_wrapper.locks[k] = self.locks[k]
 		new_wrapper.home = copy.deepcopy(self.home)
 		return new_wrapper
 
@@ -65,6 +67,7 @@ class AirsimWrapper(Wrapper):
 			client = airsim.MultirotorClient()
 			vhcl_nm = agents_list[i]
 			self.clients[vhcl_nm] = client
+			self.locks[vhcl_nm] = threading.Lock()
 
 			pose = airsim.Pose(airsim.Vector3r(group, i * 2, 0), airsim.to_quaternion(0, 0, 0))
 			self.home[vhcl_nm] = pose

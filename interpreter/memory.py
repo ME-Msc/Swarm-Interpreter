@@ -124,7 +124,7 @@ class CallStack:
 		return s
 
 	def __repr__(self):
-		return self.__str__()
+		return self._records
 
 
 if __name__ == '__main__':

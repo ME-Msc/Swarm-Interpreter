@@ -1,30 +1,64 @@
 import threading
+import time
 import airsim
 
 LogLock = threading.Lock()
+MIN_THRESHOLD = 2
 
 def takeOff_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
+	Lock.acquire()
 	res = client.takeoffAsync(vehicle_name=vehicle_name)
 	res.join()
+	Lock.release()
+	'''
+	th = threading.Thread(target=lambda: res.join())
+	th.start()
+	while True:
+		if not th.is_alive():
+			break
+		# dosomething
+		time.sleep(0.01)
+	th.join()
+	'''
+	'''
+	if hasattr(kwargs["wrapper"], "clients"):
+	else:
+		LogLock.acquire()
+		print(f"{vehicle_name} :-> {inspect.currentframe().f_code.co_name}")
+		LogLock.release()
+	'''
 
 
 def flyToHeight_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
-	# pose = client.simGetVehiclePose(vehicle_name=vehicle_name)
-	res = client.moveToZAsync(-swarm_args[0], 10, vehicle_name=vehicle_name)
-	# res = client.moveToPositionAsync(pose.position.x_val, pose.position.y_val, -swarm_args[0], 10, vehicle_name=vehicle_name)
-	res.join()
+	while True:
+		Lock.acquire()
+		pos = client.simGetVehiclePose(vehicle_name=vehicle_name)
+		Lock.release()
+		time.sleep(0.5)
+		if abs(pos.position.z_val - (-swarm_args[0])) < MIN_THRESHOLD:
+			break
+		Lock.acquire()
+		res = client.moveToPositionAsync(pos.position.x_val, pos.position.y_val, -swarm_args[0], 5, vehicle_name=vehicle_name)
+		Lock.release()
+		time.sleep(0.5)
 
 
 def getPosition_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
+	Lock.acquire()
 	pos = client.simGetVehiclePose(vehicle_name=vehicle_name)
+	Lock.release()
+	time.sleep(0.5)
 	home = kwargs["wrapper"].home
 
 	pos.position.x_val += home[vehicle_name].position.x_val
@@ -35,8 +69,13 @@ def getPosition_API(*swarm_args, **kwargs):
 
 def getState_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
+
+	Lock.acquire()
 	state:airsim.MultirotorState = client.getMultirotorState(vehicle_name=vehicle_name)
+	Lock.release()
+	time.sleep(0.5)
 	home = kwargs["wrapper"].home
 
 	state.kinematics_estimated.position.x_val += home[vehicle_name].position.x_val
@@ -47,6 +86,7 @@ def getState_API(*swarm_args, **kwargs):
 
 def getDestination_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	mapper = {
@@ -82,7 +122,9 @@ def getDestination_API(*swarm_args, **kwargs):
 
 def flyTo_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
+
 	destination = swarm_args[0]	# World coordinate system
 	home = kwargs["wrapper"].home
 
@@ -91,8 +133,19 @@ def flyTo_API(*swarm_args, **kwargs):
 	relative_destination_y = destination.position.y_val - home[vehicle_name].position.y_val
 	relative_destination_z = destination.position.z_val - home[vehicle_name].position.z_val
 
-	res = client.moveToPositionAsync(relative_destination_x, relative_destination_y, relative_destination_z, 2, vehicle_name=vehicle_name)
-	res.join()
+	import datetime
+	time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+	print(f"{time_str} fly to {relative_destination_x}, {relative_destination_y}, {relative_destination_z}")
+	while True:
+		pos = getPosition_API(**kwargs)
+		import math
+		if math.dist((pos.position.x_val, pos.position.y_val, pos.position.z_val),
+			(destination.position.x_val, destination.position.y_val, destination.position.z_val)) < MIN_THRESHOLD:
+			break
+		Lock.acquire()
+		res = client.moveToPositionAsync(relative_destination_x, relative_destination_y, relative_destination_z, 2, vehicle_name=vehicle_name)
+		Lock.release()
+		time.sleep(0.5)
 
 
 def flyCircle_API(*swarm_args, **kwargs):
@@ -102,30 +155,30 @@ def flyCircle_API(*swarm_args, **kwargs):
 
 	circle_center = (round(start_position.position.x_val), round(start_position.position.y_val) + radius)
 
-	# LogLock.acquire()
-	# vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	# print(f"vehicle_name = {vehicle_name}, start = {start_position}, center = {circle_center}")
-	# LogLock.release()
-
 	TD3agent.one_round(getState_func = getState_API, circle_agent = TD3agent, radius = radius, start_position = start_position, circle_center = circle_center, **kwargs)
 
 
 def takePicture_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
+
+	import datetime
+	print(str(datetime.datetime.now()) + " Enter takePicture_API")
 	
+	Lock.acquire()
 	response = client.simGetImage("bottom_center", airsim.ImageType.Scene, vehicle_name=vehicle_name)
+	Lock.release()
 
-	# import os
-	# current_file_path = os.path.abspath(__file__)
-	# current_directory = os.path.dirname(current_file_path)
-	# import datetime
-	# time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-	# vehicle_directory = os.path.join(current_directory, "data", vehicle_name)
-	# filename = os.path.join(vehicle_directory, f"{time_str}.png")
-	# if not os.path.exists(vehicle_directory):
-	# 	os.makedirs(vehicle_directory)
-	# with open(filename, "wb") as f:
-	# 	f.write(response)
+	import os
+	current_file_path = os.path.abspath(__file__)
+	current_directory = os.path.dirname(current_file_path)
+	time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+	vehicle_directory = os.path.join(current_directory, "data", vehicle_name)
+	filename = os.path.join(vehicle_directory, f"{time_str}.png")
+	if not os.path.exists(vehicle_directory):
+		os.makedirs(vehicle_directory)
+	with open(filename, "wb") as f:
+		f.write(response)
 
-	return response
+	return filename

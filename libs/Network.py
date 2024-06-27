@@ -13,6 +13,7 @@ def one_round(*swarm_args, **kwargs):
 	start_position = kwargs["start_position"]
 	agent = kwargs["circle_agent"]
 	client = kwargs["wrapper"].clients[vehicle_name]
+	Lock = kwargs["wrapper"].locks[vehicle_name]
 
 	import math
 	import numpy as np
@@ -36,11 +37,13 @@ def one_round(*swarm_args, **kwargs):
 		# new_x = state.kinematics_estimated.position.x_val + new_vx * 0.1
 		# new_y = state.kinematics_estimated.position.y_val + new_vy * 0.1
 		# client.moveToPositionAsync(x=new_x, y=new_y, z=hover_z, velocity=new_v, vehicle_name=vehicle_name)
+		Lock.acquire()
 		client.moveByVelocityZAsync(vx=new_vx, vy=new_vy, z=hover_z, duration=1, vehicle_name=vehicle_name)
+		Lock.release()
 
 		distance_to_start_position = math.sqrt((state.kinematics_estimated.position.x_val - start_position.position.x_val)**2 + (state.kinematics_estimated.position.y_val - start_position.position.y_val)**2)
 
-		if (distance_to_start_position < 0.1 *radius and step_count >= 1000) or step_count > 10000:
+		if (distance_to_start_position < 0.1 *radius and step_count >= 1000) or step_count > 5000:
 			break
 
 		step_count += 1
@@ -53,7 +56,9 @@ TD3_fly_circle.one_round = one_round
 
 def cnnRecognize(*swarm_args, **kwargs):
 	import random
-	res = random.choice([True, False])
+	weights = [0.2, 0.8]  # 设置权重，对应 True 和 False 的概率
+	options = [True, False]
+	res = random.choices(options, weights, k=1)[0]
 	import datetime
 	print(str(datetime.datetime.now()) + " " + str(res))
 	return res

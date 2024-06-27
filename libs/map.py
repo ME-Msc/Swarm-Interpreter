@@ -39,8 +39,10 @@ def generate_grip_geojson(filename, x_start, x_end, x_step, y_start, y_end, y_st
 		json.dump(geojson, f)
 
 AirsimNH = load_geojson("AirsimNH.geojson")
+
+testMap = load_geojson("testMap.geojson")
 	
 if __name__ == "__main__":
-	fn = "test.geojson"
-	generate_grip_geojson(fn, 0, 20, 10, 0, 20, 10)
+	fn = "testMap.geojson"
+	generate_grip_geojson(fn, 0, 40, 20, 0, 40, 20)
 	data = load_geojson(fn)

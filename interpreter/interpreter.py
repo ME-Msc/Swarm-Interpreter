@@ -96,10 +96,42 @@ class Interpreter(NodeVisitor):
 		kwargs["wrapper"].set_home(agents_list=agents_list)
 
 	def visit_Behavior(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+		vehicle_name = f'{kwargs["agent"]}:{kwargs["id"]}'
+
 		self.visit(node.init_block, **kwargs)
-		self.visit(node.routine_block, **kwargs)
-		while not self.visit(node.goal_block, **kwargs):
-			self.visit(node.routine_block, **kwargs)
+
+		goal_reached = threading.Event()
+		def execute_child(child, goal_block, cs: CallStack):
+			kwargs["call_stack"] = cs				# update call_stack for parallel child node in compound
+			self.visit(child, goal_reached=goal_reached, **kwargs)
+			while not goal_reached.is_set():
+				kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+				if self.visit(goal_block, **kwargs):
+					goal_reached.set()				# set shared flag True
+					break							# terminate this parallel child node when goal_reached is set
+				kwargs["call_stack"] = cs			# update call_stack for parallel child node in compound
+				self.visit(child, goal_reached=goal_reached, **kwargs)
+				kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+
+		parent_call_stack = CALL_STACK
+		if "call_stack" in kwargs:  # for sub-behavior
+			parent_call_stack = kwargs['call_stack']
+		threads = []
+		for child in node.routine_block.children:
+			child_call_stack = parent_call_stack.create_child(vehicle_name)
+			thread = threading.Thread(target=execute_child, args=(child, node.goal_block, child_call_stack))
+			threads.append(thread)
+
+		# start all threads
+		for thread in threads:
+			thread.start()
+
+		# wait for all threads finish
+		for thread in threads:
+			thread.join()
 
 	def visit_FunctionCall(self, node, **kwargs):
 		CALL_STACK = self.call_stack
@@ -154,9 +186,12 @@ class Interpreter(NodeVisitor):
 
 	def visit_Task(self, node, **kwargs):
 		self.visit(node.init_block, **kwargs)
-		self.visit(node.routine_block, **kwargs)
+		# self.visit(node.routine_block, **kwargs)
+		for child in node.routine_block.children:
+			self.visit(child, **kwargs)
 		while not self.visit(node.goal_block, **kwargs):
-			self.visit(node.routine_block, **kwargs)
+			for child in node.routine_block.children:
+				self.visit(child, **kwargs)
 
 	def visit_TaskCall(self, node, **kwargs):
 		CALL_STACK = self.call_stack
@@ -313,13 +348,26 @@ class Interpreter(NodeVisitor):
 		return result
 
 	def visit_RoutineBlock(self, node, **kwargs):
-		# each child is a parallel block as compound
-		for child in node.children:
-			self.visit(child, **kwargs)
+		# each child is a parallel block as compound, should not use for statement
+		# for child in node.children:
+		# 	self.visit(child, **kwargs)
+		pass
 
 	def visit_Compound(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+
+		# multi parallel routine in Behavior or Task
 		for child in node.children:
+			if "goal_reached" in kwargs:
+				GOAL_REACHED:threading.Event = kwargs["goal_reached"]
+				if GOAL_REACHED.is_set():
+					break
 			self.visit(child, **kwargs)
+			LogLock.acquire()
+			self.log(str(CALL_STACK))
+			LogLock.release()
 
 	def visit_IfElse(self, node, **kwargs):
 		expr_result = self.visit(node.expression, **kwargs)
