@@ -1,89 +1,104 @@
-Port : 41451
+import Map
+import Algorithm
+import Network
+import Uav
 
+/* test comments*/
 Action takeOff_Action(){
-	:= takeOff_API();
+	Uav.takeOff_API();
 }
 
-Action flyToHeight(h){
-	:= flyToHeight_API(h);
+Action flyToHeight_Action(h){
+	Uav.flyToHeight_API(h);
+}
+
+Action flyTo_Action(dest){
+    Uav.flyTo_API(dest);
+}
+
+Action getPosition(){
+	pos = Uav.getPosition_API();
+	return pos;
+}
+
+Action getDestination(trace, pos){
+	dest = Uav.getDestination_API(trace, pos);
+	return dest;
+}
+
+Action flyCircle_Action(network, radius, position){
+	Uav.flyCircle_API(network, radius, position);
+}
+
+Action takePicture(){
+	pic = Uav.takePicture_API();
+	return pic;
 }
 
 Agent search_uav {
-	takeOff_Action, flyToHeight;
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination, flyCircle_Action, takePicture;
 }
 
-Agent track_uav {
-	takeOff_Action, flyToHeight;
-}
-
-Behavior takeOff() {
+Behavior takeOff_Behavior(h) {
 	@init{}
 	@goal{}
 	@routine{
 		takeOff_Action();
+		flyToHeight_Action(h);
 	}
 }
 
-Behavior search_Behavior(){
-	@init{}
-	@goal{}
-	@routine{
-		flyToHeight(15);
-		get searched_cnt from #searched_count# ;
-		put searched_cnt + 1 to #searched_count# ;
-	}
-}
-
-Behavior track_Behavior(){
-	@init{}
-	@goal{}
-	@routine{
-		flyToHeight(10);
-		get tracked_cnt from #tracked_count# ;
-		put tracked_cnt + 1 to #tracked_count# ;
-	}
-}
-
-Task search({agtC[stC~edC]}){
-	@init{}
+Behavior cover_Behavior(traces){
+	@init{
+		find_target = False;
+	 }
 	@goal{
-		get searched_cnt from #searched_count# ;
-		$ searched_cnt >= 5
+        $ find_target 
+    }
+	@routine{
+		/* fly_a_trace(my_trace); */
+        position = getPosition();
+        destination = getDestination(traces, position);
+        flyTo_Action(destination);
 	}
+	||
+	{
+		picture = takePicture();
+		find_target = Network.cnnRecognize(picture);
+	}
+}
+
+Behavior flyCircle_Behavior(net, r){
+	@init{
+        circle_count = 0;
+	}
+	@goal{
+		$ circle_count == 1
+	}
+	@routine{
+		pos = getPosition();
+		flyCircle_Action(net, r, pos);
+		circle_count = circle_count + 1;
+	}
+}
+
+Task search({agtC[stC~edC]}, city_map){
+	@init{
+		height = 50;
+		traces_for_cover = Algorithm.coverTspSolver(city_map);
+		radius = 5;
+	}
+	@goal{}
 	@routine{
 		each agtC[stC~edC] {
-			search_Behavior();
+            takeOff_Behavior(height);
+			cover_Behavior(traces_for_cover);
+			flyCircle_Behavior(Network.TD3_fly_circle, radius);
 		}
-	}
-}
-
-Task track({agtD[stD~edD]}){
-	@init{}
-	@goal{
-		get tracked_cnt from #tracked_count# ;
-		$ tracked_cnt >= 3
-	}
-	@routine{
-		order agtD[stD~edD] {
-			track_Behavior();
-		}
-	}
-}
-
-Task search_track_cars({agtA[stA~edA], agtB[stB~edB]}){
-	@init{
-		put 0 to #searched_count# ;
-		put 0 to #tracked_count# ;
-	}
-	@goal{}
-	@routine{
-		search({agtA[stA~edA]});
-		track({agtB[stB~edB]});
 	}
 }
 
 Main {
-	Agent search_uav 5;
-	Agent track_uav 3;
-	search_track_cars({search_uav[0~5], track_uav[0~3]});
+	Agent search_uav 3;
+	search({search_uav[0~3]}, Map.testMap);
 }
