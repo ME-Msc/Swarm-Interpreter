@@ -4,7 +4,7 @@ import importlib
 from base.error import InterpreterError, ErrorCode
 from base.nodeVisitor import NodeVisitor
 from interpreter.memory import ARType, ActivationRecord, CallStack
-from interpreter.wrapper import Wrapper, AirsimWrapper
+from interpreter.wrapper import Wrapper
 from lexer.token import TokenType
 from parser.element import FunctionCall
 from semanticAnalyzer.symbol import SymbolCategory
@@ -21,7 +21,7 @@ class Interpreter(NodeVisitor):
 		self.log_or_not = log_or_not
 		self.call_stack = CallStack()
 		self.return_value = None
-		self.wrapper = AirsimWrapper()
+		self.wrapper = Wrapper()
 
 	def log(self, msg):
 		if self.log_or_not:
@@ -35,6 +35,7 @@ class Interpreter(NodeVisitor):
 		)
 
 	def visit_Program(self, node):
+		self.visit(node.platform)
 		CALL_STACK = self.call_stack
 
 		self.log(f'ENTER: Program')
@@ -52,6 +53,11 @@ class Interpreter(NodeVisitor):
 		self.log(f'LEAVE: Program')
 		self.log(str(CALL_STACK))
 		LogLock.release()
+
+	def visit_Platform(self, node):
+		platform = importlib.import_module(f'libs.{node.name.value}')
+		platform_wrapper = getattr(platform, node.name.value+"Wrapper")()
+		self.wrapper = platform_wrapper
 
 	def visit_LibraryCall(self, node, **kwargs):
 		wrapper = kwargs["wrapper"]

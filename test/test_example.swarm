@@ -1,3 +1,4 @@
+platform Airsim
 import Map
 import Algorithm
 import Network

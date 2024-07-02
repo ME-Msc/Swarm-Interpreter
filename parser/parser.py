@@ -43,18 +43,28 @@ class Parser(BaseParser):
 
 	def program(self):
 		# program ::= library_list action_list agent_list behavior_list task_list main
+		platform = self.platform()
 		library_list = self.library_list()
 		action_list = self.action_list()
 		agent_list = self.agent_list()
 		behavior_list = self.behavior_list()
 		task_list = self.task_list()
 		main_node = self.main()
-		program_node = Program(library_list=library_list, action_list=action_list, agent_list=agent_list,
-							   behavior_list=behavior_list, task_list=task_list, main=main_node)
+		program_node = Program(platform=platform, library_list=library_list, action_list=action_list, agent_list=agent_list, behavior_list=behavior_list, task_list=task_list, main=main_node)
 		return program_node
 
+	def platform(self):
+		# platform ::= "Platform" variable
+		if self.current_token.category == TokenType.PLATFORM:
+			self.eat(TokenType.PLATFORM)
+			node = self.variable()
+			node = Platform(node)
+		else:
+			node = NoOp()
+		return node
+
 	def library_list(self):
-		# library_list ::= library+
+		# library_list ::= library*
 		root = LibraryList()
 		while self.current_token.category == TokenType.IMPORT:
 			root.children.append(self.library())

@@ -2,13 +2,19 @@ from base.ast import AST
 
 
 class Program(AST):
-	def __init__(self, library_list, action_list, agent_list, behavior_list, task_list, main):
+	def __init__(self, platform, library_list, action_list, agent_list, behavior_list, task_list, main):
+		self.platform = platform
 		self.library_list = library_list
 		self.action_list = action_list
 		self.agent_list = agent_list
 		self.behavior_list = behavior_list
 		self.task_list = task_list
 		self.main = main
+
+
+class Platform(AST):
+	def __init__(self, name):
+		self.name = name
 
 
 class LibraryList(AST):

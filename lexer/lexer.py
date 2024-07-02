@@ -11,7 +11,6 @@ def _build_reserved_keywords():
 	the END keyword.
 
 	Result: {
-		'Port': Token('PORT', 'PORT'),
 		'Action': Token('ACTION', 'ACTION'),
 		'Agent': Token('AGENT', 'AGENT'),
 		'Behavior': Token('BEHAVIOR', 'BEHAVIOR'),
@@ -92,7 +91,7 @@ class Lexer(object):
 			value += self.current_char
 			self.advance()
 
-		token_type = RESERVED_KEYWORDS.get(value.upper())
+		token_type = RESERVED_KEYWORDS.get(value)
 		if token_type is None:
 			token.category = TokenType.ID
 			token.value = value

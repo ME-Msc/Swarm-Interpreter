@@ -1,9 +1,11 @@
 /* Program */
-program ::= library_list action_list agent_list behavior_list task_list main
+program ::= platform library_list action_list agent_list behavior_list task_list main
 
-library_list ::= library+
+platform ::= "platform" variable
 
-library ::= "Import" variable
+library_list ::= library*
+
+library ::= "import" variable
 
 library_call ::= variable ( "." variable )* ( '(' actual_parameters ')' )?
 

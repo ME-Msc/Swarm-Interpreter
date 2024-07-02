@@ -23,6 +23,7 @@ class SemanticAnalyzer(NodeVisitor):
 		self.current_scope = self.global_scope
 
 		# visit subtree
+		self.visit(node.platform)
 		self.visit(node.library_list)
 		self.visit(node.action_list)
 		self.visit(node.agent_list)
@@ -33,6 +34,9 @@ class SemanticAnalyzer(NodeVisitor):
 		self.log(self.current_scope)
 		self.current_scope = self.current_scope.enclosing_scope
 		self.log('Leave scope: global')
+
+	def visit_Platform(self, node):
+		pass
 
 	def visit_LibraryList(self, node):
 		for library in node.children:
