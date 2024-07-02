@@ -287,8 +287,6 @@ class Parser(BaseParser):
 		# behavior_statement ::= behavior_if_else
 		# 						| function_call_statement
 		# 						| assignment_statement
-		# 						| put_statement
-		# 						| get_statement
 		# 						| empty_statement
 		if self.current_token.category == TokenType.IF:
 			node = self.behavior_if_else()
@@ -296,10 +294,6 @@ class Parser(BaseParser):
 			node = self.function_call_statement()
 		elif self.current_token.category == TokenType.ID and self.peek_next_token().category == TokenType.ASSIGN:
 			node = self.assignment_statement()
-		elif self.current_token.category == TokenType.PUT:
-			node = self.put_statement()
-		elif self.current_token.category == TokenType.GET:
-			node = self.get_statement()
 		else:
 			node = self.empty_statement()
 		return node

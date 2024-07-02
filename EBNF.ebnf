@@ -53,8 +53,6 @@ behavior_compound ::= "{" behavior_statement* "}"
 behavior_statement ::= behavior_if_else
                         | function_call_statement
                         | assignment_statement
-                        | put_statement
-                        | get_statement
                         | empty_statement
 
 behavior_if_else ::= "if" "(" expression ")" behavior_compound ( "else" behavior_compound )?
