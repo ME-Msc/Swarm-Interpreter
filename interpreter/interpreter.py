@@ -7,6 +7,7 @@ from interpreter.memory import ARType, ActivationRecord, CallStack
 from interpreter.wrapper import Wrapper
 from lexer.token import TokenType
 from parser.element import FunctionCall
+from parser.operator import BinOp
 from semanticAnalyzer.symbol import SymbolCategory
 
 # import concurrent.futures
@@ -75,7 +76,32 @@ class Interpreter(NodeVisitor):
 		return attr
 
 	def visit_Action(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+		
+		# acquire knowledge lock
+		ar = CALL_STACK.bottom()
+		knowledge_locks = {}
+		for statement in node.compound_statement.children:
+			if isinstance(statement, BinOp):
+				if statement.op.category == TokenType.GET:
+					knowledge_name = statement.right.value
+					knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
+					if knowledge_locks[knowledge_name] is None:
+						self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
+				elif statement.op.category == TokenType.PUT:
+					knowledge_name = statement.right.value
+					knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
+		sorted_knowledge_locks = sorted(knowledge_locks.items())
+		for knowledge_lock_pair in sorted_knowledge_locks:
+				knowledge_lock_pair[1].acquire()
+
 		self.visit(node.compound_statement, **kwargs)
+
+		# release knowledge lock
+		for knowledge_lock_pair in sorted_knowledge_locks:
+			knowledge_lock_pair[1].release()
 
 	def visit_Agent(self, node, **kwargs):
 		abilities = []
@@ -110,25 +136,29 @@ class Interpreter(NodeVisitor):
 		self.visit(node.init_block, **kwargs)
 
 		goal_reached = threading.Event()
-		def execute_child(child, goal_block, cs: CallStack):
-			kwargs["call_stack"] = cs				# update call_stack for parallel child node in compound
-			self.visit(child, goal_reached=goal_reached, **kwargs)
-			while not goal_reached.is_set():
-				kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
-				if self.visit(goal_block, **kwargs):
-					goal_reached.set()				# set shared flag True
-					break							# terminate this parallel child node when goal_reached is set
-				kwargs["call_stack"] = cs			# update call_stack for parallel child node in compound
+		def execute_child(child, goal_block, cs: CallStack, exception_list:list):
+			try:
+				kwargs["call_stack"] = cs				# update call_stack for parallel child node in compound
 				self.visit(child, goal_reached=goal_reached, **kwargs)
-				kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+				while not goal_reached.is_set():
+					kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+					if self.visit(goal_block, **kwargs):
+						goal_reached.set()				# set shared flag True
+						break							# terminate this parallel child node when goal_reached is set
+					kwargs["call_stack"] = cs			# update call_stack for parallel child node in compound
+					self.visit(child, goal_reached=goal_reached, **kwargs)
+					kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+			except InterpreterError as e:
+				exception_list.append(e)
 
 		parent_call_stack = CALL_STACK
 		if "call_stack" in kwargs:  # for sub-behavior
 			parent_call_stack = kwargs['call_stack']
 		threads = []
+		exception_list = []
 		for child in node.routine_block.children:
 			child_call_stack = parent_call_stack.create_child(vehicle_name)
-			thread = threading.Thread(target=execute_child, args=(child, node.goal_block, child_call_stack))
+			thread = threading.Thread(target=execute_child, args=(child, node.goal_block, child_call_stack, exception_list))
 			threads.append(thread)
 
 		# start all threads
@@ -138,6 +168,12 @@ class Interpreter(NodeVisitor):
 		# wait for all threads finish
 		for thread in threads:
 			thread.join()
+
+		if exception_list:
+			for exception in exception_list:
+				LogLock.acquire()
+				print(exception.message)
+				LogLock.release()
 
 	def visit_FunctionCall(self, node, **kwargs):
 		CALL_STACK = self.call_stack
@@ -177,7 +213,6 @@ class Interpreter(NodeVisitor):
 		# check the abilities of agent
 		if function_symbol.category == SymbolCategory.ACTION:
 			if function_name not in self.agent_abilities[kwargs["agent"]]:
-				LogLock.acquire()
 				self.error(error_code=ErrorCode.ABILITIY_NOT_DEFINE_IN_AGENT, token=node.token)
 
 		# evaluate function body
@@ -272,17 +307,21 @@ class Interpreter(NodeVisitor):
 
 		agent_s_e, start, end = self.visit(node.agent_range, **kwargs)
 
-		def agent_work(agent_id, cs: CallStack, wpr:Wrapper):
-			self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs, wrapper=wpr)
+		def agent_work(agent_id, cs: CallStack, wpr:Wrapper, exception_list:list):
+			try:
+				self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs, wrapper=wpr)
+			except InterpreterError as e:
+				exception_list.append(e)
 
 		parent_call_stack = CALL_STACK
 		if "call_stack" in kwargs:  # for sub-each_statement
 			parent_call_stack = kwargs['call_stack']
 		threads = []
+		exception_list = []
 		for now in range(start, end):
 			child_call_stack = parent_call_stack.create_child(f'{agent_s_e[0]}:{now}')
 			child_wrapper = kwargs["wrapper"].copy()
-			thread = threading.Thread(target=agent_work, args=(now, child_call_stack, child_wrapper))
+			thread = threading.Thread(target=agent_work, args=(now, child_call_stack, child_wrapper, exception_list))
 			threads.append(thread)
 
 		# start all threads
@@ -293,6 +332,11 @@ class Interpreter(NodeVisitor):
 		for thread in threads:
 			thread.join()
 
+		if exception_list:
+			for exception in exception_list:
+				LogLock.acquire()
+				print(exception.message)
+				LogLock.release()
 	"""
 	with concurrent.futures.ThreadPoolExecutor() as executor:
 	    futures = []
@@ -344,10 +388,67 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 	def visit_InitBlock(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+		
+		cur_ar = CALL_STACK.peek()
+		if cur_ar.category == ARType.TASK:
+			# acquire knowledge lock
+			ar = CALL_STACK.bottom()
+			knowledge_locks = {}
+			for statement in node.compound_statement.children:
+				if isinstance(statement, BinOp):
+					if statement.op.category == TokenType.GET:
+						knowledge_name = statement.right.value
+						knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
+						if knowledge_locks[knowledge_name] is None:
+							self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
+					elif statement.op.category == TokenType.PUT:
+						knowledge_name = statement.right.value
+						knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
+			sorted_knowledge_locks = sorted(knowledge_locks.items())
+			for knowledge_lock_pair in sorted_knowledge_locks:
+				knowledge_lock_pair[1].acquire()
+
 		self.visit(node.compound_statement, **kwargs)
 
+		if cur_ar.category == ARType.TASK:
+			# release knowledge lock
+			for knowledge_lock_pair in sorted_knowledge_locks:
+				knowledge_lock_pair[1].release()
+
 	def visit_GoalBlock(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+		
+		cur_ar = CALL_STACK.peek()
+		if cur_ar.category == ARType.TASK:
+			# acquire knowledge lock
+			ar = CALL_STACK.bottom()
+			knowledge_locks = {}
+			for statement in node.statements.children:
+				if isinstance(statement, BinOp):
+					if statement.op.category == TokenType.GET:
+						knowledge_name = statement.right.value
+						knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
+						if knowledge_locks[knowledge_name] is None:
+							self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
+					elif statement.op.category == TokenType.PUT:
+						knowledge_name = statement.right.value
+						knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
+			sorted_knowledge_locks = sorted(knowledge_locks.items())
+			for knowledge_lock_pair in sorted_knowledge_locks:
+				knowledge_lock_pair[1].acquire()
+
 		self.visit(node.statements, **kwargs)
+
+		if cur_ar.category == ARType.TASK:
+			# release knowledge lock
+			for knowledge_lock_pair in sorted_knowledge_locks:
+				knowledge_lock_pair[1].release()
+
 		result = self.visit(node.goal, **kwargs)
 		if result == None:
 			return True
@@ -396,9 +497,10 @@ class Interpreter(NodeVisitor):
 
 		var_name = node.value
 		ar = CALL_STACK.peek()
-		var_value = ar.get(var_name)
+		var_value = ar[var_name]
 		if var_value is None:
-			raise NameError(repr(var_name))
+			# raise NameError(repr(var_name))
+			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=var_name.token)
 		else:
 			return var_value
 
@@ -436,15 +538,17 @@ class Interpreter(NodeVisitor):
 			ar = CALL_STACK.peek()
 			ar[var_name] = var_value
 		elif node.op.category == TokenType.PUT:
-			stigmergy_name = node.right.value
+			knowledge_name = node.right.value
 			expr_value = self.visit(node.left, **kwargs)
 			ar = CALL_STACK.bottom()
-			ar[stigmergy_name] = expr_value
+			ar[knowledge_name] = expr_value
 		elif node.op.category == TokenType.GET:
 			var_name = node.left.value
-			stigmergy_name = node.right.value
+			knowledge_name = node.right.value
 			ar = CALL_STACK.bottom()
-			var_value = ar[stigmergy_name]
+			var_value = ar[knowledge_name]
+			if var_value is None:
+				self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.right.token)
 			cur_ar = CALL_STACK.peek()
 			cur_ar[var_name] = var_value
 		elif node.op.category == TokenType.LESS:

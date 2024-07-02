@@ -17,18 +17,32 @@ class ActivationRecord:
 		self.category = category
 		self.nesting_level = nesting_level
 		self.members = {}
+		self.locks = {}
 
 	def __setitem__(self, key, value):
+		if (self.category == ARType.PROGRAM) and (key not in self.members):
+			self.locks[key] = threading.Lock()
 		self.members[key] = value
 
 	def __getitem__(self, key):
-		return self.members[key]
+		if key in self.members:
+			return self.members[key]
+		else:
+			return None
 	
 	def __contains__(self, key):
 		return key in self.members
-
-	def get(self, key):
-		return self.members.get(key)
+	
+	def get_lock(self, knowledge):
+		if knowledge in self.locks:
+			return self.locks[knowledge]
+		else:
+			return None
+		
+	def add_lock(self, knowledge):
+		if knowledge not in self.locks:
+			self.locks[knowledge] = threading.Lock()
+		return self.locks[knowledge]
 
 	def __str__(self):
 		lines = [

@@ -1,105 +1,33 @@
-platform Airsim
-import Map
-import Algorithm
-import Network
-import Uav
-
-/* test comments*/
-Action takeOff_Action(){
-	Uav.takeOff_API();
-}
-
-Action flyToHeight_Action(h){
-	Uav.flyToHeight_API(h);
-}
-
-Action flyTo_Action(dest){
-    Uav.flyTo_API(dest);
-}
-
-Action getPosition(){
-	pos = Uav.getPosition_API();
-	return pos;
-}
-
-Action getDestination(trace, pos){
-	dest = Uav.getDestination_API(trace, pos);
-	return dest;
-}
-
-Action flyCircle_Action(network, radius, position){
-	Uav.flyCircle_API(network, radius, position);
-}
-
-Action takePicture(){
-	pic = Uav.takePicture_API();
-	return pic;
+Action add(y){
+	get x from count;
+	put x+y to count;
 }
 
 Agent search_uav {
-	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition, getDestination, flyCircle_Action, takePicture;
+	add;
 }
 
-Behavior takeOff_Behavior(h) {
+Behavior add_one(){
 	@init{}
 	@goal{}
 	@routine{
-		takeOff_Action();
-		flyToHeight_Action(h);
+		add(1);
 	}
 }
 
-Behavior cover_Behavior(traces){
+Task search({agtC[stC~edC]}){
 	@init{
-		find_target = False;
-	 }
-	@goal{
-        $ find_target 
-    }
-	@routine{
-		/* fly_a_trace(my_trace); */
-        position = getPosition();
-        destination = getDestination(traces, position);
-        flyTo_Action(destination);
-	}
-	||
-	{
-		picture = takePicture();
-		find_target = Network.cnnRecognize(picture);
-	}
-}
-
-Behavior flyCircle_Behavior(net, r){
-	@init{
-        circle_count = 0;
-	}
-	@goal{
-		$ circle_count == 1
-	}
-	@routine{
-		pos = getPosition();
-		flyCircle_Action(net, r, pos);
-		circle_count = circle_count + 1;
-	}
-}
-
-Task search({agtC[stC~edC]}, city_map){
-	@init{
-		height = 50;
-		traces_for_cover = Algorithm.coverTspSolver(city_map);
-		radius = 5;
+		put 0 to count;
 	}
 	@goal{}
 	@routine{
 		each agtC[stC~edC] {
-            takeOff_Behavior(height);
-			cover_Behavior(traces_for_cover);
-			flyCircle_Behavior(Network.TD3_fly_circle, radius);
+			add_one();
 		}
 	}
 }
 
 Main {
 	Agent search_uav 3;
-	search({search_uav[0~3]}, Map.testMap);
+	search({search_uav[0~3]});
 }
