@@ -76,32 +76,7 @@ class Interpreter(NodeVisitor):
 		return attr
 
 	def visit_Action(self, node, **kwargs):
-		CALL_STACK = self.call_stack
-		if "call_stack" in kwargs:
-			CALL_STACK = kwargs["call_stack"]
-		
-		# acquire knowledge lock
-		ar:ActivationRecord = CALL_STACK.bottom()
-		knowledge_locks = {}
-		for statement in node.compound_statement.children:
-			if isinstance(statement, BinOp):
-				if statement.op.category == TokenType.GET:
-					knowledge_name = statement.right.value
-					knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
-					if knowledge_locks[knowledge_name] is None:
-						self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
-				elif statement.op.category == TokenType.PUT:
-					knowledge_name = statement.right.value
-					knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
-		sorted_knowledge_locks = sorted(knowledge_locks.items())
-		for knowledge_lock_pair in sorted_knowledge_locks:
-				knowledge_lock_pair[1].acquire()
-
 		self.visit(node.compound_statement, **kwargs)
-
-		# release knowledge lock
-		for knowledge_lock_pair in sorted_knowledge_locks:
-			knowledge_lock_pair[1].release()
 
 	def visit_Agent(self, node, **kwargs):
 		abilities = []
@@ -388,67 +363,10 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 	def visit_InitBlock(self, node, **kwargs):
-		CALL_STACK = self.call_stack
-		if "call_stack" in kwargs:
-			CALL_STACK = kwargs["call_stack"]
-		
-		cur_ar:ActivationRecord = CALL_STACK.peek()
-		if cur_ar.category == ARType.TASK:
-			# acquire knowledge lock
-			ar:ActivationRecord = CALL_STACK.bottom()
-			knowledge_locks = {}
-			for statement in node.compound_statement.children:
-				if isinstance(statement, BinOp):
-					if statement.op.category == TokenType.GET:
-						knowledge_name = statement.right.value
-						knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
-						if knowledge_locks[knowledge_name] is None:
-							self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
-					elif statement.op.category == TokenType.PUT:
-						knowledge_name = statement.right.value
-						knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
-			sorted_knowledge_locks = sorted(knowledge_locks.items())
-			for knowledge_lock_pair in sorted_knowledge_locks:
-				knowledge_lock_pair[1].acquire()
-
 		self.visit(node.compound_statement, **kwargs)
 
-		if cur_ar.category == ARType.TASK:
-			# release knowledge lock
-			for knowledge_lock_pair in sorted_knowledge_locks:
-				knowledge_lock_pair[1].release()
-
 	def visit_GoalBlock(self, node, **kwargs):
-		CALL_STACK = self.call_stack
-		if "call_stack" in kwargs:
-			CALL_STACK = kwargs["call_stack"]
-		
-		cur_ar:ActivationRecord = CALL_STACK.peek()
-		if cur_ar.category == ARType.TASK:
-			# acquire knowledge lock
-			ar:ActivationRecord = CALL_STACK.bottom()
-			knowledge_locks = {}
-			for statement in node.statements.children:
-				if isinstance(statement, BinOp):
-					if statement.op.category == TokenType.GET:
-						knowledge_name = statement.right.value
-						knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
-						if knowledge_locks[knowledge_name] is None:
-							self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
-					elif statement.op.category == TokenType.PUT:
-						knowledge_name = statement.right.value
-						knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
-			sorted_knowledge_locks = sorted(knowledge_locks.items())
-			for knowledge_lock_pair in sorted_knowledge_locks:
-				knowledge_lock_pair[1].acquire()
-
 		self.visit(node.statements, **kwargs)
-
-		if cur_ar.category == ARType.TASK:
-			# release knowledge lock
-			for knowledge_lock_pair in sorted_knowledge_locks:
-				knowledge_lock_pair[1].release()
-
 		result = self.visit(node.goal, **kwargs)
 		if result == None:
 			return True
@@ -465,6 +383,23 @@ class Interpreter(NodeVisitor):
 		if "call_stack" in kwargs:
 			CALL_STACK = kwargs["call_stack"]
 
+		# acquire knowledge lock
+		ar:ActivationRecord = CALL_STACK.bottom()
+		knowledge_locks = {}
+		for statement in node.children:
+			if isinstance(statement, BinOp):
+				if statement.op.category == TokenType.GET:
+					knowledge_name = statement.right.value
+					knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
+					if knowledge_locks[knowledge_name] is None:
+						self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
+				elif statement.op.category == TokenType.PUT:
+					knowledge_name = statement.right.value
+					knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
+		sorted_knowledge_locks = sorted(knowledge_locks.items())
+		for knowledge_lock_pair in sorted_knowledge_locks:
+			knowledge_lock_pair[1].acquire()
+
 		# multi parallel routine in Behavior or Task
 		for child in node.children:
 			if "goal_reached" in kwargs:
@@ -475,6 +410,9 @@ class Interpreter(NodeVisitor):
 			LogLock.acquire()
 			self.log(str(CALL_STACK))
 			LogLock.release()
+
+		for knowledge_lock_pair in sorted_knowledge_locks:
+			knowledge_lock_pair[1].release()
 
 	def visit_IfElse(self, node, **kwargs):
 		expr_result = self.visit(node.expression, **kwargs)
