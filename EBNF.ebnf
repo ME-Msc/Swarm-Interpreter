@@ -96,9 +96,9 @@ assignment_statement ::= variable "=" ( ( string  ";" )
                                         | function_call_statement
                                         | ( expression ";" ) )
 
-put_statement ::= "put" ( string | expression ) "to" variable ";"
+put_statement ::= "put" ( string | expression ) "to" ( knowledge | knowledge_queue ) ";"
 
-get_statement ::= "get" variable "from" variable ";"
+get_statement ::= "get" variable "from" ( knowledge | knowledge_queue ) ";"
 
 empty_statement ::= ";"
 
@@ -149,6 +149,10 @@ primary_expression ::= ( ( "+" | "-" ) primary_expression )
                         | float
 
 variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
+
+knowledge ::= variable
+
+knowledge_queue ::= variable "[" "]"
 
 boolean ::= "False" | "True"
 

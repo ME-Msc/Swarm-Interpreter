@@ -197,6 +197,16 @@ class Var(AST):
 		self.value = token.value
 
 
+class Knowledge(Var):
+	def __init__(self, token):
+		super().__init__(token)
+
+
+class KnowledgeQueue(Var):
+	def __init__(self, token):
+		super().__init__(token)
+
+
 class Boolean(AST):
 	def __init__(self, token):
 		self.token = token

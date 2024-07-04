@@ -1,4 +1,5 @@
 import threading
+import queue
 from enum import Enum
 
 
@@ -16,12 +17,11 @@ class ActivationRecord:
 		self.name = name
 		self.category = category
 		self.nesting_level = nesting_level
+		# members[] is for Var type, members.put/get() is for Knowledge/KnowledgeQueue type
 		self.members = {}
 		self.locks = {}
 
 	def __setitem__(self, key, value):
-		if (self.category == ARType.PROGRAM) and (key not in self.members):
-			self.locks[key] = threading.Lock()
 		self.members[key] = value
 
 	def __getitem__(self, key):
@@ -43,6 +43,34 @@ class ActivationRecord:
 		if knowledge not in self.locks:
 			self.locks[knowledge] = threading.Lock()
 		return self.locks[knowledge]
+	
+	def put_knowledge_queue_item(self, knowledge_queue, value):
+		assert self.category == ARType.PROGRAM
+		if knowledge_queue not in self.members:
+			self.members[knowledge_queue] = queue.Queue()
+		assert self.locks[knowledge_queue].locked() == True
+		self.members[knowledge_queue].put(value)
+
+	def get_knowledge_queue_item(self, knowledge_queue):
+		assert self.category == ARType.PROGRAM
+		if knowledge_queue not in self.members:
+			return None
+		assert self.locks[knowledge_queue].locked() == True
+		value = self.members[knowledge_queue].get()
+		return value
+	
+	def put_knowledge(self, knowledge, value):
+		assert self.category == ARType.PROGRAM
+		assert self.locks[knowledge].locked() == True
+		self.members[knowledge] = value
+
+	def get_knowledge(self, knowledge):
+		assert self.category == ARType.PROGRAM
+		if knowledge not in self.members:
+			return None
+		assert self.locks[knowledge].locked() == True
+		value = self.members[knowledge]
+		return value
 
 	def __str__(self):
 		lines = [
@@ -55,6 +83,8 @@ class ActivationRecord:
 		for name, val in self.members.items():
 			if isinstance(val, str):
 				val = '"' + val.replace('\\', '\\\\') + '"'  # Escape backslashes
+			elif isinstance(val, queue.Queue):
+				val = str(list(val.queue))
 			lines.append(f'   {name:<20}: {val}')
 
 		s = '\n'.join(lines)

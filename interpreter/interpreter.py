@@ -6,7 +6,7 @@ from base.nodeVisitor import NodeVisitor
 from interpreter.memory import ARType, ActivationRecord, CallStack
 from interpreter.wrapper import Wrapper
 from lexer.token import TokenType
-from parser.element import FunctionCall
+from parser.element import FunctionCall, Knowledge, KnowledgeQueue
 from parser.operator import BinOp
 from semanticAnalyzer.symbol import SymbolCategory
 
@@ -81,7 +81,7 @@ class Interpreter(NodeVisitor):
 			CALL_STACK = kwargs["call_stack"]
 		
 		# acquire knowledge lock
-		ar = CALL_STACK.bottom()
+		ar:ActivationRecord = CALL_STACK.bottom()
 		knowledge_locks = {}
 		for statement in node.compound_statement.children:
 			if isinstance(statement, BinOp):
@@ -118,7 +118,7 @@ class Interpreter(NodeVisitor):
 		agt_name = agt_smbl.name
 		self.agent_abilities[agt_name] = self.visit(agt_smbl.ast, **kwargs)
 		cnt = self.visit(node.count, **kwargs)
-		ar = CALL_STACK.peek()
+		ar:ActivationRecord = CALL_STACK.peek()
 
 		if agt_name not in ar:
 			ar[agt_name] = (agt_name, 0, cnt)
@@ -392,10 +392,10 @@ class Interpreter(NodeVisitor):
 		if "call_stack" in kwargs:
 			CALL_STACK = kwargs["call_stack"]
 		
-		cur_ar = CALL_STACK.peek()
+		cur_ar:ActivationRecord = CALL_STACK.peek()
 		if cur_ar.category == ARType.TASK:
 			# acquire knowledge lock
-			ar = CALL_STACK.bottom()
+			ar:ActivationRecord = CALL_STACK.bottom()
 			knowledge_locks = {}
 			for statement in node.compound_statement.children:
 				if isinstance(statement, BinOp):
@@ -423,10 +423,10 @@ class Interpreter(NodeVisitor):
 		if "call_stack" in kwargs:
 			CALL_STACK = kwargs["call_stack"]
 		
-		cur_ar = CALL_STACK.peek()
+		cur_ar:ActivationRecord = CALL_STACK.peek()
 		if cur_ar.category == ARType.TASK:
 			# acquire knowledge lock
-			ar = CALL_STACK.bottom()
+			ar:ActivationRecord = CALL_STACK.bottom()
 			knowledge_locks = {}
 			for statement in node.statements.children:
 				if isinstance(statement, BinOp):
@@ -496,7 +496,7 @@ class Interpreter(NodeVisitor):
 			CALL_STACK = kwargs["call_stack"]
 
 		var_name = node.value
-		ar = CALL_STACK.peek()
+		ar:ActivationRecord = CALL_STACK.peek()
 		var_value = ar[var_name]
 		if var_value is None:
 			# raise NameError(repr(var_name))
@@ -535,21 +535,27 @@ class Interpreter(NodeVisitor):
 			else:
 				self.visit(node.right, **kwargs)
 				var_value = self.return_value
-			ar = CALL_STACK.peek()
+			ar:ActivationRecord = CALL_STACK.peek()
 			ar[var_name] = var_value
 		elif node.op.category == TokenType.PUT:
 			knowledge_name = node.right.value
 			expr_value = self.visit(node.left, **kwargs)
-			ar = CALL_STACK.bottom()
-			ar[knowledge_name] = expr_value
+			ar:ActivationRecord = CALL_STACK.bottom()
+			if isinstance(node.right, Knowledge):
+				ar.put_knowledge(knowledge=knowledge_name, value=expr_value)
+			else:	# isinstance(node.right, KnowledgeQueue)
+				ar.put_knowledge_queue_item(knowledge_queue=knowledge_name, value=expr_value)
 		elif node.op.category == TokenType.GET:
 			var_name = node.left.value
 			knowledge_name = node.right.value
-			ar = CALL_STACK.bottom()
-			var_value = ar[knowledge_name]
+			ar:ActivationRecord = CALL_STACK.bottom()
+			if isinstance(node.right, Knowledge):
+				var_value = ar.get_knowledge(knowledge=knowledge_name)
+			else:	# isinstance(node.right, KnowledgeQueue)
+				var_value = ar.get_knowledge_queue_item(knowledge_queue=knowledge_name)
 			if var_value is None:
 				self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.right.token)
-			cur_ar = CALL_STACK.peek()
+			cur_ar:ActivationRecord = CALL_STACK.peek()
 			cur_ar[var_name] = var_value
 		elif node.op.category == TokenType.LESS:
 			return self.visit(node.left, **kwargs) < self.visit(node.right, **kwargs)

@@ -1,10 +1,13 @@
 Action add(y){
-	get x from count;
-	put x+y to count;
+	put y to count[];
+}
+
+Action sub(){
+	get y from count[];
 }
 
 Agent search_uav {
-	add;
+	add, sub;
 }
 
 Behavior add_one(){
@@ -15,14 +18,23 @@ Behavior add_one(){
 	}
 }
 
+Behavior sub_one(){
+	@init{}
+	@goal{}
+	@routine{
+		sub();
+	}
+}
+
 Task search({agtC[stC~edC]}){
 	@init{
-		put 0 to count;
+		put 0 to count[];
 	}
 	@goal{}
 	@routine{
 		each agtC[stC~edC] {
 			add_one();
+			sub_one();		
 		}
 	}
 }

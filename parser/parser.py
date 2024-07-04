@@ -529,7 +529,7 @@ class Parser(BaseParser):
 		return node
 
 	def put_statement(self):
-		# put_statement ::= "put" ( string | expression ) "to" variable ";"
+		# put_statement ::= "put" ( string | expression ) "to" ( knowledge | knowledge_queue ) ";"
 		token = self.current_token
 		self.eat(TokenType.PUT)
 		if self.current_token.category == TokenType.STRING:
@@ -537,20 +537,28 @@ class Parser(BaseParser):
 		else:
 			value = self.expression()
 		self.eat(TokenType.TO)
-		key = self.variable()
+		# knowledge or knowledge queue
+		if self.lexer.peek_next_token().category == TokenType.L_BRACKET:
+			knowledge = self.knowledgeQueue()
+		else:
+			knowledge = self.knowledge()
 		self.eat(TokenType.SEMI)
-		node = BinOp(value, token, key)
+		node = BinOp(value, token, knowledge)
 		return node
 
 	def get_statement(self):
-		# get_statement ::= "get" variable "from" variable ";"
+		# get_statement ::= "get" variable "from" ( knowledge | knowledge_queue ) ";"
 		token = self.current_token
 		self.eat(TokenType.GET)
 		var = self.variable()
 		self.eat(TokenType.FROM)
-		key = self.variable()
+		# knowledge or knowledge queue
+		if self.lexer.peek_next_token().category == TokenType.L_BRACKET:
+			knowledge = self.knowledgeQueue()
+		else:
+			knowledge = self.knowledge()
 		self.eat(TokenType.SEMI)
-		node = BinOp(var, token, key)
+		node = BinOp(var, token, knowledge)
 		return node
 
 	def empty_statement(self):
@@ -766,6 +774,20 @@ class Parser(BaseParser):
 		# variable ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
 		node = Var(self.current_token)
 		self.eat(TokenType.ID)
+		return node
+
+	def knowledge(self):
+		# knowledge ::= variable
+		node = Knowledge(self.current_token)
+		self.eat(TokenType.ID)
+		return node
+	
+	def knowledgeQueue(self):
+		# knowledge_queue ::= variable "[" "]"
+		node = KnowledgeQueue(self.current_token)
+		self.eat(TokenType.ID)
+		self.eat(TokenType.L_BRACKET)
+		self.eat(TokenType.R_BRACKET)
 		return node
 	
 	def boolean(self):
