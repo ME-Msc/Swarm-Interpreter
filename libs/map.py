@@ -6,7 +6,7 @@ def load_geojson(filename):
 	current_dir = os.path.dirname(os.path.abspath(__file__))
 	file_path = os.path.join(current_dir, 'data\\', filename)
 	gdf = gpd.read_file(file_path)
-	print(gdf)
+	# print(gdf)
 	return gdf
 
 def generate_grip_geojson(filename, x_start, x_end, x_step, y_start, y_end, y_step):

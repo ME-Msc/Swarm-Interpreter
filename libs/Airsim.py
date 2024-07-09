@@ -13,6 +13,7 @@ class AirsimWrapper(Wrapper):
 		self.clients = {}
 		self.locks = {}
 		self.home = {}
+		self.group = 0
 
 		if wait_or_not:
 			# set_global_camera
@@ -43,20 +44,21 @@ class AirsimWrapper(Wrapper):
 		return new_wrapper
 
 	def set_home(self, agents_list: list):
-		group = len(self.home)
+		colors = [[1.0, 0, 0, 0], [0, 0, 1.0, 0]]
 		for i in range(len(agents_list)):
 			client = airsim.MultirotorClient()
 			vhcl_nm = agents_list[i]
 			self.clients[vhcl_nm] = client
 			self.locks[vhcl_nm] = threading.Lock()
 
-			pose = airsim.Pose(airsim.Vector3r(group, i * 2, 0), airsim.to_quaternion(0, 0, 0))
+			pose = airsim.Pose(airsim.Vector3r(self.group*3, i * 2, 0), airsim.to_quaternion(0, 0, 0))
 			self.home[vhcl_nm] = pose
 
 			client.simAddVehicle(vhcl_nm, "simpleflight", pose)
 			client.enableApiControl(True, vhcl_nm)
 			client.armDisarm(True, vhcl_nm)
-			client.simSetTraceLine(color_rgba=[1.0, 0, 0, 0], thickness=20.0, vehicle_name=vhcl_nm)
+			client.simSetTraceLine(color_rgba=colors[self.group%len(colors)], thickness=20.0, vehicle_name=vhcl_nm)
+		self.group += 1
 		time.sleep(2)
 
 	"""

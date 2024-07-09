@@ -17,10 +17,9 @@
       "request": "launch",
       "program": "${workspaceFolder}/main.py",
       "console": "integratedTerminal",
-      "justMyCode": true,
+      "justMyCode": false,
       "args": [
-        "test/test_example.swarm",
-        "--stack"
+        "test/test_example.swarm"
       ]
     },
     {
