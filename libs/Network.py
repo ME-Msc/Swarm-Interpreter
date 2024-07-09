@@ -1,4 +1,5 @@
 import os
+import threading
 
 from libs.RL.td3 import TD3Agent
 
@@ -14,11 +15,12 @@ def one_round(*swarm_args, **kwargs):
 	agent = kwargs["circle_agent"]
 	client = kwargs["wrapper"].clients[vehicle_name]
 	Lock = kwargs["wrapper"].locks[vehicle_name]
+	my_goal_reached:threading.Event = kwargs["goal_reached"]["Behaviors"]["search_Behavior"][vehicle_name]
 
 	import math
 	import numpy as np
 	step_count = 0
-	while True:
+	while not my_goal_reached.is_set():
 		state = getState_func(**kwargs)
 		vx = state.kinematics_estimated.linear_velocity.x_val
 		vy = state.kinematics_estimated.linear_velocity.y_val
@@ -41,7 +43,7 @@ def one_round(*swarm_args, **kwargs):
 		client.moveByVelocityZAsync(vx=new_vx, vy=new_vy, z=hover_z, duration=1, vehicle_name=vehicle_name)
 		Lock.release()
 
-		distance_to_start_position = math.sqrt((state.kinematics_estimated.position.x_val - start_position.position.x_val)**2 + (state.kinematics_estimated.position.y_val - start_position.position.y_val)**2)
+		distance_to_start_position = math.sqrt((state.kinematics_estimated.position.x_val - start_position[0])**2 + (state.kinematics_estimated.position.y_val - start_position[1])**2)
 
 		if (distance_to_start_position < 0.1 *radius and step_count >= 1000) or step_count > 5000:
 			break
@@ -56,7 +58,7 @@ TD3_fly_circle.one_round = one_round
 
 def cnnRecognize(*swarm_args, **kwargs):
 	import random
-	weights = [0.2, 0.8]  # 设置权重，对应 True 和 False 的概率
+	weights = [0.3, 0.7]  # 设置权重，对应 True 和 False 的概率
 	options = [True, False]
 	res = random.choices(options, weights, k=1)[0]
 	import datetime

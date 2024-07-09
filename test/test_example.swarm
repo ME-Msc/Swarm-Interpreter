@@ -1,45 +1,172 @@
-Action add(y){
-	put y to count[];
+platform Airsim
+import Map
+import Algorithm
+import Uav
+import Network
+
+Action takeOff_Action(){
+	Uav.takeOff_API();
 }
 
-Action sub(){
-	get y from count[];
+Action flyToHeight_Action(h){
+	Uav.flyToHeight_API(h);
 }
 
-Agent search_uav {
-	add, sub;
+Action flyTo_Action(dest){
+	Uav.flyTo_API(dest);
 }
 
-Behavior add_one(){
-	@init{}
-	@goal{}
-	@routine{
-		add(1);
-	}
+Action getPosition_Action(){
+	pos = Uav.getPosition_API();
+	getPosition_str = "getPosition";
+	Uav.print_API(getPosition_str, pos, 77);
+	return pos;
 }
 
-Behavior sub_one(){
-	@init{}
-	@goal{}
-	@routine{
-		sub();
-	}
+Action takePicture_Action(){
+	pic = Uav.takePicture_API();
+	return pic;
 }
 
-Task search({agtC[stC~edC]}){
+Action fakeCover_Action(network){
+	pos = Uav.getPosition_API();
+	Uav.flyCircle_API(network, 10, pos);
+}
+
+Action pickUp_Action(){
+	Uav.pickUp_API();
+}
+
+Action putCargoDest_Action(dest){
+	put_cargoDest_str = "put cargoDest";
+	Uav.print_API(put_cargoDest_str, dest, 44);
+	get cnt from findCount;
+	Uav.print_API(put_cargoDest_str, dest, 55);
+	put dest to cargoDest[];
+	res = cnt+1;
+	findCount_str = "put findCount";
+	Uav.print_API(findCount_str, res);
+	put cnt+1 to findCount;
+}
+
+Action getCargoDest_Action(){
+	get dest from cargoDest[];
+	get_cargoDest_str = "get cargoDest";
+	Uav.print_API(get_cargoDest_str, dest);
+	return dest;
+}
+
+Action putFindCount_Action(c){
+	put c to findCount;
+}
+
+Action getFindCount_Action(){
+	get cnt from findCount;
+	findCount_str = "get findCount";
+	Uav.print_API(findCount_str, cnt, 66);
+	return cnt;
+}
+
+Action dropGoods_Action(){
+	Uav.dropGoods_API();
+	get cnt from cargoCount;
+	put cnt+1 to cargoCount;
+	cargoCount_str = "cargoCount";
+	res = cnt+1;
+	Uav.print_API(cargoCount_str, res);
+}
+
+Action goHome_Action(){
+	Uav.goHome_API();
+}
+
+Agent search_drone {
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action, takePicture_Action, fakeCover_Action, putCargoDest_Action, putFindCount_Action, getFindCount_Action, goHome_Action;
+}
+
+Agent cargo_drone {
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action,
+	pickUp_Action, getCargoDest_Action, dropGoods_Action, goHome_Action;
+}
+
+Behavior search_Behavior(h, net){
 	@init{
-		put 0 to count[];
+		takeOff_Action();
+		flyToHeight_Action(h);
+		find_target = False;
+		putFindCount_Action(0);
+	 }
+	@goal{
+		found_cnt = getFindCount_Action();
+		$ found_cnt == 2
 	}
+	@routine{
+		/* 单机覆盖算法的完整调用 */
+		fakeCover_Action(net);
+	}
+	||
+	{
+		picture = takePicture_Action();
+		find_target = Network.cnnRecognize(picture);
+		if(find_target == True){
+			destination = getPosition_Action();
+			putCargoDest_Action(destination);
+		}
+	}
+}
+
+Behavior pickUp_delivery_Behavior() {
+	@init{
+		takeOff_Action();
+		pickUp_Action();
+	}
+	@goal{
+		/* position = getPosition_Action(); */
+		/* position == destination */
+		$ True
+	}
+	@routine{
+		destination = getCargoDest_Action();
+		flyTo_Action(destination);
+	}
+}
+
+Behavior drop_goHome_Behavior() {
+	@init{}
 	@goal{}
 	@routine{
-		each agtC[stC~edC] {
-			add_one();
-			sub_one();		
+		dropGoods_Action();
+		goHome_Action();
+	}
+}
+
+Task earthquake_relief({agtA[stA~edA], agtB[stB~edB]}, city_map){
+	@init{
+		search_height = 30;
+		deliver_height = 50;
+		put 0 to findCount;
+		put 0 to cargoCount;
+	}
+	@goal{
+		get cnt from cargoCount;
+		$ cnt >= 3
+	}
+	@routine{
+		each agtA[stA~edA] {
+			search_Behavior(search_height, Network.TD3_fly_circle);
+		}
+	}
+	||
+	{
+		order agtB[stB~edB] {
+			pickUp_delivery_Behavior();
+			drop_goHome_Behavior();
 		}
 	}
 }
 
 Main {
-	Agent search_uav 3;
-	search({search_uav[0~3]});
+	Agent search_drone 3;
+	Agent cargo_drone 3;
+	earthquake_relief({search_drone[0~1], cargo_drone[0~3]}, Map.testMap);
 }

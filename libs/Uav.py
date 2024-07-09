@@ -1,6 +1,7 @@
 import threading
 import time
 import airsim
+import inspect
 
 LogLock = threading.Lock()
 MIN_THRESHOLD = 2
@@ -64,7 +65,8 @@ def getPosition_API(*swarm_args, **kwargs):
 	pos.position.x_val += home[vehicle_name].position.x_val
 	pos.position.y_val += home[vehicle_name].position.y_val
 	pos.position.z_val += home[vehicle_name].position.z_val 
-	return pos
+	# return pos
+	return (pos.position.x_val, pos.position.y_val, pos.position.z_val)
 
 
 def getState_API(*swarm_args, **kwargs):
@@ -90,13 +92,14 @@ def getDestination_API(*swarm_args, **kwargs):
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	mapper = {
-		"search_uav_0": 0,
-		"search_uav_1": 1,
-		"search_uav_2": 2
+		"search_drone_0": 0,
+		"search_drone_1": 1,
+		"search_drone_2": 2
 	}
 	index = mapper[vehicle_name]
 	traces = swarm_args[0][index]
-	pos = (swarm_args[1].position.x_val, swarm_args[1].position.y_val, swarm_args[1].position.z_val)
+	# pos = (swarm_args[1].position.x_val, swarm_args[1].position.y_val, swarm_args[1].position.z_val)
+	pos = swarm_args[1]
 	
 	min_distance = float('inf')
 	closest_index = -1
@@ -116,8 +119,10 @@ def getDestination_API(*swarm_args, **kwargs):
 	else:
 		# Otherwise, return the next point in traces
 		dest = traces[closest_index + 1]
-	res = airsim.Pose(airsim.Vector3r(dest[0], dest[1], pos[2]))
-	return res
+	
+	# res = airsim.Pose(airsim.Vector3r(dest[0], dest[1], pos[2]))
+	# return res
+	return (dest[0], dest[1], pos[2])
 
 
 def flyTo_API(*swarm_args, **kwargs):
@@ -129,18 +134,19 @@ def flyTo_API(*swarm_args, **kwargs):
 	home = kwargs["wrapper"].home
 
 	# Relative coordinate system
-	relative_destination_x = destination.position.x_val - home[vehicle_name].position.x_val
-	relative_destination_y = destination.position.y_val - home[vehicle_name].position.y_val
-	relative_destination_z = destination.position.z_val - home[vehicle_name].position.z_val
+	relative_destination_x = destination[0] - home[vehicle_name].position.x_val
+	relative_destination_y = destination[1] - home[vehicle_name].position.y_val
+	relative_destination_z = destination[2] - home[vehicle_name].position.z_val
 
-	import datetime
-	time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-	print(f"{time_str} fly to {relative_destination_x}, {relative_destination_y}, {relative_destination_z}")
+	# import datetime
+	# time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+	LogLock.acquire()
+	print(f"{vehicle_name} fly to {relative_destination_x}, {relative_destination_y}, {relative_destination_z}")
+	LogLock.release()
 	while True:
 		pos = getPosition_API(**kwargs)
 		import math
-		if math.dist((pos.position.x_val, pos.position.y_val, pos.position.z_val),
-			(destination.position.x_val, destination.position.y_val, destination.position.z_val)) < MIN_THRESHOLD:
+		if math.dist((pos[0], pos[1], pos[2]), (destination[0], destination[1], destination[2])) < MIN_THRESHOLD:
 			break
 		Lock.acquire()
 		res = client.moveToPositionAsync(relative_destination_x, relative_destination_y, relative_destination_z, 2, vehicle_name=vehicle_name)
@@ -153,7 +159,7 @@ def flyCircle_API(*swarm_args, **kwargs):
 	radius = swarm_args[1]
 	start_position = swarm_args[2]
 
-	circle_center = (round(start_position.position.x_val), round(start_position.position.y_val) + radius)
+	circle_center = (round(start_position[0]), round(start_position[1]) + radius)
 
 	TD3agent.one_round(getState_func = getState_API, circle_agent = TD3agent, radius = radius, start_position = start_position, circle_center = circle_center, **kwargs)
 
@@ -164,8 +170,8 @@ def takePicture_API(*swarm_args, **kwargs):
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	import datetime
-	print(str(datetime.datetime.now()) + " Enter takePicture_API")
-	
+	# print(str(datetime.datetime.now()) + " Enter takePicture_API")
+	time.sleep(5)
 	Lock.acquire()
 	response = client.simGetImage("bottom_center", airsim.ImageType.Scene, vehicle_name=vehicle_name)
 	Lock.release()
@@ -182,3 +188,35 @@ def takePicture_API(*swarm_args, **kwargs):
 		f.write(response)
 
 	return filename
+
+
+def pickUp_API(*swarm_args, **kwargs):
+	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	LogLock.acquire()
+	print(f"{vehicle_name} :-> {inspect.currentframe().f_code.co_name}")
+	LogLock.release()
+
+
+def dropGoods_API(*swarm_args, **kwargs):
+	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	LogLock.acquire()
+	print(f"{vehicle_name} :-> {inspect.currentframe().f_code.co_name}")
+	LogLock.release()
+
+
+def goHome_API(*swarm_args, **kwargs):
+	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	Lock = kwargs["wrapper"].locks[vehicle_name]
+	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
+
+	client.goHomeAsync(vehicle_name=vehicle_name)
+	LogLock.acquire()
+	print(f"{vehicle_name} :-> {inspect.currentframe().f_code.co_name}")
+	LogLock.release()
+
+
+def print_API(*swarm_args, **kwargs):
+	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+	LogLock.acquire()
+	print(f"{vehicle_name} : {swarm_args[:-1]})")
+	LogLock.release()

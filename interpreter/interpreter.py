@@ -106,23 +106,30 @@ class Interpreter(NodeVisitor):
 		CALL_STACK = self.call_stack
 		if "call_stack" in kwargs:
 			CALL_STACK = kwargs["call_stack"]
-		vehicle_name = f'{kwargs["agent"]}:{kwargs["id"]}'
+		behavior_name = node.name
+		vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+
+		goal_reached = kwargs["goal_reached"]
+		if behavior_name not in goal_reached["Behaviors"]:
+			goal_reached["Behaviors"][behavior_name] = {}
+		my_goal_reached = threading.Event()
+		goal_reached["Behaviors"][behavior_name][vehicle_name] = my_goal_reached
+		kwargs["goal_reached"] = goal_reached
 
 		self.visit(node.init_block, **kwargs)
 
-		goal_reached = threading.Event()
 		def execute_child(child, goal_block, cs: CallStack, exception_list:list):
 			try:
 				kwargs["call_stack"] = cs				# update call_stack for parallel child node in compound
-				self.visit(child, goal_reached=goal_reached, **kwargs)
-				while not goal_reached.is_set():
+
+				self.visit(child, **kwargs)
+				while not my_goal_reached.is_set():
 					kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
 					if self.visit(goal_block, **kwargs):
-						goal_reached.set()				# set shared flag True
+						my_goal_reached.set()				# set shared flag True
 						break							# terminate this parallel child node when goal_reached is set
 					kwargs["call_stack"] = cs			# update call_stack for parallel child node in compound
-					self.visit(child, goal_reached=goal_reached, **kwargs)
-					kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+					self.visit(child, **kwargs)
 			except InterpreterError as e:
 				exception_list.append(e)
 
@@ -201,13 +208,54 @@ class Interpreter(NodeVisitor):
 		LogLock.release()
 
 	def visit_Task(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+		task_name = node.name
+		
+		goal_reached = kwargs["goal_reached"]
+		my_goal_reached = threading.Event()
+		goal_reached["Tasks"][task_name] = my_goal_reached
+		kwargs["goal_reached"] = goal_reached
+
 		self.visit(node.init_block, **kwargs)
-		# self.visit(node.routine_block, **kwargs)
-		for child in node.routine_block.children:
-			self.visit(child, **kwargs)
-		while not self.visit(node.goal_block, **kwargs):
-			for child in node.routine_block.children:
+		def execute_child(child, goal_block, cs: CallStack, exception_list:list):
+			try:
+				kwargs["call_stack"] = cs				# update call_stack for parallel child node in compound
 				self.visit(child, **kwargs)
+				while not my_goal_reached.is_set():
+					kwargs["call_stack"] = CALL_STACK	# recover call_stack for checking goal in behavior goal level
+					if self.visit(goal_block, **kwargs):
+						my_goal_reached.set()				# set shared flag True
+						break							# terminate this parallel child node when goal_reached is set
+					kwargs["call_stack"] = cs			# update call_stack for parallel child node in compound
+					self.visit(child, **kwargs)
+			except InterpreterError as e:
+				exception_list.append(e)
+
+		parent_call_stack = CALL_STACK
+		if "call_stack" in kwargs:  # for sub-behavior
+			parent_call_stack = kwargs['call_stack']
+		threads = []
+		exception_list = []
+		for child in node.routine_block.children:
+			child_call_stack = parent_call_stack.create_child(task_name)
+			thread = threading.Thread(target=execute_child, args=(child, node.goal_block, child_call_stack, exception_list))
+			threads.append(thread)
+
+		# start all threads
+		for thread in threads:
+			thread.start()
+
+		# wait for all threads finish
+		for thread in threads:
+			thread.join()
+
+		if exception_list:
+			for exception in exception_list:
+				LogLock.acquire()
+				print(exception.message)
+				LogLock.release()
 
 	def visit_TaskCall(self, node, **kwargs):
 		CALL_STACK = self.call_stack
@@ -284,7 +332,9 @@ class Interpreter(NodeVisitor):
 
 		def agent_work(agent_id, cs: CallStack, wpr:Wrapper, exception_list:list):
 			try:
-				self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, call_stack=cs, wrapper=wpr)
+				kwargs["call_stack"] = cs
+				self.visit(node.function_call_statements, agent=agent_s_e[0], id=agent_id, **kwargs)
+				kwargs["call_stack"] = CALL_STACK
 			except InterpreterError as e:
 				exception_list.append(e)
 
@@ -353,7 +403,9 @@ class Interpreter(NodeVisitor):
 		for agent_call_node in node.agent_call_list.children:
 			self.visit(agent_call_node, **kwargs)
 		self.log(str(CALL_STACK))
-		self.visit(node.task_call, **kwargs)
+
+		goal_reached = {"Tasks":{}, "Behaviors":{}}
+		self.visit(node.task_call, goal_reached = goal_reached, **kwargs)
 
 		self.log(str(CALL_STACK))
 		CALL_STACK = CALL_STACK.pop()
@@ -388,22 +440,23 @@ class Interpreter(NodeVisitor):
 		knowledge_locks = {}
 		for statement in node.children:
 			if isinstance(statement, BinOp):
-				if statement.op.category == TokenType.GET:
+				if isinstance(statement.right, Knowledge):
 					knowledge_name = statement.right.value
 					knowledge_locks[knowledge_name] = ar.get_lock(knowledge_name)
-					if knowledge_locks[knowledge_name] is None:
-						self.error(error_code=ErrorCode.ID_NOT_FOUND, token=statement.right.token)
-				elif statement.op.category == TokenType.PUT:
-					knowledge_name = statement.right.value
-					knowledge_locks[knowledge_name] = ar.add_lock(knowledge_name)
 		sorted_knowledge_locks = sorted(knowledge_locks.items())
 		for knowledge_lock_pair in sorted_knowledge_locks:
 			knowledge_lock_pair[1].acquire()
 
 		# multi parallel routine in Behavior or Task
 		for child in node.children:
-			if "goal_reached" in kwargs:
-				GOAL_REACHED:threading.Event = kwargs["goal_reached"]
+			current_level:ActivationRecord = CALL_STACK.peek()
+			if current_level.category == ARType.TASK:
+				GOAL_REACHED:threading.Event = kwargs["goal_reached"]["Tasks"][current_level.name]
+				if GOAL_REACHED.is_set():
+					break
+			elif current_level.category == ARType.BEHAVIOR:
+				vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
+				GOAL_REACHED:threading.Event = kwargs["goal_reached"]["Behaviors"][current_level.name][vehicle_name]
 				if GOAL_REACHED.is_set():
 					break
 			self.visit(child, **kwargs)
@@ -438,7 +491,7 @@ class Interpreter(NodeVisitor):
 		var_value = ar[var_name]
 		if var_value is None:
 			# raise NameError(repr(var_name))
-			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=var_name.token)
+			self.error(error_code=ErrorCode.ID_NOT_FOUND, token=node.token)
 		else:
 			return var_value
 
@@ -504,7 +557,10 @@ class Interpreter(NodeVisitor):
 		elif node.op.category == TokenType.GREATER_EQUAL:
 			return self.visit(node.left, **kwargs) >= self.visit(node.right, **kwargs)
 		elif node.op.category == TokenType.IS_EQUAL:
-			return self.visit(node.left, **kwargs) == self.visit(node.right, **kwargs)
+			left_value = self.visit(node.left, **kwargs)
+			right_value = self.visit(node.right, **kwargs)
+			res = (left_value == right_value)
+			return res
 		elif node.op.category == TokenType.NOT_EQUAL:
 			return self.visit(node.left, **kwargs) != self.visit(node.right, **kwargs)
 

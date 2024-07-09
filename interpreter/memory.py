@@ -1,6 +1,8 @@
 import threading
 import queue
 from enum import Enum
+import geopandas
+import geopandas.geodataframe
 
 
 class ARType(Enum):  # Activation Record Type
@@ -17,9 +19,9 @@ class ActivationRecord:
 		self.name = name
 		self.category = category
 		self.nesting_level = nesting_level
-		# members[] is for Var type, members.put/get() is for Knowledge/KnowledgeQueue type
+		# members[] is for Var type, members. put/get() is for Knowledge/KnowledgeQueue type
 		self.members = {}
-		self.locks = {}
+		self.locks = {}		# only for Knowledge, not for KnwoledgeQueue
 
 	def __setitem__(self, key, value):
 		self.members[key] = value
@@ -34,12 +36,6 @@ class ActivationRecord:
 		return key in self.members
 	
 	def get_lock(self, knowledge):
-		if knowledge in self.locks:
-			return self.locks[knowledge]
-		else:
-			return None
-		
-	def add_lock(self, knowledge):
 		if knowledge not in self.locks:
 			self.locks[knowledge] = threading.Lock()
 		return self.locks[knowledge]
@@ -48,14 +44,12 @@ class ActivationRecord:
 		assert self.category == ARType.PROGRAM
 		if knowledge_queue not in self.members:
 			self.members[knowledge_queue] = queue.Queue()
-		assert self.locks[knowledge_queue].locked() == True
 		self.members[knowledge_queue].put(value)
 
 	def get_knowledge_queue_item(self, knowledge_queue):
 		assert self.category == ARType.PROGRAM
 		if knowledge_queue not in self.members:
-			return None
-		assert self.locks[knowledge_queue].locked() == True
+			self.members[knowledge_queue] = queue.Queue()
 		value = self.members[knowledge_queue].get()
 		return value
 	
@@ -72,6 +66,20 @@ class ActivationRecord:
 		value = self.members[knowledge]
 		return value
 
+	def _format_value(self, val):
+		if isinstance(val, str):
+			val = '"' + val.replace('\\', '\\\\') + '"'  # Escape backslashes
+		elif isinstance(val, list):
+			lines = []
+			for item in val:
+				lines.append(str(item))
+			val =  ('\n' + ' ' * 26).join(lines)
+		elif isinstance(val, queue.Queue):
+			val = str(list(val.queue))
+		elif isinstance(val, geopandas.geodataframe.GeoDataFrame):
+			val = str(type(val))
+		return val
+
 	def __str__(self):
 		lines = [
 			'{level}: {category} {name}'.format(
@@ -81,11 +89,8 @@ class ActivationRecord:
 			)
 		]
 		for name, val in self.members.items():
-			if isinstance(val, str):
-				val = '"' + val.replace('\\', '\\\\') + '"'  # Escape backslashes
-			elif isinstance(val, queue.Queue):
-				val = str(list(val.queue))
-			lines.append(f'   {name:<20}: {val}')
+			formatted_val = self._format_value(val)
+			lines.append(f'   {name:<20} : {formatted_val}')
 
 		s = '\n'.join(lines)
 		return s
@@ -120,7 +125,7 @@ class CallStack:
 			if self.parent is None:
 				raise Exception("CallStack has no parent.")
 			else:
-				return self.parent._records[-1]
+				return self.parent.peek()
 		return self._records[-1]
 
 	def bottom(self):
