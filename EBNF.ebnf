@@ -1,5 +1,5 @@
 /* Program */
-program ::= platform library_list action_list agent_list behavior_list task_list main
+program ::= platform? library_list action_list agent_list behavior_list task_list main
 
 platform ::= "platform" variable
 

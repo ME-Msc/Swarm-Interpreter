@@ -1,25 +1,35 @@
-Port : 14457
+platform Airsim
+import Map
+import Algorithm
+import Uav
 
-Action flyTo(position){
-    /* 调用神经网络指导无人机飞往目的地 */
-    := FlyAPI_Model(position);
+Action takeOff_Action(){
+	Uav.takeOff_API();
 }
 
-Action pickUp(){
+Action flyToHeight_Action(h){
+	Uav.flyToHeight_API(h);
+}
+
+Action flyTo_Action(dest){
+    Uav.flyTo_API(dest);
+}
+
+Action getPosition(){
+	pos = Uav.getPosition_API();
+	return pos;
+}
+
+Action pickUp_Action(){
     /* 调用既定动作 */
-    := pickUpAPI();
+    Uav.pickUp_API();
 }
 
-Action drop(){
+Action drop_Action(){
     /* 调用既定动作 */
-    := dropAPI();
-}
-
-Action chooseDest(){
-    /* dst 接收调用结果，一个目的地 */
-    dst := chooseDestAPI();
-    /* 将 dst 返回给调用者 */
-    return dst;
+    Uav.drop_API();
+    get delivery_cnt from delivery_count;
+    put delivery_cnt+1 to delivery_count;
 }
 
 /* 描述 Agent 具备的执行动作能力 */
@@ -28,53 +38,56 @@ Agent Uav {
 }
 
 /* 配送行为：拾取货物，飞往目的地 */
-Behavior delivering() {
+Behavior transport_Behavior(h, city_map) {
     @init{
-        pickup();
-        dest = chooseDest();
+        takeOff_Action();
+        pickUp_Action();
+        flyToHeight_Action(h);
+        final_destination = Algorithm.getFinalDestination(city_map);
+        position = getPosition();
+        dest = Algorithm.destinationAllocation(position, city_map);
     }
     @goal{
-        loc = getGPS();
-        $ dest == loc
+        position = getPosition();
+        $ position == final_destination
     }
     @routine{
-        flyTo(dest);
+        position = getPosition();
+        dest = Algorithm.destinationAllocation(position, city_map);
+        flyTo_Action(dest);
     }
 }
 
 /* 投放行为：投放货物，更新全局计数器 */
-Behavior dropGood() {
+Behavior dropGood_Behavior() {
     @init{}
     @goal{}
     @routine{
-        drop();
-        get delivery_cnt from #delivery_count# ;
-        put delivery_cnt+1 to #delivery_count# ;
+        drop_Action();
     }
 }
 
 /* 配送任务：指定参与任务的无人机类型、数量，要配送的货物数量 */
-Task delivery({uavA[A_start~A_end]}, goods_cnt){
+Task delivery({agtA[stA~edA]}, goods_cnt){
     @init{
-        put 0 to #delivery_count# ;
+        height = 50;
+        put 0 to delivery_count;
     }
     @goal{
-        get delivery_cnt from #delivery_count# ;
+        get delivery_cnt from delivery_count;
         $ delivery_cnt == goods_cnt
     }
     @routine{
-        /* order语句的无人机范围值可以用表达式 */
-        /* 如 uavA[ A_start ~ A_end-1 ] */
-        order uavA[A_start~A_end] {
-            delivering();
-            dropGood();
+        order agtA[stA~edA] {
+            transport_Behavior(height);
+            dropGood_Behavior();
         }
     }
 }
 
 Main {
     /* 声明无人机类型、数量 */
-    Agent Uav 5;
+    Agent cargo_drone 5;
     /* 任务调用 */
-    delivery({Uav[1~3]}, 20);
+    delivery({cargo_drone[0~5]}, 20);
 }

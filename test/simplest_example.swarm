@@ -1,0 +1,46 @@
+platform Airsim
+import Uav
+
+Action takeOff_Action(){
+  Uav.takeOff_API();
+}
+Action flyToHeight_Action(h){
+  Uav.flyToHeight_API(h);
+  get cnt from reach_count;
+  put cnt+1 to reach_count;
+}
+
+Agent search_drone {
+  takeOff_Action, flyToHeight_Action;
+}
+
+Behavior search_Behavior(h){
+  @init{
+    takeOff_Action();
+  }
+  @goal{}
+  @routine{
+    flyToHeight_Action(h);
+  }
+}
+
+Task earthquake_relief({agtA[stA~edA]}, h){
+  @init{
+    search_height = h;
+    put 0 to reach_count;
+  }
+  @goal{
+    get cnt from reach_count;
+    $ cnt >= 3  
+  }
+  @routine{
+    each agtA[stA~edA] {
+      search_Behavior(search_height);
+    }
+  }
+}
+
+Main {
+  Agent search_drone 3;
+  earthquake_relief({search_drone[0~3]}, 40);
+}

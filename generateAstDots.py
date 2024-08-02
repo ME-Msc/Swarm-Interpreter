@@ -432,6 +432,12 @@ class ASTVisualizer(NodeVisitor):
 		node._num = self.ncount
 		self.ncount += 1
 
+	def visit_Knowledge(self, node):
+		s = '  node{} [label="Knowledge:{}"]\n'.format(self.ncount, node.value)
+		self.dot_body.append(s)
+		node._num = self.ncount
+		self.ncount += 1
+
 	def visit_Num(self, node):
 		s = '  node{} [label="{}"]\n'.format(self.ncount, node.token.value)
 		self.dot_body.append(s)
@@ -498,8 +504,8 @@ def main():
 	# Write the DOT content to a file using args member variable
 	with open("dot/" + file_name + '.dot', 'w') as f:
 		f.write(content)
-	# Generate the PNG file from the DOT file
-	subprocess.run(["dot", "-Tpng", "-o", "dot/" + file_name + '.png', "dot/" + file_name + '.dot'])
+	# Generate the SVG file from the DOT file
+	subprocess.run(["dot", "-Tsvg", "-o", "dot/" + file_name + '.svg', "dot/" + file_name + '.dot'])
 	print("Done!")
 
 

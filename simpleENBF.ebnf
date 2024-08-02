@@ -1,0 +1,122 @@
+/* Program */
+program ::= platform? library* action+ agent+ behavior+ task+ main
+
+platform ::= "platform" identifier
+
+library ::= "import" identifier
+
+action ::= "Action" identifier "(" arguments? ")" compound
+
+agent ::= "Agent" identifier "{" ( identifier ( "," identifier )* )? ";" "}"
+
+behavior ::= "Behavior" identifier "(" arguments? ")" "{" init_block goal_block routine_block "}"
+
+task ::= "Task" identifier "(" agent_range_list ( "," arguments )? ")" "{" init_block goal_block routine_block "}"
+
+main ::= "Main" "{" agent_call_statement+ task_call_statement "}"
+
+/* call */
+library_call ::= identifier ( "." identifier )* ( '(' parameters ')' )?
+
+library_call_statement ::= library_call ";"
+
+agent_call_statement ::= "Agent" identifier integer ";"
+
+function_call_statement ::= identifier "(" parameters? ")" ";"
+
+task_call_statement ::= identifier "(" agent_range_list ( "," parameters )? ")" ";"
+
+/* block */
+order_block ::= "order" agent_range "{" function_call_statement* "}"
+
+each_block ::= "each" agent_range "{" function_call_statement* "}"
+
+init_block ::= "@init" compound
+
+goal_block ::= "@goal" "{" ( statement* "$" expression )? "}"
+
+routine_block ::= "@routine" compound ( "||" compound )*
+
+/* statement */ 
+compound ::= "{" statement* "}"
+
+statement ::= if_else
+            | order_block
+            | each_block
+            | return_statement
+            | task_call_statement
+            | function_call_statement
+            | library_call_statement
+            | assignment_statement
+            | put_statement
+            | get_statement
+            | empty_statement 
+
+if_else ::= "if" "(" expression ")" compound ( "else" compound )?
+
+return_statement ::= "return" expression ";"
+
+assignment_statement ::= identifier "=" ( ( string  ";" ) 
+                                        | function_call_statement
+                                        | ( expression ";" ) )
+
+put_statement ::= "put" ( string | expression ) "to" ( knowledge | knowledge_queue ) ";"
+
+get_statement ::= "get" identifier "from" ( knowledge | knowledge_queue ) ";"
+
+empty_statement ::= ";"
+
+/* Parameter */
+agent_range_list ::= "{" agent_range ( "," agent_range )* "}"
+
+agent_range ::= identifier "[" additive_expression "~" additive_expression "]"
+
+arguments ::= identifier ( "," identifier )*
+
+parameters ::= additive_expression ( "," additive_expression )*
+
+/* Expression */
+expression ::= logical_or_expression
+
+logical_or_expression ::= logical_and_expression
+                        | logical_or_expression "or" logical_and_expression
+
+logical_and_expression ::= logical_not_expression
+                        | logical_and_expression "and" logical_not_expression
+
+logical_not_expression ::= comparison
+                        | "not" logical_not_expression
+
+comparison ::= expression ( comparison_operator expression )*
+
+comparison_operator ::= "<" | ">" | "==" | ">=" | "<=" | "!="
+
+additive_expression ::= multiplicative_expression
+                    | additive_expression "+" multiplicative_expression
+                    | additive_expression "-" multiplicative_expression
+
+multiplicative_expression ::= primary_expression ( ( "*" | "/" | "%" ) primary_expression )*
+
+primary_expression ::= ( ( "+" | "-" ) primary_expression )
+                        | "(" additive_expression ")"
+                        | library_call
+                        | identifier
+                        | boolean
+                        | integer
+                        | float
+
+identifier ::= [a-zA-Z] ( [a-zA-Z0-9] | "_" )*
+
+knowledge ::= identifier
+
+knowledge_queue ::= identifier "[" "]"
+
+boolean ::= "False" | "True"
+
+integer ::= "0" | ( [1-9] [0-9]* )
+
+float ::= integer "." integer
+
+string ::= ( "'" | '"' ) ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )*  ( "'" | '"' )
+
+comments ::= "/*" ( #x0009 | #x000A | #x000D | [#x0020-#xFFFF] )* "*\/"

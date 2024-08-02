@@ -4,6 +4,14 @@ import airsim
 import threading
 import time
 
+import sys
+import os
+# 添加项目根目录到 Python 解释器的搜索路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(project_root)
+
+
 LOCK = threading.Lock()
 
 client = airsim.MultirotorClient()
@@ -15,7 +23,7 @@ def set_global_camera():
 	global_camera = "GlobalCamera"
 	client.enableApiControl(True, global_camera)
 	client.takeoffAsync(vehicle_name=global_camera).join()
-	client.moveToPositionAsync(0, 0, -40, 10, vehicle_name=global_camera).join()
+	client.moveToPositionAsync(0, 0, -100, 10, vehicle_name=global_camera).join()
 
 	airsim.wait_key()
 
@@ -132,5 +140,24 @@ def fly_photo_multithread():
 		thread.join()
 
 
+def dqn_cover():
+	from libs.Airsim import AirsimWrapper
+	my_wrapper = AirsimWrapper(wait_or_not=False)
+	vehicles = ["uav_0"]
+	my_wrapper.set_home(vehicles)
+	vehicle_name = "uav_0"
+	my_client = my_wrapper.clients[vehicle_name]
+	
+	pos = my_client.simGetVehiclePose(vehicle_name=vehicle_name)
+	time.sleep(0.5)
+	res = my_client.moveToPositionAsync(pos.position.x_val, pos.position.y_val, -20, 5, vehicle_name=vehicle_name).join()
+
+	from libs.Network import DQN_cover
+	from libs.Uav import getPosition_API, flyTo_API
+	DQNagent = DQN_cover
+	DQNagent.one_round(getPosition_func = getPosition_API, flyTo_func = flyTo_API, cover_agent = DQNagent, scale = 5, vehicle_name= vehicle_name, agent='uav', id='0', wrapper = my_wrapper)
+
+
 if __name__ == "__main__":
-	fly_photo_multithread()
+	set_global_camera()
+	dqn_cover()

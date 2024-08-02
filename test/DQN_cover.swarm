@@ -28,7 +28,7 @@ Action getDestination(trace, pos){
 }
 
 Action cover_Action(net){
-	Uav.cover_API();
+	Uav.cover_API(net);
 }
 
 Agent search_uav {
