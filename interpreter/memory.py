@@ -127,6 +127,18 @@ class CallStack:
 			else:
 				return self.parent.peek()
 		return self._records[-1]
+	
+	def peek_all(self):
+		peek_results = []
+		stage = self
+		while hasattr(stage, "parent"):
+			for ar in stage._records[::-1]:
+				peek_results.append(ar)
+			if stage.parent is not None:
+				stage = stage.parent
+			else:
+				break
+		return peek_results
 
 	def bottom(self):
 		p = self

@@ -18,8 +18,6 @@ Action flyTo_Action(dest){
 
 Action getPosition_Action(){
 	pos = Uav.getPosition_API();
-	getPosition_str = "getPosition";
-	Uav.print_API(getPosition_str, pos, 77);
 	return pos;
 }
 
@@ -28,9 +26,8 @@ Action takePicture_Action(){
 	return pic;
 }
 
-Action fakeCover_Action(network){
-	pos = Uav.getPosition_API();
-	Uav.flyCircle_API(network, 10, pos);
+Action cover_Action(net){
+	Uav.cover_API(net);
 }
 
 Action pickUp_Action(){
@@ -38,21 +35,13 @@ Action pickUp_Action(){
 }
 
 Action putCargoDest_Action(dest){
-	put_cargoDest_str = "put cargoDest";
-	Uav.print_API(put_cargoDest_str, dest, 44);
 	get cnt from findCount;
-	Uav.print_API(put_cargoDest_str, dest, 55);
 	put dest to cargoDest[];
-	res = cnt+1;
-	findCount_str = "put findCount";
-	Uav.print_API(findCount_str, res);
 	put cnt+1 to findCount;
 }
 
 Action getCargoDest_Action(){
 	get dest from cargoDest[];
-	get_cargoDest_str = "get cargoDest";
-	Uav.print_API(get_cargoDest_str, dest);
 	return dest;
 }
 
@@ -62,8 +51,6 @@ Action putFindCount_Action(c){
 
 Action getFindCount_Action(){
 	get cnt from findCount;
-	findCount_str = "get findCount";
-	Uav.print_API(findCount_str, cnt, 66);
 	return cnt;
 }
 
@@ -71,9 +58,6 @@ Action dropGoods_Action(){
 	Uav.dropGoods_API();
 	get cnt from cargoCount;
 	put cnt+1 to cargoCount;
-	cargoCount_str = "cargoCount";
-	res = cnt+1;
-	Uav.print_API(cargoCount_str, res);
 }
 
 Action goHome_Action(){
@@ -81,7 +65,7 @@ Action goHome_Action(){
 }
 
 Agent search_drone {
-	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action, takePicture_Action, fakeCover_Action, putCargoDest_Action, putFindCount_Action, getFindCount_Action, goHome_Action;
+	takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action, takePicture_Action, cover_Action, putCargoDest_Action, putFindCount_Action, getFindCount_Action, goHome_Action;
 }
 
 Agent cargo_drone {
@@ -98,11 +82,11 @@ Behavior search_Behavior(h, net){
 	 }
 	@goal{
 		found_cnt = getFindCount_Action();
-		$ found_cnt == 2
+		$ found_cnt >= 5
 	}
 	@routine{
 		/* 单机覆盖算法的完整调用 */
-		fakeCover_Action(net);
+		cover_Action(net);
 	}
 	||
 	{
@@ -120,11 +104,7 @@ Behavior pickUp_delivery_Behavior() {
 		takeOff_Action();
 		pickUp_Action();
 	}
-	@goal{
-		/* position = getPosition_Action(); */
-		/* position == destination */
-		$ True
-	}
+	@goal{}
 	@routine{
 		destination = getCargoDest_Action();
 		flyTo_Action(destination);
@@ -153,7 +133,7 @@ Task earthquake_relief({agtA[stA~edA], agtB[stB~edB]}, city_map){
 	}
 	@routine{
 		each agtA[stA~edA] {
-			search_Behavior(search_height, Network.TD3_fly_circle);
+			search_Behavior(search_height, Network.DQN_cover);
 		}
 	}
 	||
@@ -166,7 +146,7 @@ Task earthquake_relief({agtA[stA~edA], agtB[stB~edB]}, city_map){
 }
 
 Main {
-	Agent search_drone 3;
-	Agent cargo_drone 3;
-	earthquake_relief({search_drone[0~1], cargo_drone[0~3]}, Map.testMap);
+	Agent search_drone 1;
+	Agent cargo_drone 2;
+	earthquake_relief({search_drone[0~1], cargo_drone[0~2]}, Map.testMap);
 }

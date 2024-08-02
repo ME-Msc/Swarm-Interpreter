@@ -18,7 +18,7 @@ action_compound ::= "{" action_statement* "}"
 
 action_statement ::= action_if_else
                     | action_return_statement
-                    | library_call ";"
+                    | library_call_statement
                     | assignment_statement
                     | put_statement
                     | get_statement
@@ -28,7 +28,7 @@ action_if_else ::= "if" "(" expression ")" action_compound ( "else" action_compo
 
 action_return_statement ::= "return" expression ";"
 
-/* library_call_statement ::= library_call ";" */
+library_call_statement ::= library_call ";"
 
 /* Agent */
 agent_list ::= agent+

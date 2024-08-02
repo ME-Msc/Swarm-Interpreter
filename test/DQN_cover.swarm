@@ -1,0 +1,77 @@
+platform Airsim
+import Map
+import Algorithm
+import Network
+import Uav
+
+/* test comments*/
+Action takeOff_Action(){
+	Uav.takeOff_API();
+}
+
+Action flyToHeight_Action(h){
+	Uav.flyToHeight_API(h);
+}
+
+Action flyTo_Action(dest){
+    Uav.flyTo_API(dest);
+}
+
+Action getPosition(){
+	pos = Uav.getPosition_API();
+	return pos;
+}
+
+Action getDestination(trace, pos){
+	dest = Uav.getDestination_API(trace, pos); 
+	return dest;
+}
+
+Action cover_Action(net){
+	Uav.cover_API();
+}
+
+Agent search_uav {
+	takeOff_Action, flyToHeight_Action, flyTo_Action, flyCircle_Action, getPosition, getDestination, cover_Action;
+}
+
+Behavior takeOff_Behavior(h) {
+	@init{}
+	@goal{}
+	@routine{
+		takeOff_Action();
+		flyToHeight_Action(h);
+	}
+}
+
+Behavior cover_Behavior(net){
+	@init{
+        step = 0;
+    }
+	@goal{
+        $ step > 10
+    }
+	@routine{
+		cover_Action(net);
+        step = step + 1;
+	}
+}
+
+Task search({agtC[stC~edC]}, city_map){
+	@init{
+		height = 50;
+		
+	}
+	@goal{}
+	@routine{
+		each agtC[stC~edC] {
+            takeOff_Behavior(height);
+			cover_Behavior(Network.DQN_cover);
+		}
+	}
+}
+
+Main {
+	Agent search_uav 3;
+	search({search_uav[0~3]}, Map.AirsimNH);
+}

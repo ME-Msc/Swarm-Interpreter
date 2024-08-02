@@ -8,7 +8,7 @@ MIN_THRESHOLD = 2
 
 def takeOff_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	Lock.acquire()
@@ -36,7 +36,7 @@ def takeOff_API(*swarm_args, **kwargs):
 
 def flyToHeight_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	while True:
@@ -54,7 +54,7 @@ def flyToHeight_API(*swarm_args, **kwargs):
 
 def getPosition_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 	Lock.acquire()
 	pos = client.simGetVehiclePose(vehicle_name=vehicle_name)
@@ -71,7 +71,7 @@ def getPosition_API(*swarm_args, **kwargs):
 
 def getState_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	Lock.acquire()
@@ -88,7 +88,7 @@ def getState_API(*swarm_args, **kwargs):
 
 def getDestination_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	mapper = {
@@ -125,9 +125,15 @@ def getDestination_API(*swarm_args, **kwargs):
 	return (dest[0], dest[1], pos[2])
 
 
+def cover_API(*swarm_args, **kwargs):
+	DQNagent = swarm_args[0]
+
+	DQNagent.one_round(getPosition_func = getPosition_API, flyTo_func = flyTo_API, cover_agent = DQNagent, scale = 10, **kwargs)
+
+
 def flyTo_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	destination = swarm_args[0]	# World coordinate system
@@ -141,7 +147,7 @@ def flyTo_API(*swarm_args, **kwargs):
 	# import datetime
 	# time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 	LogLock.acquire()
-	print(f"{vehicle_name} fly to {relative_destination_x}, {relative_destination_y}, {relative_destination_z}")
+	print(f"{vehicle_name} fly to {destination[0]}, {destination[1]}, {destination[2]}")
 	LogLock.release()
 	while True:
 		pos = getPosition_API(**kwargs)
@@ -166,7 +172,7 @@ def flyCircle_API(*swarm_args, **kwargs):
 
 def takePicture_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
+	Lock:threading.Lock = kwargs["wrapper"].locks[vehicle_name]
 	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
 	import datetime
@@ -206,10 +212,12 @@ def dropGoods_API(*swarm_args, **kwargs):
 
 def goHome_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
-	Lock = kwargs["wrapper"].locks[vehicle_name]
-	client:airsim.MultirotorClient = kwargs["wrapper"].clients[vehicle_name]
 
-	client.goHomeAsync(vehicle_name=vehicle_name)
+	home = kwargs["wrapper"].home[vehicle_name]
+	home_as_dest = (home.position.x_val, home.position.y_val, home.position.z_val)
+
+	flyTo_API(home_as_dest, **kwargs)
+
 	LogLock.acquire()
 	print(f"{vehicle_name} :-> {inspect.currentframe().f_code.co_name}")
 	LogLock.release()
@@ -218,5 +226,5 @@ def goHome_API(*swarm_args, **kwargs):
 def print_API(*swarm_args, **kwargs):
 	vehicle_name = f'{kwargs["agent"]}_{kwargs["id"]}'
 	LogLock.acquire()
-	print(f"{vehicle_name} : {swarm_args[:-1]})")
+	print(f"{vehicle_name} : {swarm_args}")
 	LogLock.release()

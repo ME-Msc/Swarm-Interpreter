@@ -61,7 +61,20 @@ class Interpreter(NodeVisitor):
 		self.wrapper = platform_wrapper
 
 	def visit_LibraryCall(self, node, **kwargs):
+		CALL_STACK = self.call_stack
+		if "call_stack" in kwargs:
+			CALL_STACK = kwargs["call_stack"]
+
 		wrapper = kwargs["wrapper"]
+
+		goal_caller = None
+		for ar in CALL_STACK.peek_all():
+			if ar.category == ARType.BEHAVIOR:
+				goal_caller = ('Behaviors', ar.name)
+				break
+			elif ar.category == ARType.TASK:
+				goal_caller = ('Tasks', ar.name)
+				break
 
 		library = importlib.import_module(f'libs.{node.library.value}')
 		attr = getattr(library, node.postfixes[0].value, wrapper)
@@ -72,7 +85,7 @@ class Interpreter(NodeVisitor):
 			for arg in node.arguments:
 				actual_arg = self.visit(arg, **kwargs)
 				args.append(actual_arg)
-			attr = attr(*args, wrapper, **kwargs)
+			attr = attr(*args, goal_caller=goal_caller, **kwargs)
 		return attr
 
 	def visit_Action(self, node, **kwargs):
