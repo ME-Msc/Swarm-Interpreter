@@ -6,8 +6,7 @@ Action takeOff_Action(){
 }
 Action flyToHeight_Action(h){
   Uav.flyToHeight_API(h);
-  get cnt from reach_count;
-  put cnt+1 to reach_count;
+  MODIFY(reach_count, cnt, cnt+1);
 }
 
 Agent search_drone {
@@ -24,14 +23,14 @@ Behavior search_Behavior(h){
   }
 }
 
-Task earthquake_relief({agtA[stA~edA]}, h){
+Task search_delivery({agtA[stA~edA]}, h){
   @init{
     search_height = h;
-    put 0 to reach_count;
+    POST(reach_count, 0);
   }
   @goal{
-    get cnt from reach_count;
-    $ cnt >= 3  
+    GET(reach_count, cnt);
+    $ cnt >= 3
   }
   @routine{
     each agtA[stA~edA] {
@@ -42,5 +41,5 @@ Task earthquake_relief({agtA[stA~edA]}, h){
 
 Main {
   Agent search_drone 3;
-  earthquake_relief({search_drone[0~3]}, 40);
+  search_delivery({search_drone[0~3]}, 40);
 }

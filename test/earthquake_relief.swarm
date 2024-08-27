@@ -95,7 +95,7 @@ Behavior cargo_Behavior(h) {
 	}
 }
 
-Task earthquake_relief({agtA[stA~edA], agtB[stB~edB]}, city_map){
+Task search_delivery({agtA[stA~edA], agtB[stB~edB]}, city_map){
 	@init{
 		search_height = 40;
 		cargo_height = 50;
@@ -121,6 +121,6 @@ Task earthquake_relief({agtA[stA~edA], agtB[stB~edB]}, city_map){
 
 Main {
 	Agent search_drone 3;
-	Agent cargo_drone 3;
-	earthquake_relief({search_drone[0~3], cargo_drone[0~3]}, Map.AirsimNH);
+	Agent delivery_drone 3;
+	search_delivery({search_drone[0~3], cargo_drone[0~3]}, Map.AirsimNH);
 }
