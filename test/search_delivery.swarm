@@ -24,7 +24,7 @@ Action takePicture_Action(){
 Action cover_Action(net){
   Uav.cover_API();
 }
-Action putDeliveryDest_Action(dest){
+Action postDeliveryDest_Action(dest){
   GET(findCount, cnt);
   POST(deliveryDest, dest);
   POST(findCount, cnt+1);
@@ -33,7 +33,7 @@ Action getDeliveryDest_Action(){
   GET(deliveryDest, dest);
   return dest;
 }
-Action putFindCount_Action(c){
+Action postFindCount_Action(c){
   POST(findCount, c);
 }
 Action getFindCount_Action(){
@@ -49,7 +49,7 @@ Action goHome_Action(){
 }
 
 Agent search_drone {
-  takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action, takePicture_Action, cover_Action, putDeliveryDest_Action, putFindCount_Action, getFindCount_Action, goHome_Action;
+  takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action, takePicture_Action, cover_Action, postDeliveryDest_Action, postFindCount_Action, getFindCount_Action, goHome_Action;
 }
 Agent delivery_drone {
   takeOff_Action, flyToHeight_Action, flyTo_Action, getPosition_Action, getDeliveryDest_Action, dropGoods_Action, goHome_Action;
@@ -60,11 +60,11 @@ Behavior search_Behavior(h, net){
     takeOff_Action();
     flyToHeight_Action(h);
     find_target = False;
-    putFindCount_Action(0);
+    postFindCount_Action(0);
   }
   @goal{
-    found_cnt = getFindCount_Action();
-    $ found_cnt >= 2
+    find_cnt = getFindCount_Action();
+    $ find_cnt >= 2
   }
   @routine{
     cover_Action(net);
@@ -75,7 +75,7 @@ Behavior search_Behavior(h, net){
     find_target = Network.cnnRecognize(picture);
     if(find_target == True){
       destination = getPosition_Action();
-      putDeliveryDest_Action(destination);
+      postDeliveryDest_Action(destination);
     }
   }
 }
